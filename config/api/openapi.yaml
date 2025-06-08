@@ -1,0 +1,58 @@
+openapi: 3.0.3
+info:
+  title: CreDIT API
+  version: 1.0.0
+  description: |
+    Rocket Credit (CreDIT) public‐facing and internal endpoints.
+servers:
+  - url: http://localhost:8080
+    description: Local dev gateway
+
+paths:
+  /checkout:
+    post:
+      summary: “Run full checkout flow”
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '200':
+          description: Successful initiation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+
+components:
+  schemas:
+    CheckoutRequest:
+      type: object
+      required: [userId, cartTotal]
+      properties:
+        userId:
+          type: integer
+        cartTotal:
+          type: number
+          format: double
+    CheckoutResponse:
+      type: object
+      properties:
+        paymentId:
+          type: string
+        schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installment'
+
+    Installment:
+      type: object
+      properties:
+        dueDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
