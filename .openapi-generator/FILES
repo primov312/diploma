@@ -1,0 +1,8 @@
+.openapi-generator-ignore
+README.md
+pom.xml
+src/main/java/com/rocketcredit/gateway/api/ApiUtil.java
+src/main/java/com/rocketcredit/gateway/api/CheckoutApi.java
+src/main/java/com/rocketcredit/gateway/model/CheckoutRequest.java
+src/main/java/com/rocketcredit/gateway/model/CheckoutResponse.java
+src/main/java/com/rocketcredit/gateway/model/Installment.java
