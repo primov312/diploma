@@ -1,3 +1,9 @@
+FROM eclipse-temurin:17 AS builder
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN ./mvnw -q clean package -DskipTests
+
 FROM eclipse-temurin:17
 WORKDIR /app
 COPY --from=builder /app/target/user-data-0.1.0-SNAPSHOT.jar app.jar
