@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: gateway
+
+services:
+  user-data:
+    url: ${USER_DATA_URL:http://localhost:8081}
+  credit-analysis:
+    url: ${CREDIT_ANALYSIS_URL:http://localhost:8082}
+  payment:
+    url: ${PAYMENT_URL:http://localhost:8083}
+  repayment:
+    url: ${REPAYMENT_URL:http://localhost:8084}
+  notification:
+    url: ${NOTIFICATION_URL:http://localhost:8085}
