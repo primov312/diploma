@@ -26,6 +26,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/CheckoutResponse'
 
+  /users/{id}:
+    get:
+      operationId: getUserById
+      summary: "Fetch a user by ID"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
 components:
   schemas:
     CheckoutRequest:
@@ -37,6 +55,7 @@ components:
         cartTotal:
           type: number
           format: double
+    
     CheckoutResponse:
       type: object
       properties:
@@ -56,3 +75,15 @@ components:
         amount:
           type: number
           format: double
+    
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email

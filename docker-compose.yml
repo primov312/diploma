@@ -1,18 +1,13 @@
 version: "3.8"
 
 services:
-
   gateway:
-    image: ghcr.io/rocketcredit/gateway:latest
-    container_name: gateway
+    build:
+      context: ../rocket-credit-gateway
+      dockerfile: Dockerfile
+    image: rocket-credit-gateway:latest
     ports:
       - "8080:8080"
-    depends_on:
-      - user-data
-      - credit-analysis
-      - payment
-      - repayment
-      - notification
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - USER_DATA_URL=http://user-data:8081
@@ -22,119 +17,114 @@ services:
       - NOTIFICATION_URL=http://notification:8085
 
   user-data:
-    image: ghcr.io/rocketcredit/user-data:latest
-    container_name: user-data
+    build:
+      context: ../rocket-credit-user-data
+      dockerfile: Dockerfile
+    image: rocket-credit-user-data:latest
     ports:
       - "8081:8081"
-    depends_on:
-      - userdb
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - DATABASE_URL=jdbc:postgresql://userdb:5432/userdb
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
 
-  userdb:
-    image: postgres:15
-    container_name: userdb
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: userdb
-    ports:
-      - "5433:5432"
+  # userdb:
+  #   image: postgres:15
+  #   container_name: userdb
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: userdb
+  #   ports:
+  #     - "5433:5432"
 
-  credit-analysis:
-    image: ghcr.io/rocketcredit/credit-analysis:latest
-    container_name: credit-analysis
-    ports:
-      - "8082:8082"
-    depends_on:
-      - creditdb
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - DATABASE_URL=jdbc:postgresql://creditdb:5432/creditdb
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+  # credit-analysis:
+  #   image: ghcr.io/rocketcredit/credit-analysis:latest
+  #   container_name: credit-analysis
+  #   ports:
+  #     - "8082:8082"
+  #   depends_on:
+  #     - creditdb
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=dev
+  #     - DATABASE_URL=jdbc:postgresql://creditdb:5432/creditdb
+  #     - DB_USER=postgres
+  #     - DB_PASSWORD=postgres
 
-  creditdb:
-    image: postgres:15
-    container_name: creditdb
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: creditdb
-    ports:
-      - "5434:5432"
+  # creditdb:
+  #   image: postgres:15
+  #   container_name: creditdb
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: creditdb
+  #   ports:
+  #     - "5434:5432"
 
-  payment:
-    image: ghcr.io/rocketcredit/payment:latest
-    container_name: payment
-    ports:
-      - "8083:8083"
-    depends_on:
-      - paymentdb
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - DATABASE_URL=jdbc:postgresql://paymentdb:5432/paymentdb
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+  # payment:
+  #   image: ghcr.io/rocketcredit/payment:latest
+  #   container_name: payment
+  #   ports:
+  #     - "8083:8083"
+  #   depends_on:
+  #     - paymentdb
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=dev
+  #     - DATABASE_URL=jdbc:postgresql://paymentdb:5432/paymentdb
+  #     - DB_USER=postgres
+  #     - DB_PASSWORD=postgres
 
-  paymentdb:
-    image: postgres:15
-    container_name: paymentdb
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: paymentdb
-    ports:
-      - "5435:5432"
+  # paymentdb:
+  #   image: postgres:15
+  #   container_name: paymentdb
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: paymentdb
+  #   ports:
+  #     - "5435:5432"
 
-  repayment:
-    image: ghcr.io/rocketcredit/repayment:latest
-    container_name: repayment
-    ports:
-      - "8084:8084"
-    depends_on:
-      - repaymentdb
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - DATABASE_URL=jdbc:postgresql://repaymentdb:5432/repaymentdb
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+  # repayment:
+  #   image: ghcr.io/rocketcredit/repayment:latest
+  #   container_name: repayment
+  #   ports:
+  #     - "8084:8084"
+  #   depends_on:
+  #     - repaymentdb
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=dev
+  #     - DATABASE_URL=jdbc:postgresql://repaymentdb:5432/repaymentdb
+  #     - DB_USER=postgres
+  #     - DB_PASSWORD=postgres
 
-  repaymentdb:
-    image: postgres:15
-    container_name: repaymentdb
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: repaymentdb
-    ports:
-      - "5436:5432"
+  # repaymentdb:
+  #   image: postgres:15
+  #   container_name: repaymentdb
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: repaymentdb
+  #   ports:
+  #     - "5436:5432"
 
-  notification:
-    image: ghcr.io/rocketcredit/notification:latest
-    container_name: notification
-    ports:
-      - "8085:8085"
-    depends_on:
-      - notificationdb
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - DATABASE_URL=jdbc:postgresql://notificationdb:5432/notificationdb
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
+  # notification:
+  #   image: ghcr.io/rocketcredit/notification:latest
+  #   container_name: notification
+  #   ports:
+  #     - "8085:8085"
+  #   depends_on:
+  #     - notificationdb
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=dev
+  #     - DATABASE_URL=jdbc:postgresql://notificationdb:5432/notificationdb
+  #     - DB_USER=postgres
+  #     - DB_PASSWORD=postgres
 
-  notificationdb:
-    image: postgres:15
-    container_name: notificationdb
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: notificationdb
-    ports:
-      - "5437:5432"
+  # notificationdb:
+  #   image: postgres:15
+  #   container_name: notificationdb
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: notificationdb
+  #   ports:
+  #     - "5437:5432"
 
 networks:
   default:

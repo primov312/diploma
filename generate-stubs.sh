@@ -4,7 +4,7 @@ set -e  # Stop if anything fails
 # Paths
 GENERATOR_JAR="openapi-generator-cli.jar"
 OPENAPI_SPEC="config/api/openapi.yaml"
-TARGET_REPO="../rocket-credit-gateway"
+TARGET_REPO="../rocket-credit-user-data"
 GENERATOR_VERSION="6.6.0"
 
 echo "🔧 Checking for OpenAPI Generator JAR..."
@@ -18,11 +18,11 @@ java -jar $GENERATOR_JAR generate \
   -i $OPENAPI_SPEC \
   -g spring \
   -o $TARGET_REPO \
-  --api-package com.rocketcredit.gateway.api \
-  --model-package com.rocketcredit.gateway.model \
-  --invoker-package com.rocketcredit.gateway.invoker \
+  --api-package com.rocketcredit.rocket-credit-user-data.api \
+  --model-package com.rocketcredit.rocket-credit-user-data.model \
+  --invoker-package com.rocketcredit.rocket-credit-user-data.invoker \
   --group-id com.rocketcredit \
-  --artifact-id gateway \
+  --artifact-id rocket-credit-user-data \
   --artifact-version 0.1.0-SNAPSHOT \
   --additional-properties=interfaceOnly=true,swaggerAnnotations=true
 
