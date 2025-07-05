@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-06-13T17:05:17.458467+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-05T12:39:41.756185+02:00[Europe/Budapest]")
 @Validated
 @Tag(name = "checkout", description = "the checkout API")
 public interface CheckoutApi {

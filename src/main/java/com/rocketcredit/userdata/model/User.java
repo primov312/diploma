@@ -18,10 +18,10 @@ import javax.annotation.Generated;
  * User
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-06-13T17:05:17.458467+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-05T12:39:41.756185+02:00[Europe/Budapest]")
 public class User {
 
-  private Integer id;
+  private Long id;
 
   private String name;
 
@@ -29,7 +29,7 @@ public class User {
 
   /**
    * Default constructor
-   * @deprecated Use {@link User#User(Integer, String, String)}
+   * @deprecated Use {@link User#User(Long, String, String)}
    */
   @Deprecated
   public User() {
@@ -39,13 +39,13 @@ public class User {
   /**
    * Constructor with only required parameters
    */
-  public User(Integer id, String name, String email) {
+  public User(Long id, String name, String email) {
     this.id = id;
     this.name = name;
     this.email = email;
   }
 
-  public User id(Integer id) {
+  public User id(Long id) {
     this.id = id;
     return this;
   }
@@ -57,11 +57,11 @@ public class User {
   @NotNull 
   @Schema(name = "id", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("id")
-  public Integer getId() {
+  public Long getId() {
     return id;
   }
 
-  public void setId(Integer id) {
+  public void setId(Long id) {
     this.id = id;
   }
 
