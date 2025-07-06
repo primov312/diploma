@@ -14,8 +14,8 @@ The `user-data` service is a Spring Boot-based microservice responsible for mana
 
 ## 🧱 Stack
 
-- **Language:** Java 17
-- **Framework:** Spring Boot 2.7.6
+- **Language:** Java 8
+- **Framework:** Spring Boot 1.6.14
 - **Database:** PostgreSQL 15 (via Docker)
 - **Build Tool:** Maven
 - **OpenAPI Generator:** Used to scaffold API models and interfaces.
