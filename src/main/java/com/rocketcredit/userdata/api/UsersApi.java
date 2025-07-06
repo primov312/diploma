@@ -5,6 +5,7 @@
  */
 package com.rocketcredit.userdata.api;
 
+import com.rocketcredit.userdata.model.NewUser;
 import com.rocketcredit.userdata.model.User;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,7 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-05T12:39:41.756185+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-06T18:19:53.700186+02:00[Europe/Budapest]")
 @Validated
 @Tag(name = "users", description = "the users API")
 public interface UsersApi {
@@ -40,6 +41,69 @@ public interface UsersApi {
     default Optional<NativeWebRequest> getRequest() {
         return Optional.empty();
     }
+
+    /**
+     * POST /users : Create a new user
+     *
+     * @param newUser  (required)
+     * @return Created (status code 201)
+     */
+    @Operation(
+        operationId = "createUser",
+        summary = "Create a new user",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Created", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
+            })
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.POST,
+        value = "/users",
+        produces = { "application/json" },
+        consumes = { "application/json" }
+    )
+    default ResponseEntity<User> createUser(
+        @Parameter(name = "NewUser", description = "", required = true) @Valid @RequestBody NewUser newUser
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    /**
+     * DELETE /users/{id} : Delete a user
+     *
+     * @param id  (required)
+     * @return No Content (status code 204)
+     */
+    @Operation(
+        operationId = "deleteUser",
+        summary = "Delete a user",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "No Content")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.DELETE,
+        value = "/users/{id}"
+    )
+    default ResponseEntity<Void> deleteUser(
+        @Parameter(name = "id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("id") Long id
+    ) {
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
 
     /**
      * GET /users/{id} : Fetch a user by ID
@@ -63,6 +127,46 @@ public interface UsersApi {
     )
     default ResponseEntity<User> getUserById(
         @Parameter(name = "id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("id") Long id
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    /**
+     * PUT /users/{id} : Update an existing user
+     *
+     * @param id  (required)
+     * @param user  (required)
+     * @return OK (status code 200)
+     */
+    @Operation(
+        operationId = "updateUser",
+        summary = "Update an existing user",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "OK", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
+            })
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.PUT,
+        value = "/users/{id}",
+        produces = { "application/json" },
+        consumes = { "application/json" }
+    )
+    default ResponseEntity<User> updateUser(
+        @Parameter(name = "id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("id") Long id,
+        @Parameter(name = "User", description = "", required = true) @Valid @RequestBody User user
     ) {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {

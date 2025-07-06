@@ -21,7 +21,7 @@ import javax.annotation.Generated;
  * CheckoutResponse
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-05T12:39:41.756185+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-06T18:19:53.700186+02:00[Europe/Budapest]")
 public class CheckoutResponse {
 
   private String paymentId;

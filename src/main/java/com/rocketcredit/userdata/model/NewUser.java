@@ -15,71 +15,71 @@ import java.util.*;
 import javax.annotation.Generated;
 
 /**
- * CheckoutRequest
+ * NewUser
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-06T18:19:53.700186+02:00[Europe/Budapest]")
-public class CheckoutRequest {
+public class NewUser {
 
-  private Long userId;
+  private String name;
 
-  private Double cartTotal;
+  private String email;
 
   /**
    * Default constructor
-   * @deprecated Use {@link CheckoutRequest#CheckoutRequest(Long, Double)}
+   * @deprecated Use {@link NewUser#NewUser(String, String)}
    */
   @Deprecated
-  public CheckoutRequest() {
+  public NewUser() {
     super();
   }
 
   /**
    * Constructor with only required parameters
    */
-  public CheckoutRequest(Long userId, Double cartTotal) {
-    this.userId = userId;
-    this.cartTotal = cartTotal;
+  public NewUser(String name, String email) {
+    this.name = name;
+    this.email = email;
   }
 
-  public CheckoutRequest userId(Long userId) {
-    this.userId = userId;
+  public NewUser name(String name) {
+    this.name = name;
     return this;
   }
 
   /**
-   * Get userId
-   * @return userId
+   * Get name
+   * @return name
   */
   @NotNull 
-  @Schema(name = "userId", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("userId")
-  public Long getUserId() {
-    return userId;
+  @Schema(name = "name", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("name")
+  public String getName() {
+    return name;
   }
 
-  public void setUserId(Long userId) {
-    this.userId = userId;
+  public void setName(String name) {
+    this.name = name;
   }
 
-  public CheckoutRequest cartTotal(Double cartTotal) {
-    this.cartTotal = cartTotal;
+  public NewUser email(String email) {
+    this.email = email;
     return this;
   }
 
   /**
-   * Get cartTotal
-   * @return cartTotal
+   * Get email
+   * @return email
   */
-  @NotNull 
-  @Schema(name = "cartTotal", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("cartTotal")
-  public Double getCartTotal() {
-    return cartTotal;
+  @NotNull @javax.validation.constraints.Email
+  @Schema(name = "email", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("email")
+  public String getEmail() {
+    return email;
   }
 
-  public void setCartTotal(Double cartTotal) {
-    this.cartTotal = cartTotal;
+  public void setEmail(String email) {
+    this.email = email;
   }
 
   @Override
@@ -90,22 +90,22 @@ public class CheckoutRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    CheckoutRequest checkoutRequest = (CheckoutRequest) o;
-    return Objects.equals(this.userId, checkoutRequest.userId) &&
-        Objects.equals(this.cartTotal, checkoutRequest.cartTotal);
+    NewUser newUser = (NewUser) o;
+    return Objects.equals(this.name, newUser.name) &&
+        Objects.equals(this.email, newUser.email);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(userId, cartTotal);
+    return Objects.hash(name, email);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class CheckoutRequest {\n");
-    sb.append("    userId: ").append(toIndentedString(userId)).append("\n");
-    sb.append("    cartTotal: ").append(toIndentedString(cartTotal)).append("\n");
+    sb.append("class NewUser {\n");
+    sb.append("    name: ").append(toIndentedString(name)).append("\n");
+    sb.append("    email: ").append(toIndentedString(email)).append("\n");
     sb.append("}");
     return sb.toString();
   }
