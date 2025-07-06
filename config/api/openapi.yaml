@@ -25,7 +25,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CheckoutResponse'
-
+  /users:
+    post:
+      operationId: createUser
+      summary: "Create a new user"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
   /users/{id}:
     get:
       operationId: getUserById
@@ -36,6 +52,7 @@ paths:
           required: true
           schema:
             type: integer
+            format: int64
       responses:
         '200':
           description: OK
@@ -43,6 +60,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+    put:
+      operationId: updateUser
+      summary: "Update an existing user"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      operationId: deleteUser
+      summary: "Delete a user"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: No Content
 
 components:
   schemas:
@@ -52,6 +105,7 @@ components:
       properties:
         userId:
           type: integer
+          format: int64
         cartTotal:
           type: number
           format: double
@@ -83,7 +137,16 @@ components:
         id:
           type: integer
           format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
 
+    NewUser:
+      type: object
+      required: [name, email]
+      properties:
         name:
           type: string
         email:
