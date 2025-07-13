@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.model;
+package com.rocketcredit.userdata.entity;
 
 import javax.persistence.*;
 
@@ -14,7 +14,6 @@ public class UserEntity {
     @Column(nullable = false)
     private String email;
 
-    // JPA needs a no-arg ctor
     protected UserEntity() {}
 
     public UserEntity(String name, String email) {

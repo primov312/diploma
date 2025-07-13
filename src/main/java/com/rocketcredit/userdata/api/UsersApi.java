@@ -6,6 +6,8 @@
 package com.rocketcredit.userdata.api;
 
 import com.rocketcredit.userdata.model.NewUser;
+import com.rocketcredit.userdata.model.PaymentMethod;
+import com.rocketcredit.userdata.model.Transaction;
 import com.rocketcredit.userdata.model.User;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-06T18:19:53.700186+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-13T11:36:11.508574+02:00[Europe/Budapest]")
 @Validated
 @Tag(name = "users", description = "the users API")
 public interface UsersApi {
@@ -132,6 +134,80 @@ public interface UsersApi {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
                     String exampleString = "{ \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    /**
+     * GET /users/{id}/payment-methods : Fetch user&#39;s payment methods
+     *
+     * @param id  (required)
+     * @return OK (status code 200)
+     */
+    @Operation(
+        operationId = "getUserPaymentMethods",
+        summary = "Fetch user's payment methods",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "OK", content = {
+                @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = PaymentMethod.class)))
+            })
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/users/{id}/payment-methods",
+        produces = { "application/json" }
+    )
+    default ResponseEntity<List<PaymentMethod>> getUserPaymentMethods(
+        @Parameter(name = "id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("id") Long id
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "[ { \"last4\" : \"last4\", \"id\" : \"id\", \"type\" : \"type\", \"userId\" : \"userId\" }, { \"last4\" : \"last4\", \"id\" : \"id\", \"type\" : \"type\", \"userId\" : \"userId\" } ]";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    /**
+     * GET /users/{id}/transactions : Fetch user&#39;s transactions
+     *
+     * @param id  (required)
+     * @return OK (status code 200)
+     */
+    @Operation(
+        operationId = "getUserTransactions",
+        summary = "Fetch user's transactions",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "OK", content = {
+                @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Transaction.class)))
+            })
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = "/users/{id}/transactions",
+        produces = { "application/json" }
+    )
+    default ResponseEntity<List<Transaction>> getUserTransactions(
+        @Parameter(name = "id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("id") Long id
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "[ { \"date\" : \"2000-01-23\", \"amount\" : 0.8008281904610115, \"method\" : \"method\", \"id\" : \"id\", \"userId\" : \"userId\" }, { \"date\" : \"2000-01-23\", \"amount\" : 0.8008281904610115, \"method\" : \"method\", \"id\" : \"id\", \"userId\" : \"userId\" } ]";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }

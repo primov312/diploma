@@ -1,6 +1,6 @@
 package com.rocketcredit.userdata.repo;
 
-import com.rocketcredit.userdata.model.UserEntity;
+import com.rocketcredit.userdata.entity.UserEntity;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
