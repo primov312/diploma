@@ -1,4 +1,4 @@
-package com.rocketcredit.gateway.model;
+package com.rocketcredit.gateway.api;
 
 import java.net.URI;
 import java.util.Objects;
@@ -18,16 +18,16 @@ import javax.annotation.Generated;
  * CheckoutRequest
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-06-08T19:27:33.802539+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-13T11:36:48.469480+02:00[Europe/Budapest]")
 public class CheckoutRequest {
 
-  private Integer userId;
+  private Long userId;
 
   private Double cartTotal;
 
   /**
    * Default constructor
-   * @deprecated Use {@link CheckoutRequest#CheckoutRequest(Integer, Double)}
+   * @deprecated Use {@link CheckoutRequest#CheckoutRequest(Long, Double)}
    */
   @Deprecated
   public CheckoutRequest() {
@@ -37,12 +37,12 @@ public class CheckoutRequest {
   /**
    * Constructor with only required parameters
    */
-  public CheckoutRequest(Integer userId, Double cartTotal) {
+  public CheckoutRequest(Long userId, Double cartTotal) {
     this.userId = userId;
     this.cartTotal = cartTotal;
   }
 
-  public CheckoutRequest userId(Integer userId) {
+  public CheckoutRequest userId(Long userId) {
     this.userId = userId;
     return this;
   }
@@ -54,11 +54,11 @@ public class CheckoutRequest {
   @NotNull 
   @Schema(name = "userId", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("userId")
-  public Integer getUserId() {
+  public Long getUserId() {
     return userId;
   }
 
-  public void setUserId(Integer userId) {
+  public void setUserId(Long userId) {
     this.userId = userId;
   }
 

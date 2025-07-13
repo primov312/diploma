@@ -5,8 +5,8 @@
  */
 package com.rocketcredit.gateway.api;
 
-import com.rocketcredit.gateway.model.CheckoutRequest;
-import com.rocketcredit.gateway.model.CheckoutResponse;
+import com.rocketcredit.gateway.api.CheckoutRequest;
+import com.rocketcredit.gateway.api.CheckoutResponse;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-06-08T19:27:33.802539+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-13T11:36:48.469480+02:00[Europe/Budapest]")
 @Validated
 @Tag(name = "checkout", description = "the checkout API")
 public interface CheckoutApi {

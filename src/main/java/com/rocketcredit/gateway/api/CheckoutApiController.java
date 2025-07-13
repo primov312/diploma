@@ -1,7 +1,7 @@
 package com.rocketcredit.gateway.api;
 
-import com.rocketcredit.gateway.model.CheckoutRequest;
-import com.rocketcredit.gateway.model.CheckoutResponse;
+import com.rocketcredit.gateway.api.CheckoutRequest;
+import com.rocketcredit.gateway.api.CheckoutResponse;
 import com.rocketcredit.gateway.service.CheckoutService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
