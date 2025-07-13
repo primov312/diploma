@@ -40,6 +40,17 @@ services:
     ports:
       - "5433:5432"
 
+  credit-analysis:
+    build:
+      context: ../rocket-credit-analysis
+      dockerfile: deploy/docker/Dockerfile
+    image: rocket-credit-analysis:latest
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+
+
   # credit-analysis:
   #   image: ghcr.io/rocketcredit/credit-analysis:latest
   #   container_name: credit-analysis
