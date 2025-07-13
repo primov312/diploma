@@ -1,0 +1,60 @@
+openapi: 3.0.3
+info:
+  title: CreDIT Gateway API
+  version: 1.0.0
+  description: Rocket Credit Gateway
+servers:
+  - url: http://localhost:8080
+    description: Local gateway
+
+paths:
+  /checkout:
+    post:
+      operationId: checkoutPost
+      summary: “Run full checkout flow”
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '200':
+          description: Successful initiation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+
+components:
+  schemas:
+    CheckoutRequest:
+      type: object
+      required: [userId, cartTotal]
+      properties:
+        userId:
+          type: integer
+          format: int64
+        cartTotal:
+          type: number
+          format: double
+
+    CheckoutResponse:
+      type: object
+      properties:
+        paymentId:
+          type: string
+        schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installment'
+
+    Installment:
+      type: object
+      properties:
+        dueDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
