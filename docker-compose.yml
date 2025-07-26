@@ -72,8 +72,32 @@ services:
   #     POSTGRES_PASSWORD: postgres
   #     POSTGRES_DB: creditdb
   #   ports:
-  #     - "5434:5432"
+  #     - "5434:5432
 
+  payment:
+    build: 
+      context: ../rocket-credit-payment
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      - paymentdb
+    ports:
+      - "8083:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://paymentdb:5432/paymentdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+
+  paymentdb:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: paymentdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+  
   # payment:
   #   image: ghcr.io/rocketcredit/payment:latest
   #   container_name: payment
