@@ -1,6 +1,8 @@
 src/main/java/com/rocketcredit/userdata/api/ApiUtil.java
 src/main/java/com/rocketcredit/userdata/api/UsersApi.java
+src/main/java/com/rocketcredit/userdata/model/CreditProfile.java
 src/main/java/com/rocketcredit/userdata/model/NewUser.java
 src/main/java/com/rocketcredit/userdata/model/PaymentMethod.java
+src/main/java/com/rocketcredit/userdata/model/SocialInsights.java
 src/main/java/com/rocketcredit/userdata/model/Transaction.java
 src/main/java/com/rocketcredit/userdata/model/User.java

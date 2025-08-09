@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
 import javax.validation.Valid;
@@ -15,13 +16,12 @@ import java.util.*;
 import javax.annotation.Generated;
 
 /**
- * User
+ * CreateUserRequest
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-27T11:24:20.422539+02:00[Europe/Budapest]")
-public class User {
-
-  private Long id;
+@JsonTypeName("createUser_request")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-06T17:59:41.170416+02:00[Europe/Budapest]")
+public class CreateUserRequest {
 
   private String name;
 
@@ -29,43 +29,22 @@ public class User {
 
   /**
    * Default constructor
-   * @deprecated Use {@link User#User(Long, String, String)}
+   * @deprecated Use {@link CreateUserRequest#CreateUserRequest(String, String)}
    */
   @Deprecated
-  public User() {
+  public CreateUserRequest() {
     super();
   }
 
   /**
    * Constructor with only required parameters
    */
-  public User(Long id, String name, String email) {
-    this.id = id;
+  public CreateUserRequest(String name, String email) {
     this.name = name;
     this.email = email;
   }
 
-  public User id(Long id) {
-    this.id = id;
-    return this;
-  }
-
-  /**
-   * Get id
-   * @return id
-  */
-  @NotNull 
-  @Schema(name = "id", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("id")
-  public Long getId() {
-    return id;
-  }
-
-  public void setId(Long id) {
-    this.id = id;
-  }
-
-  public User name(String name) {
+  public CreateUserRequest name(String name) {
     this.name = name;
     return this;
   }
@@ -85,7 +64,7 @@ public class User {
     this.name = name;
   }
 
-  public User email(String email) {
+  public CreateUserRequest email(String email) {
     this.email = email;
     return this;
   }
@@ -113,22 +92,20 @@ public class User {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    User user = (User) o;
-    return Objects.equals(this.id, user.id) &&
-        Objects.equals(this.name, user.name) &&
-        Objects.equals(this.email, user.email);
+    CreateUserRequest createUserRequest = (CreateUserRequest) o;
+    return Objects.equals(this.name, createUserRequest.name) &&
+        Objects.equals(this.email, createUserRequest.email);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, name, email);
+    return Objects.hash(name, email);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class User {\n");
-    sb.append("    id: ").append(toIndentedString(id)).append("\n");
+    sb.append("class CreateUserRequest {\n");
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    email: ").append(toIndentedString(email)).append("\n");
     sb.append("}");

@@ -1,18 +1,9 @@
 package com.rocketcredit.userdata.entity;
 
 import javax.persistence.*;
-import lombok.Data;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
-import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @Entity
 @Table(name = "users")
-@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
 public class UserEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,10 +14,6 @@ public class UserEntity {
     @Column(nullable = false)
     private String email;
 
-    @CreationTimestamp
-    @Column(name = "created_at")
-    private ZonedDateTime createdAt;
-
     @Column(name = "annual_income")
     private Double annualIncome = 50000.0;  // Default mock
 
@@ -36,18 +23,8 @@ public class UserEntity {
     @Column(name = "social_consent")
     private Boolean socialConsent = false;
 
-    @Type(type = "jsonb")
     @Column(name = "social_handles", columnDefinition = "jsonb")
-    private Map<String, Object> socialHandles;  // e.g., "{\"linkedin\":\"https://linkedin.com/in/user\", \"x\":\"@handle\"}"
-
-    @Column(name = "work_email")
-    private String workEmail;
-
-    @Column(name = "email_verified")
-    private Boolean emailVerified = false;
-
-    @Column(name = "email_verified_at")
-    private ZonedDateTime emailVerifiedAt;
+    private String socialHandles;  // e.g., "{\"linkedin\":\"https://linkedin.com/in/user\", \"x\":\"@handle\"}"
 
     protected UserEntity() {}
 
@@ -74,15 +51,6 @@ public class UserEntity {
     public Boolean getSocialConsent() { return socialConsent; }
     public void setSocialConsent(Boolean socialConsent) { this.socialConsent = socialConsent; }
 
-    public Map<String, Object> getSocialHandles() { return socialHandles; }
-    public void setSocialHandles(Map<String, Object> socialHandles) { this.socialHandles = socialHandles; }
-
-    public String getWorkEmail() { return workEmail; }
-    public void setWorkEmail(String workEmail) { this.workEmail = workEmail; }
-
-    public Boolean getEmailVerified() { return emailVerified; }
-    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
-
-    public ZonedDateTime getEmailVerifiedAt() { return emailVerifiedAt; }
-    public void setEmailVerifiedAt(ZonedDateTime emailVerifiedAt) { this.emailVerifiedAt = emailVerifiedAt; }
+    public String getSocialHandles() { return socialHandles; }
+    public void setSocialHandles(String socialHandles) { this.socialHandles = socialHandles; }
 }

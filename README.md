@@ -64,7 +64,7 @@ src/
 ## 📤 Next Steps
 
 - [ ] Add integration test coverage.
-- [ ] Change structure of the db (credit score, age, transactions and etc)
+- [X] Change structure of the db (credit score, age, transactions and etc)
 - [X] Add create/update/delete endpoints.
 - [ ] Integrate with `gateway` microservice end-to-end.
 - [ ] Deploy to AWS (RDS for DB + ECS or EC2).
