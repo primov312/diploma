@@ -13,6 +13,7 @@ services:
       - PAYMENT_URL=http://payment:8083
       - REPAYMENT_URL=http://repayment:8084
       - NOTIFICATION_URL=http://notification:8085
+      
 
   user-data:
     build:
@@ -29,6 +30,12 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      # New: Env vars for social auth and email verification (service-specific)
+      - VK_CLIENT_ID=your_vk_app_id  # From VK dev console
+      - VK_CLIENT_SECRET=your_vk_secret
+      - META_CLIENT_ID=your_fb_app_id  # From Meta dev portal
+      - META_CLIENT_SECRET=your_fb_secret
+      - EMAIL_VERIFIER_API_KEY=your_hunter_io_key  # Or similar service; mock in tests
 
   userdb:
     image: postgres:15
@@ -47,10 +54,32 @@ services:
     image: rocket-credit-analysis:latest
     ports:
       - "8082:8080"
+    depends_on:
+      - creditdb  # New: Dependency on creditdb
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      # New: Datasource config (mirrors user-data)
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://creditdb:5432/creditdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update  # For auto-schema if needed
+      # New: Env vars for social auth and email verification (service-specific)
+      - VK_CLIENT_ID=your_vk_app_id  # From VK dev console
+      - VK_CLIENT_SECRET=your_vk_secret
+      - META_CLIENT_ID=your_fb_app_id  # From Meta dev portal
+      - META_CLIENT_SECRET=your_fb_secret
+      - EMAIL_VERIFIER_API_KEY=your_hunter_io_key  # Or similar service; mock in tests
 
-
+  creditdb:
+    image: postgres:15
+    container_name: creditdb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: creditdb
+    ports:
+      - "5434:5432"
+  
   # credit-analysis:
   #   image: ghcr.io/rocketcredit/credit-analysis:latest
   #   container_name: credit-analysis
@@ -63,16 +92,6 @@ services:
   #     - DATABASE_URL=jdbc:postgresql://creditdb:5432/creditdb
   #     - DB_USER=postgres
   #     - DB_PASSWORD=postgres
-
-  # creditdb:
-  #   image: postgres:15
-  #   container_name: creditdb
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: creditdb
-  #   ports:
-  #     - "5434:5432
 
   payment:
     build: 

@@ -122,6 +122,27 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PaymentMethod'
+  
+  /users/{id}/credit-profile:
+    get:
+      operationId: getUserCreditProfile
+      summary: Fetch aggregated credit profile and social insights
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Credit profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditProfile'
+        '404':
+          description: User not found
 
 components:
   schemas:
@@ -175,4 +196,52 @@ components:
           type: string
         last4:
           type: string
+
+    
+    CreditProfile:
+      type: object
+      description: Aggregated credit profile including derived social insights
+      properties:
+        userId:
+          type: integer
+          format: int64
+        annualIncome:
+          type: number
+          format: double
+        creditBureauScore:
+          type: integer
+        numTransactions:
+          type: integer
+        totalSpent:
+          type: number
+          format: double
+        avgTransactionAmount:
+          type: number
+          format: double
+        onTimePaymentRate:
+          type: number
+          format: double
+          description: Derived proxy for on-time payments (0 - 1)
+        numPaymentMethods:
+          type: integer
+        numActiveBnpl:
+          type: integer
+          description: Number of active BNPL plans
+        socialInsights:
+          $ref: '#/components/schemas/SocialInsights'
+
+    SocialInsights:
+      type: object
+      description: Basic social media insights
+      properties:
+        jobStabilityScore:
+          type: integer
+          description: Derived from LinkedIn (mock 0 - 100)
+        networkQuality:
+          type: integer
+          description: Proxy for quality of connections
+        activitySentiment:
+          type: number
+          format: double
+          description: Sentiment score of recent activity (0 - 1)
 
