@@ -11,8 +11,8 @@ public class CreditApiController implements CreditscoreApi {
   @Override
   public ResponseEntity<CreditResponse> analyzeCredit(CreditRequest body) {
     // simple placeholder logic:
-    int score = (int)(Math.random()*300) + 300;      // 300–600
-    boolean approved = score > 400;                  // arbitrary threshold
+    int score = (int)(Math.random()*300) + 300;
+    boolean approved = score > 400;
     CreditResponse resp = new CreditResponse();
     resp.setScore(score);
     resp.setApproved(approved);
