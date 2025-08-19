@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.client.RestTemplate;
@@ -29,13 +30,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import reactor.core.publisher.Mono;
-import java.util.Map;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import javax.validation.Valid;
@@ -43,10 +44,18 @@ import javax.persistence.*;
 
 import java.net.URI;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Optional;
+import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
+
 
 
 @RestController
@@ -57,34 +66,21 @@ public class UserApiController implements UsersApi {
     private final UserRepository userRepo;
     private final TransactionRepository transactionRepo;
     private final PaymentMethodRepository paymentMethodRepo;
-    private final SocialAuthRepository socialAuthRepo;
+    //private final SocialAuthRepository socialAuthRepo;
+
+    private final ConcurrentHashMap<Long, Map<String, Object>> featureOverrides = new ConcurrentHashMap<>();
+
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final BCryptPasswordEncoder encoder;
     private final WebClient webClient;
 
-    @Value("${external.apis.vkontakte.client-id}")
-    private String vkClientId;
-    @Value("${external.apis.vkontakte.client-secret}")
-    private String vkClientSecret;
-    @Value("${external.apis.vkontakte.oauth-url}")
-    private String vkOauthUrl;
-    @Value("${external.apis.vkontakte.base-url}")
-    private String vkBaseUrl;
-
-    @Value("${external.apis.meta.client-id}")
-    private String metaClientId;
-    @Value("${external.apis.meta.client-secret}")
-    private String metaClientSecret;
-    @Value("${external.apis.meta.base-url}")
-    private String metaBaseUrl;
-
     public UserApiController(
         UserRepository userRepo,
         TransactionRepository transactionRepo,
         PaymentMethodRepository paymentMethodRepo,
-        SocialAuthRepository socialAuthRepo,
+        //SocialAuthRepository socialAuthRepo,
         RestTemplate restTemplate,
         BCryptPasswordEncoder encoder,
         WebClient.Builder webClientBuilder
@@ -92,7 +88,7 @@ public class UserApiController implements UsersApi {
         this.userRepo = userRepo;
         this.transactionRepo = transactionRepo;
         this.paymentMethodRepo = paymentMethodRepo;
-        this.socialAuthRepo = socialAuthRepo;
+        //this.socialAuthRepo = socialAuthRepo;
         this.restTemplate = restTemplate;
         this.encoder = encoder;
         this.webClient = webClientBuilder.build();
@@ -181,110 +177,140 @@ public class UserApiController implements UsersApi {
                 .filter(t -> t.getDate().isAfter(LocalDate.now().minusMonths(6)))
                 .count();
             profile.setNumActiveBnpl((int) activeBnpl);
-
-            // Social aggregation (mock; real: call APIs if consent)
-            SocialInsights insights = new SocialInsights();
-            try {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> handles = user.getSocialHandles();
-                if (handles != null) {
-                    Object linkedin = handles.get("linkedin");
-                    if (linkedin != null) {
-                        // Mock API call; real: restTemplate.getForObject(linkedin + "/public-profile", Map.class)
-                        insights.setJobStabilityScore(80);  // e.g., from job length
-                        insights.setNetworkQuality(300);  // Connections
-                        insights.setActivitySentiment(0.85);  // Positive posts
-                    }
-                }
-            } catch (Exception e) {
-                // Log error; default to 0
-            }
-            profile.setSocialInsights(insights);
-
             return ResponseEntity.ok(profile);
         }).orElse(ResponseEntity.notFound().build());
     }
 
-   @PostMapping("/user/social-auth")
-    public ResponseEntity<String> socialAuth(@Valid @RequestBody SocialAuthRequest request) {
-        logger.info("Received social auth request for user {} on platform {}", request.getUserId(), request.getPlatform());  // Audit entry
-        return userRepo.findById(request.getUserId()).map(user -> {
-            // allow when either request consent OR stored consent is true
-            if (!(request.isConsentGiven() || Boolean.TRUE.equals(user.getSocialConsent()))) {
-                return ResponseEntity.badRequest().body("Explicit consent required for social data access");
-            }
-            user.setSocialConsent(true);
-            userRepo.save(user);
+   
+    /**
+     * Upload/Upsert a user's features for credit-analysis.
+     * Accepts a flat JSON object; unknown keys are ignored.
+     */
+    @PostMapping("/users/{id}/features")
+    public ResponseEntity<Void> upsertUserFeatures(
+            @PathVariable("id") Long userId,
+            @RequestBody Map<String, Object> payload
+    ) {
+        if (payload == null) return ResponseEntity.badRequest().build();
 
-            SocialAuthEntity existing = socialAuthRepo.findByUserIdAndPlatform(request.getUserId(), request.getPlatform());
-            if (existing != null) {
-                logger.debug("Duplicate auth for user {} on platform {}", request.getUserId(), request.getPlatform());
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Platform already authorized for this user");
-            }
+        Set<String> allowed = Set.of(
+            "kyc_passed",
+            // "social_consent",             // disabled for now
+            "partner_orders_12m",
+            "partner_avg_order_value",
+            "partner_refund_rate",
+            "partner_ontime_ratio",
+            "partner_tenure_months",
+            "rocket_ontime_ratio",
+            "rocket_dpd30_12m",
+            "rocket_active_plans",
+            "rocket_tenure_months",
+            "credit_limit",
+            "income"
+            // Social fields intentionally commented out:
+            // "social_account_age_months","social_verified",
+            // "social_activity_days_since","social_network_volatility"
+        );
 
-            String accessToken = "";
-            String profileData = "{}";  // Fallback empty JSON if processing fails
-            try {
+        Map<String, Object> filtered = payload.entrySet().stream()
+            .filter(e -> allowed.contains(e.getKey()))
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (a,b) -> b,
+                LinkedHashMap::new
+            ));
 
-                switch (request.getPlatform()) {
-                    case "vkontakte":
-                        // Exchange code
-                        Map<String, Object> tokenResponse = webClient.post()
-                            .uri(vkOauthUrl + "/access_token?client_id=" + vkClientId + "&client_secret=" + vkClientSecret + "&code=" + request.getAuthCode())
-                            .retrieve()
-                            .bodyToMono(mapTypeReference())  // Use static method
-                            .block();
-                        accessToken = (String) tokenResponse.get("access_token");
+        featureOverrides.merge(userId, filtered, (oldMap, newMap) -> { oldMap.putAll(newMap); return oldMap; });
+        return ResponseEntity.accepted().build();
+    }
 
-                        // Fetch profile
-                        Map<String, Object> profileResponse = webClient.get()
-                            .uri(vkBaseUrl + "/users.get?access_token=" + accessToken + "&v=5.199&fields=verified,connections")
-                            .retrieve()
-                            .bodyToMono(mapTypeReference())  // Use static method
-                            .block();
-                        profileData = objectMapper.writeValueAsString(profileResponse);
-                        break;
-                    case "facebook":
-                    case "instagram":
-                        // Meta exchange
-                        Map<String, Object> metaTokenResponse = webClient.post()
-                            .uri(metaBaseUrl + "/oauth/access_token?client_id=" + metaClientId + "&client_secret=" + metaClientSecret + "&code=" + request.getAuthCode())
-                            .retrieve()
-                            .bodyToMono(mapTypeReference())  // Use static method
-                            .block();
-                        accessToken = (String) metaTokenResponse.get("access_token");
+    /**
+     * Return the feature bundle expected by credit-analysis.
+     * Both /user-info and /user-data are supported for compatibility.
+     */
+    @GetMapping({"/user-info", "/user-data"})
+    public ResponseEntity<Map<String, Object>> getUserInfo(@RequestParam("id") Long userId) {
+        // 1) Start from computed defaults based on existing data
+        Map<String, Object> computed = computeFeatures(userId);
 
-                        // Fetch profile
-                        Map<String, Object> metaProfile = webClient.get()
-                            .uri(metaBaseUrl + "/me?access_token=" + accessToken + "&fields=id,verified")
-                            .retrieve()
-                            .bodyToMono(mapTypeReference())  // Use static method
-                            .block();
-                        profileData = objectMapper.writeValueAsString(metaProfile);
-                        break;
-                    default:
-                        return ResponseEntity.badRequest().body("Unsupported platform");
-                }
+        // 2) Overlay explicit overrides uploaded via POST /users/{id}/features
+        Map<String, Object> overrides = featureOverrides.getOrDefault(userId, Collections.emptyMap());
+        if (!overrides.isEmpty()) {
+            computed.putAll(overrides);
+        }
 
-                String hashedToken = encoder.encode(accessToken);
+        // 3) Strip any social_* keys (if someone uploaded them by mistake)
+        computed.keySet().removeIf(k -> k.startsWith("social_"));
 
-                SocialAuthEntity entity = new SocialAuthEntity();
-                entity.setUserId(request.getUserId());
-                entity.setPlatform(request.getPlatform());
-                entity.setTokenHash(hashedToken);
-                entity.setFetchedData(profileData);
-                socialAuthRepo.save(entity);
+        return ResponseEntity.ok(computed);
+    }
 
-                logger.info("Social auth succeeded for user {} on platform {}", request.getUserId(), request.getPlatform());
-                return ResponseEntity.ok("Social platform authorized successfully");
-            } catch (JsonProcessingException e) {
-                logger.error("JSON processing error during social auth for user {} platform {}: {}", request.getUserId(), request.getPlatform(), e.getMessage());
-                return ResponseEntity.internalServerError().body("Error processing profile data—please try again");
-            } catch (Exception e) {
-                logger.error("Unexpected error during social auth: {}", e.getMessage());
-                return ResponseEntity.internalServerError().body("Authorization failed—internal error");
-            }
-        }).orElse(ResponseEntity.notFound().build());
+    private Map<String, Object> computeFeatures(Long userId) {
+        Map<String, Object> m = new LinkedHashMap<>();
+
+        Optional<UserEntity> maybeUser = userRepo.findById(userId);
+        List<TransactionEntity> txns = transactionRepo.findByUserId(userId);
+
+        // KYC flag – if you have a real field, use it; otherwise default true for now
+        boolean kyc = maybeUser.map(UserEntity::getKycPassed).orElse(Boolean.TRUE);
+        m.put("kyc_passed", kyc);
+
+        // Partner stats (based on last 12 months transactions)
+        LocalDate cutoff12m = LocalDate.now().minusMonths(12);
+        List<TransactionEntity> last12m = txns.stream()
+            .filter(t -> t.getDate() != null && !t.getDate().isBefore(cutoff12m))
+            .collect(Collectors.toList());
+
+        int orders12m = last12m.size();
+        double avgOrder = last12m.isEmpty() ? 0.0 :
+            last12m.stream().mapToDouble(TransactionEntity::getAmount).average().orElse(0.0);
+
+        // We don't have explicit refund/repayment status here, so use safe defaults
+        double refundRate = 0.0;
+        double onTimeRatio = txns.size() > 5 ? 0.95 : 0.70;
+
+        int tenureMonths = txns.isEmpty()
+            ? 0
+            : Math.max(0, monthsBetween(
+                txns.stream().map(TransactionEntity::getDate).min(LocalDate::compareTo).orElse(LocalDate.now()),
+                LocalDate.now()
+              ));
+
+        m.put("partner_orders_12m", orders12m);
+        m.put("partner_avg_order_value", avgOrder);
+        m.put("partner_refund_rate", refundRate);
+        m.put("partner_ontime_ratio", onTimeRatio);
+        m.put("partner_tenure_months", tenureMonths);
+
+        // Rocket stats – proxy from same data until you centralize cross-partner history
+        m.put("rocket_ontime_ratio", onTimeRatio);
+        m.put("rocket_dpd30_12m", 0);  // unknown → assume 0
+        int activePlans = (int) txns.stream()
+            .filter(t -> t.getDate() != null && !t.getDate().isBefore(LocalDate.now().minusMonths(6)))
+            .count();
+        m.put("rocket_active_plans", activePlans);
+        m.put("rocket_tenure_months", tenureMonths);
+
+        // Capacity
+        double annualIncome = maybeUser.map(UserEntity::getAnnualIncome).orElse(0.0);
+        double monthlyIncome = annualIncome / 12.0;
+        m.put("income", monthlyIncome);
+
+        // If you have a real credit limit field, use it; else approximate from income (30%)
+        Double creditLimit = maybeUser.map(UserEntity::getCreditLimit).orElse(null);
+        if (creditLimit == null) {
+            creditLimit = monthlyIncome * 0.30;
+        }
+        m.put("credit_limit", creditLimit);
+
+        return m;
+    }
+
+    private static int monthsBetween(LocalDate start, LocalDate end) {
+        if (start == null || end == null) return 0;
+        Period p = Period.between(start, end);
+        return p.getYears() * 12 + p.getMonths();
     }
 
     static class ConsentUpdate {

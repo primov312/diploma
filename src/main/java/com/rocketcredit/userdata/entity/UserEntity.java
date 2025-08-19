@@ -27,6 +27,12 @@ public class UserEntity {
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
 
+    @Column(name = "kyc_passed")
+    private Boolean kycPassed = true;
+
+    @Column(name = "credit_limit")
+    private Double creditLimit;
+
     @Column(name = "annual_income")
     private Double annualIncome = 50000.0;  // Default mock
 
@@ -39,9 +45,6 @@ public class UserEntity {
     @Type(type = "jsonb")
     @Column(name = "social_handles", columnDefinition = "jsonb")
     private Map<String, Object> socialHandles;  // e.g., "{\"linkedin\":\"https://linkedin.com/in/user\", \"x\":\"@handle\"}"
-
-    @Column(name = "work_email")
-    private String workEmail;
 
     @Column(name = "email_verified")
     private Boolean emailVerified = false;
@@ -65,6 +68,12 @@ public class UserEntity {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
+    public Boolean getKycPassed() { return kycPassed; }
+    public void setKycPassed(Boolean kycPassed) { this.kycPassed = kycPassed; }
+
+    public Double getCreditLimit() { return creditLimit; }
+    public void setCreditLimit(Double creditLimit) { this.creditLimit = creditLimit; }
+
     public Double getAnnualIncome() { return annualIncome; }
     public void setAnnualIncome(Double annualIncome) { this.annualIncome = annualIncome; }
 
@@ -76,9 +85,6 @@ public class UserEntity {
 
     public Map<String, Object> getSocialHandles() { return socialHandles; }
     public void setSocialHandles(Map<String, Object> socialHandles) { this.socialHandles = socialHandles; }
-
-    public String getWorkEmail() { return workEmail; }
-    public void setWorkEmail(String workEmail) { this.workEmail = workEmail; }
 
     public Boolean getEmailVerified() { return emailVerified; }
     public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
