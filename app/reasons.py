@@ -1,0 +1,35 @@
+# app/reasons.py
+# Canonical, human-stable machine codes (don’t change once shipped)
+KYC_MISSING                   = "KYC_MISSING"
+CONSENT_MISSING               = "CONSENT_MISSING"
+AFFORDABILITY_EXCEEDED        = "AFFORDABILITY_LIMIT_EXCEEDED"
+
+PARTNER_TOO_FEW_ORDERS        = "PARTNER_TOO_FEW_COMPLETED_ORDERS"
+PARTNER_ON_TIME_LOW           = "PARTNER_ON_TIME_LOW"
+PARTNER_REFUND_RATE_HIGH      = "PARTNER_REFUND_RATE_HIGH"
+
+ROCKET_RECENT_LATE_PAYMENT    = "ROCKET_RECENT_LATE_PAYMENT"
+ROCKET_TOO_MANY_ACTIVE_PLANS  = "ROCKET_TOO_MANY_ACTIVE_PLANS"
+
+BUREAU_RECENT_DELINQUENCY     = "BUREAU_RECENT_DELINQUENCY"
+BUREAU_UTILIZATION_HIGH       = "BUREAU_UTILIZATION_HIGH"
+BUREAU_INQUIRIES_HIGH         = "BUREAU_INQUIRIES_HIGH"
+
+SOCIAL_ACCOUNT_RECENCY_LOW    = "SOCIAL_ACCOUNT_RECENCY_LOW"
+SOCIAL_NETWORK_VOLATILE       = "SOCIAL_NETWORK_VOLATILE"
+
+
+
+# (Optional) mapping features -> reason code for ML SHAP to reasons:
+FEATURE_TO_REASON = {
+    "partner_orders_12m":      PARTNER_TOO_FEW_ORDERS,
+    "partner_ontime_ratio":    PARTNER_ON_TIME_LOW,
+    "partner_refund_rate":     PARTNER_REFUND_RATE_HIGH,
+    "rocket_dpd30_12m":        ROCKET_RECENT_LATE_PAYMENT,
+    "rocket_active_plans":     ROCKET_TOO_MANY_ACTIVE_PLANS,
+    # "bureau_delinquency_flag": BUREAU_RECENT_DELINQUENCY,
+    # "bureau_utilization":      BUREAU_UTILIZATION_HIGH,
+    # "bureau_inquiries_6m":     BUREAU_INQUIRIES_HIGH,
+    # "social_account_age_m":    SOCIAL_ACCOUNT_RECENCY_LOW,
+    # "social_volatility":       SOCIAL_NETWORK_VOLATILE,
+}
