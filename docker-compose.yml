@@ -5,15 +5,21 @@ services:
       dockerfile: Dockerfile
     image: rocket-credit-gateway:latest
     ports:
-      - "8080:8080"
+      - "8080:8080"          # host:container
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      # IMPORTANT: use CONTAINER ports for in-network calls (all 8080 here)
       - USER_DATA_URL=http://user-data:8080
-      - CREDIT_ANALYSIS_URL=http://credit-analysis:8082
-      - PAYMENT_URL=http://payment:8083
-      - REPAYMENT_URL=http://repayment:8084
-      - NOTIFICATION_URL=http://notification:8085
-      
+      - CREDIT_ANALYSIS_URL=http://credit-analysis:8080
+      - PAYMENT_URL=http://payment:8080
+      - REPAYMENT_URL=http://repayment:8080
+      - NOTIFICATION_URL=http://notification:8080
+    depends_on:
+      - user-data
+      - credit-analysis
+      # - payment
+      # - repayment      # uncomment when you enable the service
+      # - notification
 
   user-data:
     build:
@@ -30,12 +36,11 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      # New: Env vars for social auth and email verification (service-specific)
-      - VK_CLIENT_ID=your_vk_app_id  # From VK dev console
+      - VK_CLIENT_ID=your_vk_app_id
       - VK_CLIENT_SECRET=your_vk_secret
-      - META_CLIENT_ID=your_fb_app_id  # From Meta dev portal
+      - META_CLIENT_ID=your_fb_app_id
       - META_CLIENT_SECRET=your_fb_secret
-      - EMAIL_VERIFIER_API_KEY=your_hunter_io_key  # Or similar service; mock in tests
+      - EMAIL_VERIFIER_API_KEY=your_hunter_io_key
 
   userdb:
     image: postgres:15
@@ -50,25 +55,17 @@ services:
   credit-analysis:
     build:
       context: ../rocket-credit-analysis
-      dockerfile: deploy/docker/Dockerfile
+      dockerfile: Dockerfile
     image: rocket-credit-analysis:latest
+    environment:
+      - USER_DATA_URL=http://user-data:8080
+      - SQLALCHEMY_URL=postgresql+psycopg://postgres:postgres@creditdb:5432/creditdb
+      - APPROVE_THRESHOLD=0.60
+      - PORT=8080 
     ports:
       - "8082:8080"
     depends_on:
-      - creditdb  # New: Dependency on creditdb
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      # New: Datasource config (mirrors user-data)
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://creditdb:5432/creditdb
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update  # For auto-schema if needed
-      # New: Env vars for social auth and email verification (service-specific)
-      - VK_CLIENT_ID=your_vk_app_id  # From VK dev console
-      - VK_CLIENT_SECRET=your_vk_secret
-      - META_CLIENT_ID=your_fb_app_id  # From Meta dev portal
-      - META_CLIENT_SECRET=your_fb_secret
-      - EMAIL_VERIFIER_API_KEY=your_hunter_io_key  # Or similar service; mock in tests
+      - creditdb
 
   creditdb:
     image: postgres:15
@@ -79,83 +76,54 @@ services:
       POSTGRES_DB: creditdb
     ports:
       - "5434:5432"
-  
-  # credit-analysis:
-  #   image: ghcr.io/rocketcredit/credit-analysis:latest
-  #   container_name: credit-analysis
-  #   ports:
-  #     - "8082:8082"
-  #   depends_on:
-  #     - creditdb
-  #   environment:
-  #     - SPRING_PROFILES_ACTIVE=dev
-  #     - DATABASE_URL=jdbc:postgresql://creditdb:5432/creditdb
-  #     - DB_USER=postgres
-  #     - DB_PASSWORD=postgres
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U postgres -d creditdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
-  payment:
-    build: 
-      context: ../rocket-credit-payment
-      dockerfile: Dockerfile
-    env_file: .env
-    depends_on:
-      - paymentdb
-    ports:
-      - "8083:8080"
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://paymentdb:5432/paymentdb
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-
-  paymentdb:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: paymentdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5435:5432"
-  
   # payment:
-  #   image: ghcr.io/rocketcredit/payment:latest
-  #   container_name: payment
-  #   ports:
-  #     - "8083:8083"
+  #   build:
+  #     context: ../rocket-credit-payment
+  #   image: rocket-credit-payment:latest
+  #   env_file: .env
   #   depends_on:
   #     - paymentdb
+  #   ports:
+  #     - "8083:8080"
   #   environment:
   #     - SPRING_PROFILES_ACTIVE=dev
-  #     - DATABASE_URL=jdbc:postgresql://paymentdb:5432/paymentdb
-  #     - DB_USER=postgres
-  #     - DB_PASSWORD=postgres
+  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://paymentdb:5432/paymentdb
+  #     - SPRING_DATASOURCE_USERNAME=postgres
+  #     - SPRING_DATASOURCE_PASSWORD=postgres
 
   # paymentdb:
   #   image: postgres:15
-  #   container_name: paymentdb
   #   environment:
+  #     POSTGRES_DB: paymentdb
   #     POSTGRES_USER: postgres
   #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: paymentdb
   #   ports:
   #     - "5435:5432"
 
+  # If you enable these, standardize to container port 8080 as well:
   # repayment:
-  #   image: ghcr.io/rocketcredit/repayment:latest
-  #   container_name: repayment
-  #   ports:
-  #     - "8084:8084"
+  #   build:
+  #     context: ../rocket-credit-repayment
+  #     dockerfile: Dockerfile
+  #   image: rocket-credit-repayment:latest
   #   depends_on:
   #     - repaymentdb
+  #   ports:
+  #     - "8084:8080"   # host 8084 → container 8080
   #   environment:
   #     - SPRING_PROFILES_ACTIVE=dev
-  #     - DATABASE_URL=jdbc:postgresql://repaymentdb:5432/repaymentdb
-  #     - DB_USER=postgres
-  #     - DB_PASSWORD=postgres
+  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://repaymentdb:5432/repaymentdb
+  #     - SPRING_DATASOURCE_USERNAME=postgres
+  #     - SPRING_DATASOURCE_PASSWORD=postgres
 
   # repaymentdb:
   #   image: postgres:15
-  #   container_name: repaymentdb
   #   environment:
   #     POSTGRES_USER: postgres
   #     POSTGRES_PASSWORD: postgres
@@ -164,21 +132,22 @@ services:
   #     - "5436:5432"
 
   # notification:
-  #   image: ghcr.io/rocketcredit/notification:latest
-  #   container_name: notification
-  #   ports:
-  #     - "8085:8085"
+  #   build:
+  #     context: ../rocket-credit-notification
+  #     dockerfile: Dockerfile
+  #   image: rocket-credit-notification:latest
   #   depends_on:
   #     - notificationdb
+  #   ports:
+  #     - "8085:8080"   # host 8085 → container 8080
   #   environment:
   #     - SPRING_PROFILES_ACTIVE=dev
-  #     - DATABASE_URL=jdbc:postgresql://notificationdb:5432/notificationdb
-  #     - DB_USER=postgres
-  #     - DB_PASSWORD=postgres
+  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://notificationdb:5432/notificationdb
+  #     - SPRING_DATASOURCE_USERNAME=postgres
+  #     - SPRING_DATASOURCE_PASSWORD=postgres
 
   # notificationdb:
   #   image: postgres:15
-  #   container_name: notificationdb
   #   environment:
   #     POSTGRES_USER: postgres
   #     POSTGRES_PASSWORD: postgres
