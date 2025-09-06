@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.model;
+package com.rocketcredit.user_data.model;
 
 import java.net.URI;
 import java.util.Objects;
@@ -20,12 +20,14 @@ import javax.annotation.Generated;
  * Transaction
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-27T11:24:20.422539+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T17:02:00.623423+06:00[Asia/Bishkek]")
 public class Transaction {
 
   private String id;
 
-  private String userId;
+  private Long userId;
+
+  private String partnerId;
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
   private LocalDate date;
@@ -54,7 +56,7 @@ public class Transaction {
     this.id = id;
   }
 
-  public Transaction userId(String userId) {
+  public Transaction userId(Long userId) {
     this.userId = userId;
     return this;
   }
@@ -66,12 +68,32 @@ public class Transaction {
   
   @Schema(name = "userId", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("userId")
-  public String getUserId() {
+  public Long getUserId() {
     return userId;
   }
 
-  public void setUserId(String userId) {
+  public void setUserId(Long userId) {
     this.userId = userId;
+  }
+
+  public Transaction partnerId(String partnerId) {
+    this.partnerId = partnerId;
+    return this;
+  }
+
+  /**
+   * Get partnerId
+   * @return partnerId
+  */
+  
+  @Schema(name = "partnerId", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("partnerId")
+  public String getPartnerId() {
+    return partnerId;
+  }
+
+  public void setPartnerId(String partnerId) {
+    this.partnerId = partnerId;
   }
 
   public Transaction date(LocalDate date) {
@@ -145,6 +167,7 @@ public class Transaction {
     Transaction transaction = (Transaction) o;
     return Objects.equals(this.id, transaction.id) &&
         Objects.equals(this.userId, transaction.userId) &&
+        Objects.equals(this.partnerId, transaction.partnerId) &&
         Objects.equals(this.date, transaction.date) &&
         Objects.equals(this.amount, transaction.amount) &&
         Objects.equals(this.method, transaction.method);
@@ -152,7 +175,7 @@ public class Transaction {
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, userId, date, amount, method);
+    return Objects.hash(id, userId, partnerId, date, amount, method);
   }
 
   @Override
@@ -161,6 +184,7 @@ public class Transaction {
     sb.append("class Transaction {\n");
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    userId: ").append(toIndentedString(userId)).append("\n");
+    sb.append("    partnerId: ").append(toIndentedString(partnerId)).append("\n");
     sb.append("    date: ").append(toIndentedString(date)).append("\n");
     sb.append("    amount: ").append(toIndentedString(amount)).append("\n");
     sb.append("    method: ").append(toIndentedString(method)).append("\n");

@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.model;
+package com.rocketcredit.user_data.model;
 
 import java.net.URI;
 import java.util.Objects;
@@ -19,7 +19,7 @@ import javax.annotation.Generated;
  */
 
 @Schema(name = "SocialInsights", description = "Basic social media insights")
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-27T11:24:20.422539+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T17:02:00.623423+06:00[Asia/Bishkek]")
 public class SocialInsights {
 
   private Integer jobStabilityScore;

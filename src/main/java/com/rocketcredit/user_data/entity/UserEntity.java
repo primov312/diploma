@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.entity;
+package com.rocketcredit.user_data.entity;
 
 import javax.persistence.*;
 import lombok.Data;
@@ -22,6 +22,12 @@ public class UserEntity {
 
     @Column(nullable = false)
     private String email;
+
+    @Column(name = "partner_user_id")
+    private String partnerUserId;
+
+    @Column(name = "cardToken")
+    private String cardToken;  
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -52,7 +58,7 @@ public class UserEntity {
     @Column(name = "email_verified_at")
     private ZonedDateTime emailVerifiedAt;
 
-    protected UserEntity() {}
+    public UserEntity() {}
 
     public UserEntity(String name, String email) {
         this.name = name;
@@ -67,6 +73,12 @@ public class UserEntity {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getPartnerUserId() { return partnerUserId; }
+    public void setPartnerUserId(String partnerUserId) { this.partnerUserId = partnerUserId; }
+
+    public String getCardToken() { return cardToken; }
+    public void setCardToken(String cardToken) { this.cardToken = cardToken; }
 
     public Boolean getKycPassed() { return kycPassed; }
     public void setKycPassed(Boolean kycPassed) { this.kycPassed = kycPassed; }

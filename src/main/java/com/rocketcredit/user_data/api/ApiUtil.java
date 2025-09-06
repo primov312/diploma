@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.api;
+package com.rocketcredit.user_data.api;
 
 import org.springframework.web.context.request.NativeWebRequest;
 

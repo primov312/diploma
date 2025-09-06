@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata;
+package com.rocketcredit;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

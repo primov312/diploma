@@ -3,13 +3,15 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-package com.rocketcredit.userdata.api;
+package com.rocketcredit.user_data.api;
 
-import com.rocketcredit.userdata.model.CreditProfile;
-import com.rocketcredit.userdata.model.NewUser;
-import com.rocketcredit.userdata.model.PaymentMethod;
-import com.rocketcredit.userdata.model.Transaction;
-import com.rocketcredit.userdata.model.User;
+import com.rocketcredit.user_data.model.CreditProfile;
+import com.rocketcredit.user_data.model.NewUser;
+import com.rocketcredit.user_data.model.PaymentMethod;
+import com.rocketcredit.user_data.model.ResolveError;
+import com.rocketcredit.user_data.model.Transaction;
+import com.rocketcredit.user_data.model.User;
+import com.rocketcredit.user_data.model.UserResolveRequest;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,7 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-27T11:24:20.422539+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T17:02:00.623423+06:00[Asia/Bishkek]")
 @Validated
 @Tag(name = "users", description = "the users API")
 public interface UsersApi {
@@ -72,7 +74,7 @@ public interface UsersApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
+                    String exampleString = "{ \"partnerUserId\" : \"partnerUserId\", \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
@@ -113,6 +115,7 @@ public interface UsersApi {
      *
      * @param id  (required)
      * @return OK (status code 200)
+     *         or Not found (status code 404)
      */
     @Operation(
         operationId = "getUserById",
@@ -120,7 +123,8 @@ public interface UsersApi {
         responses = {
             @ApiResponse(responseCode = "200", description = "OK", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
-            })
+            }),
+            @ApiResponse(responseCode = "404", description = "Not found")
         }
     )
     @RequestMapping(
@@ -134,7 +138,7 @@ public interface UsersApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
+                    String exampleString = "{ \"partnerUserId\" : \"partnerUserId\", \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
@@ -210,7 +214,7 @@ public interface UsersApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "[ { \"last4\" : \"last4\", \"id\" : \"id\", \"type\" : \"type\", \"userId\" : \"userId\" }, { \"last4\" : \"last4\", \"id\" : \"id\", \"type\" : \"type\", \"userId\" : \"userId\" } ]";
+                    String exampleString = "[ { \"last4\" : \"last4\", \"id\" : \"id\", \"type\" : \"card\", \"userId\" : 0, \"token\" : \"token\" }, { \"last4\" : \"last4\", \"id\" : \"id\", \"type\" : \"card\", \"userId\" : 0, \"token\" : \"token\" } ]";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
@@ -225,6 +229,7 @@ public interface UsersApi {
      * GET /users/{id}/transactions : Fetch user&#39;s transactions
      *
      * @param id  (required)
+     * @param partnerId  (optional)
      * @return OK (status code 200)
      */
     @Operation(
@@ -242,12 +247,55 @@ public interface UsersApi {
         produces = { "application/json" }
     )
     default ResponseEntity<List<Transaction>> getUserTransactions(
-        @Parameter(name = "id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("id") Long id
+        @Parameter(name = "id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("id") Long id,
+        @Parameter(name = "partnerId", description = "", in = ParameterIn.QUERY) @Valid @RequestParam(value = "partnerId", required = false) String partnerId
     ) {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "[ { \"date\" : \"2000-01-23\", \"amount\" : 0.8008281904610115, \"method\" : \"method\", \"id\" : \"id\", \"userId\" : \"userId\" }, { \"date\" : \"2000-01-23\", \"amount\" : 0.8008281904610115, \"method\" : \"method\", \"id\" : \"id\", \"userId\" : \"userId\" } ]";
+                    String exampleString = "[ { \"date\" : \"2000-01-23\", \"amount\" : 6.027456183070403, \"method\" : \"method\", \"id\" : \"id\", \"partnerId\" : \"partnerId\", \"userId\" : 0 }, { \"date\" : \"2000-01-23\", \"amount\" : 6.027456183070403, \"method\" : \"method\", \"id\" : \"id\", \"partnerId\" : \"partnerId\", \"userId\" : 0 } ]";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    /**
+     * POST /users/resolve : Resolve (find or create) a user by partnerUserId/email
+     *
+     * @param userResolveRequest  (required)
+     * @return Resolved user (status code 200)
+     *         or Email/domain verification failed (status code 422)
+     */
+    @Operation(
+        operationId = "resolveUser",
+        summary = "Resolve (find or create) a user by partnerUserId/email",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Resolved user", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
+            }),
+            @ApiResponse(responseCode = "422", description = "Email/domain verification failed", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ResolveError.class))
+            })
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.POST,
+        value = "/users/resolve",
+        produces = { "application/json" },
+        consumes = { "application/json" }
+    )
+    default ResponseEntity<User> resolveUser(
+        @Parameter(name = "UserResolveRequest", description = "", required = true) @Valid @RequestBody UserResolveRequest userResolveRequest
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"partnerUserId\" : \"partnerUserId\", \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
@@ -287,7 +335,7 @@ public interface UsersApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
+                    String exampleString = "{ \"partnerUserId\" : \"partnerUserId\", \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }

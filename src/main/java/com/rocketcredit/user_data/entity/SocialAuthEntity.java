@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.entity;
+package com.rocketcredit.user_data.entity;
 
 import javax.persistence.*;
 import lombok.Data;

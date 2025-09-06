@@ -1,10 +1,9 @@
-package com.rocketcredit.userdata.model;
+package com.rocketcredit.user_data.model;
 
 import java.net.URI;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
 import javax.validation.Valid;
@@ -16,12 +15,13 @@ import java.util.*;
 import javax.annotation.Generated;
 
 /**
- * CreateUserRequest
+ * NewUser
  */
 
-@JsonTypeName("createUser_request")
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-06T17:59:41.170416+02:00[Europe/Budapest]")
-public class CreateUserRequest {
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T17:02:00.623423+06:00[Asia/Bishkek]")
+public class NewUser {
+
+  private String partnerUserId;
 
   private String name;
 
@@ -29,22 +29,42 @@ public class CreateUserRequest {
 
   /**
    * Default constructor
-   * @deprecated Use {@link CreateUserRequest#CreateUserRequest(String, String)}
+   * @deprecated Use {@link NewUser#NewUser(String, String)}
    */
   @Deprecated
-  public CreateUserRequest() {
+  public NewUser() {
     super();
   }
 
   /**
    * Constructor with only required parameters
    */
-  public CreateUserRequest(String name, String email) {
+  public NewUser(String name, String email) {
     this.name = name;
     this.email = email;
   }
 
-  public CreateUserRequest name(String name) {
+  public NewUser partnerUserId(String partnerUserId) {
+    this.partnerUserId = partnerUserId;
+    return this;
+  }
+
+  /**
+   * Get partnerUserId
+   * @return partnerUserId
+  */
+  
+  @Schema(name = "partnerUserId", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("partnerUserId")
+  public String getPartnerUserId() {
+    return partnerUserId;
+  }
+
+  public void setPartnerUserId(String partnerUserId) {
+    this.partnerUserId = partnerUserId;
+  }
+
+  public NewUser name(String name) {
     this.name = name;
     return this;
   }
@@ -64,7 +84,7 @@ public class CreateUserRequest {
     this.name = name;
   }
 
-  public CreateUserRequest email(String email) {
+  public NewUser email(String email) {
     this.email = email;
     return this;
   }
@@ -92,20 +112,22 @@ public class CreateUserRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    CreateUserRequest createUserRequest = (CreateUserRequest) o;
-    return Objects.equals(this.name, createUserRequest.name) &&
-        Objects.equals(this.email, createUserRequest.email);
+    NewUser newUser = (NewUser) o;
+    return Objects.equals(this.partnerUserId, newUser.partnerUserId) &&
+        Objects.equals(this.name, newUser.name) &&
+        Objects.equals(this.email, newUser.email);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, email);
+    return Objects.hash(partnerUserId, name, email);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class CreateUserRequest {\n");
+    sb.append("class NewUser {\n");
+    sb.append("    partnerUserId: ").append(toIndentedString(partnerUserId)).append("\n");
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    email: ").append(toIndentedString(email)).append("\n");
     sb.append("}");

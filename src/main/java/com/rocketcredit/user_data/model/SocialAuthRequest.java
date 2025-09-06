@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.model;
+package com.rocketcredit.user_data.model;
 
 import lombok.Data;
 

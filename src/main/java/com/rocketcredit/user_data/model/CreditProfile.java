@@ -1,10 +1,10 @@
-package com.rocketcredit.userdata.model;
+package com.rocketcredit.user_data.model;
 
 import java.net.URI;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.rocketcredit.userdata.model.SocialInsights;
+import com.rocketcredit.user_data.model.SocialInsights;
 import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
 import javax.validation.Valid;
@@ -20,7 +20,7 @@ import javax.annotation.Generated;
  */
 
 @Schema(name = "CreditProfile", description = "Aggregated credit profile including derived social insights")
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-27T11:24:20.422539+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T17:02:00.623423+06:00[Asia/Bishkek]")
 public class CreditProfile {
 
   private Long userId;

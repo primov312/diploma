@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.config;
+package com.rocketcredit.user_data.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

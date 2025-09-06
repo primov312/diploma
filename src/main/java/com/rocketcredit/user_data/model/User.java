@@ -1,4 +1,4 @@
-package com.rocketcredit.userdata.model;
+package com.rocketcredit.user_data.model;
 
 import java.net.URI;
 import java.util.Objects;
@@ -18,10 +18,12 @@ import javax.annotation.Generated;
  * User
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-27T11:24:20.422539+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T17:02:00.623423+06:00[Asia/Bishkek]")
 public class User {
 
   private Long id;
+
+  private String partnerUserId;
 
   private String name;
 
@@ -63,6 +65,26 @@ public class User {
 
   public void setId(Long id) {
     this.id = id;
+  }
+
+  public User partnerUserId(String partnerUserId) {
+    this.partnerUserId = partnerUserId;
+    return this;
+  }
+
+  /**
+   * Get partnerUserId
+   * @return partnerUserId
+  */
+  
+  @Schema(name = "partnerUserId", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("partnerUserId")
+  public String getPartnerUserId() {
+    return partnerUserId;
+  }
+
+  public void setPartnerUserId(String partnerUserId) {
+    this.partnerUserId = partnerUserId;
   }
 
   public User name(String name) {
@@ -115,13 +137,14 @@ public class User {
     }
     User user = (User) o;
     return Objects.equals(this.id, user.id) &&
+        Objects.equals(this.partnerUserId, user.partnerUserId) &&
         Objects.equals(this.name, user.name) &&
         Objects.equals(this.email, user.email);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, name, email);
+    return Objects.hash(id, partnerUserId, name, email);
   }
 
   @Override
@@ -129,6 +152,7 @@ public class User {
     StringBuilder sb = new StringBuilder();
     sb.append("class User {\n");
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
+    sb.append("    partnerUserId: ").append(toIndentedString(partnerUserId)).append("\n");
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    email: ").append(toIndentedString(email)).append("\n");
     sb.append("}");

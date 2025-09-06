@@ -1,6 +1,7 @@
-package com.rocketcredit.userdata.entity;
+package com.rocketcredit.user_data.entity;
 
 import javax.persistence.*;
+
 
 @Entity
 @Table(name = "paymentMethods")
@@ -13,11 +14,8 @@ public class PaymentMethodEntity {
     @Column(name = "userId", nullable = false)
     private Long userId;
 
-    @Column(name = "type", nullable = false)
-    private String type;
-
-    @Column(name = "last4", nullable = false)
-    private String last4;
+    @Column(name = "token")
+    private String token;
 
     public Long getId() {
         return id;
@@ -34,20 +32,12 @@ public class PaymentMethodEntity {
     public void userId(Long userId) {
         this.userId = userId;
     }
-
-    public String getType() {
-        return type;
+    public PaymentMethodEntity setUserId(Long userId) {
+        this.userId = userId; return this;
     }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getLast4() {
-        return last4;
-    }
-
-    public void setLast4(String last4) {
-        this.last4 = last4;
+    public String getToken() { return token; }
+    public PaymentMethodEntity setToken(String token) {
+        this.token = token; return this;
     }
 }

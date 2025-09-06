@@ -1,9 +1,10 @@
-package com.rocketcredit.userdata.model;
+package com.rocketcredit.user_data.model;
 
 import java.net.URI;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
 import javax.validation.Valid;
@@ -18,16 +19,55 @@ import javax.annotation.Generated;
  * PaymentMethod
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-27T11:24:20.422539+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T17:02:00.623423+06:00[Asia/Bishkek]")
 public class PaymentMethod {
 
   private String id;
 
-  private String userId;
+  private Long userId;
 
-  private String type;
+  /**
+   * Gets or Sets type
+   */
+  public enum TypeEnum {
+    CARD("card"),
+    
+    WALLET("wallet"),
+    
+    BANK("bank");
+
+    private String value;
+
+    TypeEnum(String value) {
+      this.value = value;
+    }
+
+    @JsonValue
+    public String getValue() {
+      return value;
+    }
+
+    @Override
+    public String toString() {
+      return String.valueOf(value);
+    }
+
+    @JsonCreator
+    public static TypeEnum fromValue(String value) {
+      for (TypeEnum b : TypeEnum.values()) {
+        if (b.value.equals(value)) {
+          return b;
+        }
+      }
+      throw new IllegalArgumentException("Unexpected value '" + value + "'");
+    }
+  }
+
+  private TypeEnum type;
 
   private String last4;
+
+  private String token;
 
   public PaymentMethod id(String id) {
     this.id = id;
@@ -49,7 +89,7 @@ public class PaymentMethod {
     this.id = id;
   }
 
-  public PaymentMethod userId(String userId) {
+  public PaymentMethod userId(Long userId) {
     this.userId = userId;
     return this;
   }
@@ -61,15 +101,15 @@ public class PaymentMethod {
   
   @Schema(name = "userId", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("userId")
-  public String getUserId() {
+  public Long getUserId() {
     return userId;
   }
 
-  public void setUserId(String userId) {
+  public void setUserId(Long userId) {
     this.userId = userId;
   }
 
-  public PaymentMethod type(String type) {
+  public PaymentMethod type(TypeEnum type) {
     this.type = type;
     return this;
   }
@@ -81,11 +121,11 @@ public class PaymentMethod {
   
   @Schema(name = "type", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("type")
-  public String getType() {
+  public TypeEnum getType() {
     return type;
   }
 
-  public void setType(String type) {
+  public void setType(TypeEnum type) {
     this.type = type;
   }
 
@@ -109,6 +149,26 @@ public class PaymentMethod {
     this.last4 = last4;
   }
 
+  public PaymentMethod token(String token) {
+    this.token = token;
+    return this;
+  }
+
+  /**
+   * Get token
+   * @return token
+  */
+  
+  @Schema(name = "token", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("token")
+  public String getToken() {
+    return token;
+  }
+
+  public void setToken(String token) {
+    this.token = token;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -121,12 +181,13 @@ public class PaymentMethod {
     return Objects.equals(this.id, paymentMethod.id) &&
         Objects.equals(this.userId, paymentMethod.userId) &&
         Objects.equals(this.type, paymentMethod.type) &&
-        Objects.equals(this.last4, paymentMethod.last4);
+        Objects.equals(this.last4, paymentMethod.last4) &&
+        Objects.equals(this.token, paymentMethod.token);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, userId, type, last4);
+    return Objects.hash(id, userId, type, last4, token);
   }
 
   @Override
@@ -137,6 +198,7 @@ public class PaymentMethod {
     sb.append("    userId: ").append(toIndentedString(userId)).append("\n");
     sb.append("    type: ").append(toIndentedString(type)).append("\n");
     sb.append("    last4: ").append(toIndentedString(last4)).append("\n");
+    sb.append("    token: ").append(toIndentedString(token)).append("\n");
     sb.append("}");
     return sb.toString();
   }
