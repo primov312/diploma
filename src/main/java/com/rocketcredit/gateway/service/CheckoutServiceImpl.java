@@ -2,80 +2,108 @@ package com.rocketcredit.gateway.service;
 
 import com.rocketcredit.gateway.api.CheckoutRequest;
 import com.rocketcredit.gateway.api.CheckoutResponse;
-import com.rocketcredit.gateway.model.Installment;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import com.rocketcredit.gateway.clients.*;
+import com.rocketcredit.gateway.clients.UserDataClient.ResolveUserRequest;
+import com.rocketcredit.gateway.clients.UserDataClient.User;
+import com.rocketcredit.gateway.clients.NotificationClient.NotifyRequest;
+import com.rocketcredit.gateway.clients.RepaymentClient.Installment;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
+import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class CheckoutServiceImpl implements CheckoutService {
 
-    private final RestTemplate restTemplate;
-    private final String userDataUrl;
-    private final String creditAnalysisUrl;
-    private final String paymentUrl;
-    private final String repaymentUrl;
-    private final String notificationUrl;
+    private final UserDataClient uds;
+    private final CreditAnalysisClient cas;
+    private final PaymentClient pay;
+    private final RepaymentClient rep;
+    private final NotificationClient notif;
 
-    public CheckoutServiceImpl(
-        RestTemplate restTemplate,
-        @Value("${USER_DATA_URL}") String userDataUrl,
-        @Value("${CREDIT_ANALYSIS_URL}") String creditAnalysisUrl,
-        @Value("${PAYMENT_URL}") String paymentUrl,
-        @Value("${REPAYMENT_URL}") String repaymentUrl,
-        @Value("${NOTIFICATION_URL}") String notificationUrl
-    ) {
-        this.restTemplate = restTemplate;
-        this.userDataUrl = userDataUrl;
-        this.creditAnalysisUrl = creditAnalysisUrl;
-        this.paymentUrl = paymentUrl;
-        this.repaymentUrl = repaymentUrl;
-        this.notificationUrl = notificationUrl;
+    public CheckoutServiceImpl(UserDataClient uds, CreditAnalysisClient cas, PaymentClient pay, RepaymentClient rep, NotificationClient notif) {
+        this.uds = uds; this.cas = cas; this.pay = pay; this.rep = rep; this.notif = notif;
     }
 
     @Override
     public CheckoutResponse runCheckout(CheckoutRequest req) {
-        // 1) Fetch user info
-        restTemplate.getForObject(
-          userDataUrl + "/users/" + req.getUserId(),
-          Map.class
+        // 0) Validate partner request (minimal)
+        if (req.getPartnerPaymentId() == null || req.getAmount() == null || req.getCurrency() == null
+                || req.getInstallmentDurationMonths() == null || req.getBuyer() == null
+                || req.getBuyer().getCardToken() == null) {
+            throw new IllegalArgumentException("Missing required fields in checkout request");
+        }
+
+        // 1) Resolve user
+        var r = new ResolveUserRequest(
+            req.getBuyer().getPartnerUserId(),
+            req.getBuyer().getEmail(),
+            req.getBuyer().getName(),
+            req.getBuyer().getCardToken()
         );
+        User user = uds.resolve(r);
+        long userId = user.getId();
 
-        // 2) Credit analysis (TODO)
-        // Map<?,?> creditResp = restTemplate.postForObject(
-        //   creditAnalysisUrl + "/creditscore", req, Map.class);
-        // boolean approved = (Boolean) creditResp.get("approved");
-        // if (!approved) throw new IllegalStateException("Credit denied");
+        // 2) Credit analysis (requires 'cartTotal')
+        var claim = uds.createFeatureClaim(userId);
+        var decision = cas.scoreWithClaim(userId, req.getAmount(), claim);
 
-        // 3) Payment intent (TODO)
-        // Map<?,?> paymentResp = restTemplate.postForObject(
-        //   paymentUrl + "/payments",
-        //   Map.of("userId", req.getUserId(), "amount", req.getCartTotal()),
-        //   Map.class);
-        // String paymentId = paymentResp.get("paymentId").toString();
+        boolean approved = Boolean.TRUE.equals(decision.getApproved());
+        String reason = Optional.ofNullable(decision.getFinal_reason()).orElse("UNSPECIFIED");
 
-        // 4) Repayment schedule (TODO)
-        // List<?> rawSchedule = restTemplate.postForObject(
-        //   repaymentUrl + "/repayments",
-        //   Map.of("paymentId", paymentId, "installments", 3),
-        //   List.class);
-        // List<Installment> schedule = new ArrayList<>();
+        if (!approved) {
+            // return a clean business response
+            CheckoutResponse out = new CheckoutResponse();
+            out.setApproved(false);
+            out.setUserId(userId);
+            out.setPartnerPaymentId(req.getPartnerPaymentId());
+            out.setReason(JsonNullable.of(reason));
+            out.setSchedule(List.of());
+            return out;
+        }
 
-        // 5) Notification (TODO)
-        // restTemplate.postForLocation(
-        //   notificationUrl + "/notifications",
-        //   Map.of("userId", req.getUserId(), "paymentId", paymentId)
-        // );
+        // 3) Payment
+        var paymentResp = pay.create(new PaymentClient.CreatePaymentRequest(
+            userId, req.getPartnerPaymentId(), req.getAmount(), req.getCurrency()
+        ));
+        String paymentId = paymentResp.getPaymentId();
+        if ("failed".equalsIgnoreCase(paymentResp.getStatus())) {
+            CheckoutResponse out = new CheckoutResponse();
+            out.setApproved(false);
+            out.setUserId(userId);
+            out.setPartnerPaymentId(req.getPartnerPaymentId());
+            out.setReason(JsonNullable.of("PAYMENT_FAILED"));
+            out.setSchedule(List.of());
+            return out;
+        }
 
-        // 6) Placeholder response
-        CheckoutResponse resp = new CheckoutResponse();
-        resp.setPaymentId("TBD");
-        resp.setSchedule(new ArrayList<>());  
-        return resp;
+        // 4) Repayment plan
+        var plan = rep.createPlan(new RepaymentClient.PlanRequest(
+            userId, paymentId, req.getInstallmentDurationMonths(), req.getAmount(), req.getCurrency(), req.getBuyer().getCardToken()
+        ));
+
+        // 5) Notify (best-effort)
+        notif.send(new NotifyRequest(userId, paymentId, plan.getRepaymentPlanId(), req.getBuyer().getEmail()));
+
+        // 6) Build response
+        CheckoutResponse out = new CheckoutResponse();
+        out.setApproved(true);
+        out.setUserId(userId);
+        out.setPaymentId(Long.parseLong(paymentId));
+        out.setPartnerPaymentId(req.getPartnerPaymentId());
+        out.setRepaymentPlanId(plan.getRepaymentPlanId());
+        out.setInstallmentDurationMonths(req.getInstallmentDurationMonths());
+        // map schedule to gateway model if needed; assuming same shape:
+        out.setSchedule(
+            plan.getSchedule().stream().map(i -> {
+                var inst = new com.rocketcredit.gateway.model.Installment();
+                inst.setDueDate(java.time.LocalDate.parse(i.getDueDate()));
+                inst.setAmount(i.getAmount());
+                return inst;
+            }).toList()
+        );
+        return out;
     }
 }

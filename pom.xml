@@ -14,6 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <springdoc.version>1.6.14</springdoc.version>
         <swagger-ui.version>4.15.5</swagger-ui.version>
+        <rocket.claimcheck.version>0.1.0</rocket.claimcheck.version>
     </properties>
 
     <parent>
@@ -70,6 +71,19 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <!-- Lombok (provided, managed above) -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+            <version>1.18.30</version>
+        </dependency>
+        <!-- Claim bean -->
+        <dependency>
+            <groupId>com.rocketcredit</groupId>
+            <artifactId>rocket-credit-claimcheck</artifactId>
+            <version>${rocket.claimcheck.version}</version>
         </dependency>
     </dependencies>
 

@@ -7,6 +7,7 @@ package com.rocketcredit.gateway.api;
 
 import com.rocketcredit.gateway.api.CheckoutRequest;
 import com.rocketcredit.gateway.api.CheckoutResponse;
+import com.rocketcredit.gateway.api.Error;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,7 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-13T11:36:48.469480+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T16:30:25.909637+06:00[Asia/Bishkek]")
 @Validated
 @Tag(name = "checkout", description = "the checkout API")
 public interface CheckoutApi {
@@ -43,17 +44,25 @@ public interface CheckoutApi {
     }
 
     /**
-     * POST /checkout : “Run full checkout flow”
+     * POST /checkout : Run full checkout flow
      *
      * @param checkoutRequest  (required)
-     * @return Successful initiation (status code 200)
+     * @return Approved &amp; scheduled (status code 200)
+     *         or Credit denied / payment failed (status code 402)
+     *         or Invalid input / email domain not allowed (status code 422)
      */
     @Operation(
         operationId = "checkoutPost",
-        summary = "“Run full checkout flow”",
+        summary = "Run full checkout flow",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Successful initiation", content = {
+            @ApiResponse(responseCode = "200", description = "Approved & scheduled", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = CheckoutResponse.class))
+            }),
+            @ApiResponse(responseCode = "402", description = "Credit denied / payment failed", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Error.class))
+            }),
+            @ApiResponse(responseCode = "422", description = "Invalid input / email domain not allowed", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = Error.class))
             })
         }
     )
@@ -69,7 +78,7 @@ public interface CheckoutApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"schedule\" : [ { \"amount\" : 0.8008281904610115, \"dueDate\" : \"2000-01-23\" }, { \"amount\" : 0.8008281904610115, \"dueDate\" : \"2000-01-23\" } ], \"paymentId\" : \"paymentId\" }";
+                    String exampleString = "{ \"installmentDurationMonths\" : 6, \"reason\" : \"reason\", \"schedule\" : [ { \"amount\" : 1.4658129805029452, \"dueDate\" : \"2000-01-23\" }, { \"amount\" : 1.4658129805029452, \"dueDate\" : \"2000-01-23\" } ], \"approved\" : true, \"paymentId\" : \"paymentId\", \"repaymentPlanId\" : \"repaymentPlanId\", \"userId\" : 0, \"partnerPaymentId\" : \"partnerPaymentId\" }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }

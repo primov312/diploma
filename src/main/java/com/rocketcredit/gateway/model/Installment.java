@@ -20,7 +20,7 @@ import javax.annotation.Generated;
  * Installment
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-13T11:36:48.469480+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T16:30:25.909637+06:00[Asia/Bishkek]")
 public class Installment {
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)

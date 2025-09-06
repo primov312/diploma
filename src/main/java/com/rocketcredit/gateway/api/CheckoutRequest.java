@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.rocketcredit.gateway.model.Buyer;
 import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
 import javax.validation.Valid;
@@ -18,16 +19,22 @@ import javax.annotation.Generated;
  * CheckoutRequest
  */
 
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-07-13T11:36:48.469480+02:00[Europe/Budapest]")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T16:30:25.909637+06:00[Asia/Bishkek]")
 public class CheckoutRequest {
 
-  private Long userId;
+  private String partnerPaymentId;
 
-  private Double cartTotal;
+  private Double amount;
+
+  private String currency;
+
+  private Integer installmentDurationMonths;
+
+  private Buyer buyer;
 
   /**
    * Default constructor
-   * @deprecated Use {@link CheckoutRequest#CheckoutRequest(Long, Double)}
+   * @deprecated Use {@link CheckoutRequest#CheckoutRequest(String, Double, String, Integer, Buyer)}
    */
   @Deprecated
   public CheckoutRequest() {
@@ -37,49 +44,113 @@ public class CheckoutRequest {
   /**
    * Constructor with only required parameters
    */
-  public CheckoutRequest(Long userId, Double cartTotal) {
-    this.userId = userId;
-    this.cartTotal = cartTotal;
+  public CheckoutRequest(String partnerPaymentId, Double amount, String currency, Integer installmentDurationMonths, Buyer buyer) {
+    this.partnerPaymentId = partnerPaymentId;
+    this.amount = amount;
+    this.currency = currency;
+    this.installmentDurationMonths = installmentDurationMonths;
+    this.buyer = buyer;
   }
 
-  public CheckoutRequest userId(Long userId) {
-    this.userId = userId;
+  public CheckoutRequest partnerPaymentId(String partnerPaymentId) {
+    this.partnerPaymentId = partnerPaymentId;
     return this;
   }
 
   /**
-   * Get userId
-   * @return userId
+   * Partner’s payment identifier to correlate with their platform
+   * @return partnerPaymentId
   */
   @NotNull 
-  @Schema(name = "userId", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("userId")
-  public Long getUserId() {
-    return userId;
+  @Schema(name = "partnerPaymentId", description = "Partner’s payment identifier to correlate with their platform", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("partnerPaymentId")
+  public String getPartnerPaymentId() {
+    return partnerPaymentId;
   }
 
-  public void setUserId(Long userId) {
-    this.userId = userId;
+  public void setPartnerPaymentId(String partnerPaymentId) {
+    this.partnerPaymentId = partnerPaymentId;
   }
 
-  public CheckoutRequest cartTotal(Double cartTotal) {
-    this.cartTotal = cartTotal;
+  public CheckoutRequest amount(Double amount) {
+    this.amount = amount;
     return this;
   }
 
   /**
-   * Get cartTotal
-   * @return cartTotal
+   * Get amount
+   * @return amount
   */
   @NotNull 
-  @Schema(name = "cartTotal", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("cartTotal")
-  public Double getCartTotal() {
-    return cartTotal;
+  @Schema(name = "amount", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("amount")
+  public Double getAmount() {
+    return amount;
   }
 
-  public void setCartTotal(Double cartTotal) {
-    this.cartTotal = cartTotal;
+  public void setAmount(Double amount) {
+    this.amount = amount;
+  }
+
+  public CheckoutRequest currency(String currency) {
+    this.currency = currency;
+    return this;
+  }
+
+  /**
+   * Get currency
+   * @return currency
+  */
+  @NotNull @Pattern(regexp = "^[A-Z]{3}$") 
+  @Schema(name = "currency", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("currency")
+  public String getCurrency() {
+    return currency;
+  }
+
+  public void setCurrency(String currency) {
+    this.currency = currency;
+  }
+
+  public CheckoutRequest installmentDurationMonths(Integer installmentDurationMonths) {
+    this.installmentDurationMonths = installmentDurationMonths;
+    return this;
+  }
+
+  /**
+   * Get installmentDurationMonths
+   * minimum: 1
+   * @return installmentDurationMonths
+  */
+  @NotNull @Min(1) 
+  @Schema(name = "installmentDurationMonths", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("installmentDurationMonths")
+  public Integer getInstallmentDurationMonths() {
+    return installmentDurationMonths;
+  }
+
+  public void setInstallmentDurationMonths(Integer installmentDurationMonths) {
+    this.installmentDurationMonths = installmentDurationMonths;
+  }
+
+  public CheckoutRequest buyer(Buyer buyer) {
+    this.buyer = buyer;
+    return this;
+  }
+
+  /**
+   * Get buyer
+   * @return buyer
+  */
+  @NotNull @Valid 
+  @Schema(name = "buyer", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("buyer")
+  public Buyer getBuyer() {
+    return buyer;
+  }
+
+  public void setBuyer(Buyer buyer) {
+    this.buyer = buyer;
   }
 
   @Override
@@ -91,21 +162,27 @@ public class CheckoutRequest {
       return false;
     }
     CheckoutRequest checkoutRequest = (CheckoutRequest) o;
-    return Objects.equals(this.userId, checkoutRequest.userId) &&
-        Objects.equals(this.cartTotal, checkoutRequest.cartTotal);
+    return Objects.equals(this.partnerPaymentId, checkoutRequest.partnerPaymentId) &&
+        Objects.equals(this.amount, checkoutRequest.amount) &&
+        Objects.equals(this.currency, checkoutRequest.currency) &&
+        Objects.equals(this.installmentDurationMonths, checkoutRequest.installmentDurationMonths) &&
+        Objects.equals(this.buyer, checkoutRequest.buyer);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(userId, cartTotal);
+    return Objects.hash(partnerPaymentId, amount, currency, installmentDurationMonths, buyer);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class CheckoutRequest {\n");
-    sb.append("    userId: ").append(toIndentedString(userId)).append("\n");
-    sb.append("    cartTotal: ").append(toIndentedString(cartTotal)).append("\n");
+    sb.append("    partnerPaymentId: ").append(toIndentedString(partnerPaymentId)).append("\n");
+    sb.append("    amount: ").append(toIndentedString(amount)).append("\n");
+    sb.append("    currency: ").append(toIndentedString(currency)).append("\n");
+    sb.append("    installmentDurationMonths: ").append(toIndentedString(installmentDurationMonths)).append("\n");
+    sb.append("    buyer: ").append(toIndentedString(buyer)).append("\n");
     sb.append("}");
     return sb.toString();
   }
