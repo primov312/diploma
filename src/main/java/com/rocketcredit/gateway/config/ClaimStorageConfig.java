@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 
 import java.net.URI;
 
@@ -23,7 +24,9 @@ public class ClaimStorageConfig {
         .endpointOverride(URI.create(endpoint))
         .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(access, secret)))
         .region(Region.US_EAST_1)
-        .forcePathStyle(true)
+        .serviceConfiguration(S3Configuration.builder()
+        .pathStyleAccessEnabled(true)
+        .build())
         .build();
   }
 
