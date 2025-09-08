@@ -3,18 +3,22 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# (optional but helpful for psycopg, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev \
+  && rm -rf /var/lib/apt/lists/*
 
-COPY alembic.ini .
-COPY migrations/ migrations/
+COPY rocket-credit-analysis/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ app/
-# COPY models/ /models/   # if you ship model files
+COPY rocket-credit-analysis/alembic.ini ./alembic.ini
+COPY rocket-credit-analysis/migrations/ ./migrations/
+COPY rocket-credit-analysis/app/ ./app/
 
-COPY docker/entrypoint.sh /entrypoint.sh
+COPY rocket-credit-analysis/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-ENV PORT=8082
-EXPOSE 8082
+ENV PORT=8080
+EXPOSE 8080
+
 ENTRYPOINT ["/entrypoint.sh"]

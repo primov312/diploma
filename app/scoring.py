@@ -2,7 +2,7 @@
 from __future__ import annotations
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional, Dict, Any
 
 import httpx
 
@@ -17,11 +17,15 @@ from app.reasons import (
     PARTNER_REFUND_RATE_HIGH,
     ROCKET_RECENT_LATE_PAYMENT,
     ROCKET_TOO_MANY_ACTIVE_PLANS,
-    # --- add this new one in app/reasons.py ---
-    # AMOUNT_NEAR_LIMIT,
 )
 
 from app.policy import get_current_policy
+
+async def load_features_from_uds(user_id: int, cfg: Settings) -> Dict[str, Any]:
+    async with httpx.AsyncClient(timeout=cfg.user_data_timeout) as c:
+        r = await c.get(f"{cfg.user_data_url}/user-data", params={"id": user_id})
+        r.raise_for_status()
+        return r.json()
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Audit payload (persist this JSONB)
@@ -130,14 +134,18 @@ def score_amount(u: dict, requested: float, cfg: Settings) -> Tuple[float, List[
 # ──────────────────────────────────────────────────────────────────────────────
 # Main entry
 # ──────────────────────────────────────────────────────────────────────────────
-async def score_request(req: CreditRequest, cfg: Settings) -> tuple[CreditResponse, DecisionAudit]:
-    # 1) features from User-Data
-    async with httpx.AsyncClient(timeout=cfg.user_data_timeout) as c:
-        r = await c.get(f"{cfg.user_data_url}/user-data", params={"id": req.userId})
-        r.raise_for_status()
-        u = r.json()
+async def score_request(req: CreditRequest, cfg: Settings, features_override: Optional[Dict[str, Any]] = None) -> tuple[CreditResponse, DecisionAudit]:
+    """
+    If features_override is provided, use it instead of calling UDS /user-data.
+    Otherwise keep existing behavior.
+    """
+    # 1) Resolve requested amount safely (supports gateway sending amount OR cartTotal)
+    requested = req.cartTotal if getattr(req, "cartTotal", None) is not None else (req.amount or 0.0)
 
-    # 2) gates
+    # 2) Load features (override > UDS)
+    u = features_override if features_override is not None else await load_features_from_uds(req.userId, cfg)
+
+    # 3) Eligibility gates
     ok, gate_reason = eligibility_gate(u, cfg)
     if not ok:
         audit = DecisionAudit(
@@ -150,45 +158,43 @@ async def score_request(req: CreditRequest, cfg: Settings) -> tuple[CreditRespon
         )
         return CreditResponse(approved=False, score=0, reason=audit.final_reason), audit
 
-    # factor scores (only Rocket, Partner, Amount are live)
+    # 4) Factor scores
     partner_s, partner_r = score_partner(u)
     rocket_s,  rocket_r  = score_rocket(u)
-    amount_s,  amount_r  = score_amount(u, req.cartTotal, cfg)
+    amount_s,  amount_r  = score_amount(u, requested, cfg)
 
-    # ⬇️ load dynamic policy
+    # 5) Dynamic policy
     pol = get_current_policy(cfg)
     W = pol.weights
     approve_th = pol.thresholds["approve"]
     review_th  = pol.thresholds["review"]
 
-    # aggregate, thresholds, affordability
+    # 6) Aggregate score
     s = clamp01(W["rocket"]*rocket_s + W["partner"]*partner_s + W["amount"]*amount_s)
 
-    limit = float(u.get("credit_limit", max(0.0, req.cartTotal)))
-    affordability_ok = (req.cartTotal <= limit)
+    # 7) Affordability check (use same "capacity" definition as score_amount)
+    limit       = float(u.get("credit_limit", 0.0))
+    income      = float(u.get("income", 0.0))
+    income_mult = getattr(cfg, "income_affordability_multiplier", 0.3)
+    capacity    = max(limit, income * income_mult, 0.0)
+    affordability_ok = True if capacity <= 0 else (requested <= capacity)
 
-    approved = (s >= cfg.approve_threshold) and affordability_ok
-    review   = (not approved) and (s >= cfg.review_threshold) and affordability_ok
+    approved = (s >= approve_th) and affordability_ok
+    review   = (not approved) and (s >= review_th) and affordability_ok
 
-    # reasons & final
+    # 8) Reasons & final reason
     reasons: List[str] = []
     if not affordability_ok:
         reasons.append(AFFORDABILITY_EXCEEDED)
     reasons += partner_r + rocket_r + amount_r
 
-    final_reason = (
-        "OK" if approved else
-        ("REVIEW" if review else (reasons[0] if reasons else "SCORE_LOW"))
-    )
-
+    final_reason = ("OK" if approved else ("REVIEW" if review else (reasons[0] if reasons else "SCORE_LOW")))
     score_int = int(math.floor(100.0 * s))
 
     factors = {
         "rocket":  {"score": rocket_s,  "weight_applied": W["rocket"]},
         "partner": {"score": partner_s, "weight_applied": W["partner"]},
         "amount":  {"score": amount_s,  "weight_applied": W["amount"]},
-        # "bureau":  {"score": 0.0, "weight_applied": 0.0, "enabled": False},  # future
-        # "social":  {"score": 0.0, "weight_applied": 0.0, "enabled": False},  # future
     }
 
     audit = DecisionAudit(
@@ -198,7 +204,7 @@ async def score_request(req: CreditRequest, cfg: Settings) -> tuple[CreditRespon
         final_reason=final_reason,
         reasons=reasons,
         factors=factors,
-        thresholds={"approve": cfg.approve_threshold, "review": cfg.review_threshold},
+        thresholds={"approve": approve_th, "review": review_th},
         affordability_ok=affordability_ok,
     )
 

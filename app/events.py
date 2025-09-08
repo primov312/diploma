@@ -74,6 +74,8 @@ def publish_credit_evaluated(
     Fire-and-forget event for downstream consumers (notifications/analytics).
     Never raises; silently no-ops if Kafka is not configured.
     """
+    if not getattr(cfg, "enable_events", False) or not getattr(cfg, "kafka_bootstrap", None):
+        return
     producer = _get_producer(cfg)
     if producer is None:
         return

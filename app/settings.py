@@ -6,7 +6,8 @@ class Settings(BaseSettings):
     user_data_timeout: float = 1.5
     threshold: float = 0.60
     sqlalchemy_url: str = "postgresql+psycopg://postgres:postgres@creditdb:5432/creditdb"
-    kafka_bootstrap: str = "kafka:9092"
+    # kafka_bootstrap: str = "kafka:9092"
+    enable_events: bool = False
     # thresholds as safe fallback if DB policy missing
     approve_threshold: float = 0.60
     review_threshold: float = 0.50
@@ -16,3 +17,9 @@ class Settings(BaseSettings):
 
     # amount capacity calc
     income_affordability_multiplier: float = 0.3
+
+    # S3 
+    s3_endpoint: str = "http://minio:9000"
+    s3_access_key: str = "minio"
+    s3_secret_key: str = "minio123"
+    s3_region: str = "us-east-1"
