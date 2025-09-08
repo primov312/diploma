@@ -1,0 +1,261 @@
+openapi: 3.0.3
+info:
+  title: Rocket Credit - Payment Service (Merchant Payout)
+  version: 1.0.1
+servers:
+  - url: http://localhost:8083
+    description: Local Dev
+
+tags:
+  - name: Transfers
+  - name: Internal
+
+paths:
+  /payments/transfers:
+    post:
+      tags: [Transfers]
+      summary: Create & execute a merchant transfer
+      description: Creates a payout to the partner’s payment address; idempotent via Idempotency-Key.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string }
+          description: Prevents duplicate transfers for the same request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateTransferRequest' }
+      responses:
+        '201':
+          description: Transfer created
+          headers:
+            Location:
+              description: URL to created resource
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '502':
+          description: Upstream PSP/bank failure
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    get:
+      tags: [Transfers]
+      summary: List transfers
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 0, default: 0 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1, maximum: 200, default: 20 }
+        - in: query
+          name: status
+          schema: { $ref: '#/components/schemas/PaymentStatus' }
+        - in: query
+          name: partnerPaymentId
+          schema: { type: string }
+        - in: query
+          name: partnerId
+          schema: { type: string }
+        - in: query
+          name: userId
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Page of transfers
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaymentPage' }
+
+  /payments/transfers/{id}:
+    get:
+      tags: [Transfers]
+      summary: Get a transfer by internal id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    patch:
+      tags: [Internal]
+      summary: Update transfer status (internal/webhook/ops)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PaymentPatch' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '400':
+          description: Invalid update
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /payments/transfers/{id}/cancel:
+    post:
+      tags: [Transfers]
+      summary: Cancel a transfer (best-effort)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Canceled (or already not active)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Payment' }
+        '409':
+          description: Cannot cancel (already TRANSFERRED)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  # /webhook/stripe:
+  #   post:
+  #     tags: [Internal]
+  #     summary: Stripe webhook (DISABLED)
+  #     responses:
+  #       '200': { description: Event accepted }
+
+components:
+  schemas:
+    PaymentStatus:
+      type: string
+      enum: [INITIATED, TRANSFERRED, FAILED, CANCELED]
+
+    Payee:
+      type: object
+      required: [type, address]
+      properties:
+        type:
+          type: string
+          enum: [BANK_ACCOUNT, CARD, WALLET, OTHER]
+        address:
+          type: string
+          description: IBAN / card token / wallet id
+        name:
+          type: string
+          description: Beneficiary name
+
+    ItemSummary:
+      type: object
+      properties:
+        sku:       { type: string }
+        name:      { type: string }
+        quantity:  { type: integer }
+        price:     { type: number, format: double }
+
+    CreateTransferRequest:
+      type: object
+      required: [partnerPaymentId, userId, amount, currency, payee]
+      properties:
+        partnerPaymentId:
+          type: string
+          description: Checkout reference from gateway
+        partnerId:
+          type: string
+        userId:
+          type: integer
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+        currency:
+          type: string
+          description: 3-letter ISO code
+        payee:
+          $ref: '#/components/schemas/Payee'
+        item:
+          $ref: '#/components/schemas/ItemSummary'
+        metadata:
+          type: object
+          additionalProperties: true
+
+    Payment:
+      type: object
+      properties:
+        id:                 { type: integer, format: int64 }
+        status:             { $ref: '#/components/schemas/PaymentStatus' }
+        partnerPaymentId:   { type: string }
+        partnerId:          { type: string }
+        userId:             { type: integer }
+        amount:             { type: number, format: double }
+        currency:           { type: string }
+        payee:              { $ref: '#/components/schemas/Payee' }
+        provider:           { type: string, nullable: true, example: "NONE" }
+        providerPaymentId:  { type: string, nullable: true }
+        transferReference:  { type: string, nullable: true }
+        failureReason:      { type: string, nullable: true }
+        item:               { $ref: '#/components/schemas/ItemSummary' }
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:          { type: string, format: date-time }
+        updatedAt:          { type: string, format: date-time }
+
+    PaymentPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        status:            { $ref: '#/components/schemas/PaymentStatus' }
+        provider:          { type: string, nullable: true }
+        providerPaymentId: { type: string, nullable: true }
+        transferReference: { type: string, nullable: true }
+        failureReason:     { type: string, nullable: true }
+
+    PaymentPage:
+      type: object
+      properties:
+        page:  { type: integer }
+        size:  { type: integer }
+        total: { type: integer }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Payment' }
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:    { type: string }
+        message: { type: string }
+        details:
+          type: object
+          additionalProperties: true
