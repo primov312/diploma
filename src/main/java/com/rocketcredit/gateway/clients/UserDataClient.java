@@ -4,14 +4,17 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import org.springframework.http.*;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import com.rocketcredit.claimcheck.ClaimRef;
 import com.rocketcredit.gateway.config.ServiceEndpoints;
 
 import java.util.Map;
+import java.net.ConnectException;
 
 @Component
 public class UserDataClient extends Client{
@@ -20,6 +23,10 @@ public class UserDataClient extends Client{
         super(http, ep);
     }
 
+    @Retryable(
+      value = { ResourceAccessException.class, ConnectException.class },
+      maxAttempts = 6,
+      backoff = @Backoff(delay = 500, multiplier = 2.0, maxDelay = 5000))
     public User resolve(ResolveUserRequest body) {
         return post(ep.uds + "/users/resolve", body, User.class);
     }
@@ -28,6 +35,10 @@ public class UserDataClient extends Client{
         return get(ep.uds + "/user-data?id=" + userId, Map.class);
     }
 
+    @Retryable(
+      value = { ResourceAccessException.class, ConnectException.class },
+      maxAttempts = 6,
+      backoff = @Backoff(delay = 500, multiplier = 2.0, maxDelay = 5000))
     public ClaimRef createFeatureClaim(long userId) {
         return post(ep.uds + "/feature-claims", Map.of("userId", userId), ClaimRef.class);
     }
@@ -38,7 +49,7 @@ public class UserDataClient extends Client{
         private String partnerUserId;
         private String email;
         private String name;
-        private String cardToken;
+        private String payment;
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor
