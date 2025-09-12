@@ -113,7 +113,6 @@ def score_amount(u: dict, requested: float, cfg: Settings) -> Tuple[float, List[
     capacity = max(limit, income * income_mult, 0.0)
 
     if capacity <= 0:
-        # Unknown capacity ⇒ be conservative but don’t zero it out
         util = 1.0
     else:
         util = requested / capacity
