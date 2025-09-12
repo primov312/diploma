@@ -3,7 +3,7 @@ package com.rocketcredit.user_data.entity;
 
 import java.time.LocalDate;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "transactions")

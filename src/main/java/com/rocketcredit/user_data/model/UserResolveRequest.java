@@ -1,19 +1,10 @@
 package com.rocketcredit.user_data.model;
 
-import java.net.URI;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.rocketcredit.user_data.model.PaymentMethod;
-import org.openapitools.jackson.nullable.JsonNullable;
-import java.time.OffsetDateTime;
-import javax.validation.Valid;
-import javax.validation.constraints.*;
+import jakarta.validation.Valid;
+import jakarta.annotation.Generated;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-
-import java.util.*;
-import javax.annotation.Generated;
 
 /**
  * UserResolveRequest
@@ -59,7 +50,7 @@ public class UserResolveRequest {
    * Get email
    * @return email
   */
-  @javax.validation.constraints.Email
+  @jakarta.validation.constraints.Email
   @Schema(name = "email", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("email")
   public String getEmail() {

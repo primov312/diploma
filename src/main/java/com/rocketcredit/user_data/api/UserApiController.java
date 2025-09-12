@@ -6,7 +6,11 @@ import com.rocketcredit.user_data.entity.UserEntity;
 import com.rocketcredit.user_data.repo.PaymentMethodRepository;
 import com.rocketcredit.user_data.repo.TransactionRepository;
 import com.rocketcredit.user_data.repo.UserRepository;
-import com.rocketcredit.user_data.model.CreditProfile;
+import com.rocketcredit.user_data.repo.UserStatsRepository;
+import com.rocketcredit.user_data.security.Hasher;
+
+import ch.qos.logback.classic.spi.LoggerRemoteView;
+
 import com.rocketcredit.user_data.model.NewUser;
 import com.rocketcredit.user_data.model.PaymentMethod;
 import com.rocketcredit.user_data.model.Transaction;
@@ -19,10 +23,12 @@ import com.rocketcredit.claimcheck.storage.impl.S3ObjectKeyBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.Period;
@@ -34,22 +40,26 @@ import java.util.stream.Collectors;
 public class UserApiController implements UsersApi {
 
     private static final Logger logger = LoggerFactory.getLogger(UserApiController.class);
+    private static final String CID = "cid";
 
     private final UserRepository userRepo;
+    private final UserStatsRepository userStatsRepo;
     private final TransactionRepository transactionRepo;
     private final PaymentMethodRepository paymentMethodRepo;
+
     private final ClaimStorage claimStorage;
 
-    // in-memory overrides (not persisted; OK for MVP)
     private final ConcurrentHashMap<Long, Map<String, Object>> featureOverrides = new ConcurrentHashMap<>();
 
     public UserApiController(
             UserRepository userRepo,
+            UserStatsRepository userStatsRepo,
             TransactionRepository transactionRepo,
             PaymentMethodRepository paymentMethodRepo,
             ClaimStorage claimStorage
     ) {
         this.userRepo = userRepo;
+        this.userStatsRepo = userStatsRepo;
         this.transactionRepo = transactionRepo;
         this.paymentMethodRepo = paymentMethodRepo;
         this.claimStorage = claimStorage;
@@ -68,7 +78,6 @@ public class UserApiController implements UsersApi {
     @Override
     public ResponseEntity<User> createUser(@Valid @RequestBody NewUser newUser) {
         UserEntity entity = new UserEntity(newUser.getName(), newUser.getEmail());
-        entity.setSocialHandles(new HashMap<>());
         entity = userRepo.save(entity);
         return ResponseEntity.created(URI.create("/users/" + entity.getId()))
                 .body(toDto(entity));
@@ -96,32 +105,6 @@ public class UserApiController implements UsersApi {
         List<PaymentMethod> methods = paymentMethodRepo.findByUserId(id)
                 .stream().map(this::toDto).collect(Collectors.toList());
         return ResponseEntity.ok(methods);
-    }
-
-    @Override
-    public ResponseEntity<CreditProfile> getUserCreditProfile(Long id) {
-        return userRepo.findById(id).map(user -> {
-            List<TransactionEntity> txns = transactionRepo.findByUserId(id);
-            List<PaymentMethodEntity> methods = paymentMethodRepo.findByUserId(id);
-
-            CreditProfile profile = new CreditProfile();
-            profile.setUserId(id);
-            profile.setAnnualIncome(user.getAnnualIncome());
-            profile.setCreditBureauScore(user.getCreditBureauScore());
-            profile.setNumTransactions(txns.size());
-
-            double totalSpent = txns.stream().mapToDouble(TransactionEntity::getAmount).sum();
-            profile.setTotalSpent(totalSpent);
-            profile.setAvgTransactionAmount(txns.isEmpty() ? 0.0 : totalSpent / txns.size());
-            profile.setOnTimePaymentRate(txns.size() > 5 ? 0.95 : 0.7); // proxy for now
-            profile.setNumPaymentMethods(methods.size());
-
-            long activeBnpl = txns.stream()
-                    .filter(t -> t.getDate().isAfter(LocalDate.now().minusMonths(6)))
-                    .count();
-            profile.setNumActiveBnpl((int) activeBnpl);
-            return ResponseEntity.ok(profile);
-        }).orElse(ResponseEntity.notFound().build());
     }
 
     // ------------ feature overrides + feature bundle ------------
@@ -174,69 +157,107 @@ public class UserApiController implements UsersApi {
     }
 
     // ------------ resolve (find-or-create) + payment method upsert ------------
-
     @Override
-    public ResponseEntity<User> resolveUser(@Valid @RequestBody com.rocketcredit.user_data.model.UserResolveRequest body) {
-        boolean hasPartnerId = body.getPartnerUserId() != null && !body.getPartnerUserId().isBlank();
-        boolean hasEmail     = body.getEmail() != null && !body.getEmail().isBlank();
-        if (!hasPartnerId && !hasEmail) return ResponseEntity.unprocessableEntity().build();
+    public ResponseEntity<User> resolveUser(
+            @Valid @RequestBody com.rocketcredit.user_data.model.UserResolveRequest body) {
+
+        final String cid = ensureCorrelationId();
+        final boolean hasPartnerId = body.getPartnerUserId() != null && !body.getPartnerUserId().isBlank();
+        final boolean hasEmail     = body.getEmail() != null && !body.getEmail().isBlank();
+        final String hashedPartnerId = Hasher.hash(body.getPartnerUserId());
+        logger.info("[{}] start partnerUserId={} email={}",
+                cid, hashedPartnerId, maskEmail(body.getEmail()));
+
+        if (!hasPartnerId && !hasEmail) {
+            logger.warn("[{}] resolveUser invalid request: neither partnerUserId nor email provided", cid);
+            return ResponseEntity.unprocessableEntity().build();
+        }
 
         Optional<UserEntity> found = Optional.empty();
-        if (hasPartnerId) found = userRepo.findByPartnerUserId(body.getPartnerUserId());
-        if (found.isEmpty() && hasEmail) found = userRepo.findByEmail(body.getEmail());
+        if (hasPartnerId) {
+            found = userRepo.findByPartnerUserId(body.getPartnerUserId());
+            logger.debug("[{}] lookup by partnerUserId={} -> present={}", cid, hashedPartnerId, found.isPresent());
+        }
+        if (found.isEmpty() && hasEmail) {
+            found = userRepo.findByEmail(body.getEmail());
+            logger.debug("[{}] lookup by email={} -> present={}", cid, maskEmail(body.getEmail()), found.isPresent());
+        }
 
         UserEntity entity;
+        String hashedEntityId;
+        String hashedEntityPartnerId;
         if (found.isPresent()) {
             entity = found.get();
+            hashedEntityId = Hasher.hash(entity.getId());
+            hashedEntityPartnerId = Hasher.hash(entity.getPartnerUserId());
+            logger.info("[{}] user found id={} partnerUserId={} email={}",
+                    cid, hashedEntityId, hashedEntityPartnerId, maskEmail(entity.getEmail()));
         } else {
             UserEntity u = new UserEntity();
-            u.setName(Optional.ofNullable(body.getName()).orElse(""));
+            u.setName(java.util.Optional.ofNullable(body.getName()).orElse(""));
             if (hasEmail)     u.setEmail(body.getEmail());
             if (hasPartnerId) u.setPartnerUserId(body.getPartnerUserId());
             entity = userRepo.save(u);
+            hashedEntityId = Hasher.hash(entity.getId());
+            hashedEntityPartnerId = Hasher.hash(entity.getPartnerUserId());
+            logger.info("[{}] user created id={} partnerUserId={} email={}",
+                    cid, hashedEntityId, hashedEntityPartnerId, maskEmail(entity.getEmail()));
         }
 
         boolean changed = false;
         if (body.getName() != null && !body.getName().isBlank() && !body.getName().equals(entity.getName())) {
+            logger.debug("[{}] updating name id={} old='{}' new='{}'", cid, hashedEntityId, entity.getName(), body.getName());
             entity.setName(body.getName()); changed = true;
         }
         if (hasEmail && !body.getEmail().equals(entity.getEmail())) {
+            logger.debug("[{}] updating email id={} old={} new={}", cid, hashedEntityId, maskEmail(entity.getEmail()), maskEmail(body.getEmail()));
             entity.setEmail(body.getEmail()); changed = true;
         }
         if (hasPartnerId && (entity.getPartnerUserId() == null || !body.getPartnerUserId().equals(entity.getPartnerUserId()))) {
+            logger.debug("[{}] updating partnerUserId id={} old={} new={}", cid, hashedEntityId, hashedEntityPartnerId, Hasher.hash(body.getPartnerUserId()));
             entity.setPartnerUserId(body.getPartnerUserId()); changed = true;
         }
-        if (changed) entity = userRepo.save(entity);
+        if (changed) {
+            entity = userRepo.save(entity);
+            logger.info("[{}] user updated id={}", cid,Hasher.hash(entity.getId()) );
+        }
 
         Long userId = entity.getId();
+        String hashedUserId = Hasher.hash(userId);
         if (body.getPaymentMethod() != null && body.getPaymentMethod().getToken() != null) {
-            PaymentMethod pm = body.getPaymentMethod();
-
-            Optional<PaymentMethodEntity> existing = paymentMethodRepo.findByUserIdAndToken(userId, pm.getToken());
+            var pm = body.getPaymentMethod();
+            var existing = paymentMethodRepo.findByUserIdAndToken(userId, pm.getToken());
             if (existing.isEmpty()) {
                 PaymentMethodEntity pme = new PaymentMethodEntity();
                 pme.setUserId(userId);
                 pme.setToken(pm.getToken());
                 paymentMethodRepo.save(pme);
+                logger.info("[{}] paymentMethod upserted (new) userId={} tokenHash={}", cid, hashedUserId, Integer.toHexString(pm.getToken().hashCode()));
+            } else {
+                logger.debug("[{}] paymentMethod exists userId={} tokenHash={}", cid, hashedUserId, Integer.toHexString(pm.getToken().hashCode()));
             }
         }
 
+        logger.info("[{}] resolveUser success id={}", cid, hashedUserId);
         return ResponseEntity.ok(toDto(entity));
     }
 
     // ------------ claim-check producer (UDS -> object storage) ------------
-
     @PostMapping("/feature-claims")
     public ResponseEntity<ClaimRef> createFeatureClaim(@RequestBody Map<String, Object> req) {
+        final String cid = ensureCorrelationId();
         Long userId = ((Number) req.get("userId")).longValue();
-        String correlationId = UUID.randomUUID().toString();
+        String correlationId = java.util.UUID.randomUUID().toString();
+        String hashedUserId = Hasher.hash(userId);
+
+        logger.info("[{}] feature-claims start userId={} correlationId={}", cid, hashedUserId, correlationId);
 
         Map<String, Object> features = getUserInfo(userId).getBody();
         byte[] bytes;
         try {
             bytes = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsBytes(features);
         } catch (Exception e) {
-            logger.error("Failed to serialize features for user {}", userId, e);
+            logger.error("[{}] feature-claims serialize failed userId={}", cid, hashedUserId, e);
             return ResponseEntity.internalServerError().build();
         }
 
@@ -246,35 +267,37 @@ public class UserApiController implements UsersApi {
         ClaimRef ref = claimStorage.put(bucket, key, bytes, "application/json");
         ref.setCorrelationId(correlationId);
         ref.setExpiresAt(java.time.Instant.now().plus(java.time.Duration.ofHours(24)).toEpochMilli());
-        return ResponseEntity.ok(ref);
-        }
 
+        logger.info("[{}] feature-claims stored userId={} bucket={} key={} expiresAt={}",
+                cid, hashedUserId, Hasher.hash(bucket), Hasher.hash(key), ref.getExpiresAt());
+        return ResponseEntity.ok(ref);
+    }
     // ------------ internals ------------
 
     private Map<String, Object> computeFeatures(Long userId) {
         Map<String, Object> m = new LinkedHashMap<>();
-        Optional<UserEntity> maybeUser = userRepo.findById(userId);
-        List<TransactionEntity> txns = transactionRepo.findByUserId(userId);
+        var maybeUser = userRepo.findById(userId);
+        var txns = transactionRepo.findByUserId(userId);
 
-        boolean kyc = maybeUser.map(UserEntity::getKycPassed).orElse(Boolean.TRUE);
+        boolean kyc = maybeUser.map(UserEntity::isKysPassed).orElse(Boolean.TRUE);
         m.put("kyc_passed", kyc);
 
         LocalDate cutoff12m = LocalDate.now().minusMonths(12);
-        List<TransactionEntity> last12m = txns.stream()
-                .filter(t -> t.getDate() != null && !t.getDate().isBefore(cutoff12m))
-                .collect(Collectors.toList());
+        var last12m = txns.stream()
+            .filter(t -> t.getDate() != null && !t.getDate().isBefore(cutoff12m))
+            .toList();
 
         int orders12m = last12m.size();
         double avgOrder = last12m.isEmpty() ? 0.0 :
-                last12m.stream().mapToDouble(TransactionEntity::getAmount).average().orElse(0.0);
+            last12m.stream().mapToDouble(TransactionEntity::getAmount).average().orElse(0.0);
 
         double refundRate = 0.0;
         double onTimeRatio = txns.size() > 5 ? 0.95 : 0.70;
 
         int tenureMonths = txns.isEmpty() ? 0
-                : Math.max(0, monthsBetween(
-                        txns.stream().map(TransactionEntity::getDate).min(LocalDate::compareTo).orElse(LocalDate.now()),
-                        LocalDate.now()));
+            : Math.max(0, monthsBetween(
+                txns.stream().map(TransactionEntity::getDate).min(LocalDate::compareTo).orElse(LocalDate.now()),
+                LocalDate.now()));
 
         m.put("partner_orders_12m", orders12m);
         m.put("partner_avg_order_value", avgOrder);
@@ -285,22 +308,39 @@ public class UserApiController implements UsersApi {
         m.put("rocket_ontime_ratio", onTimeRatio);
         m.put("rocket_dpd30_12m", 0);
         int activePlans = (int) txns.stream()
-                .filter(t -> t.getDate() != null && !t.getDate().isBefore(LocalDate.now().minusMonths(6)))
-                .count();
+            .filter(t -> t.getDate() != null && !t.getDate().isBefore(LocalDate.now().minusMonths(6)))
+            .count();
         m.put("rocket_active_plans", activePlans);
         m.put("rocket_tenure_months", tenureMonths);
 
-        double annualIncome = maybeUser.map(UserEntity::getAnnualIncome).orElse(0.0);
-        double monthlyIncome = annualIncome / 12.0;
-        m.put("income", monthlyIncome);
+        double total12m = last12m.stream()
+            .mapToDouble(TransactionEntity::getAmount)
+            .sum();
+        double minimalIncome = total12m / 12.0;
+        m.put("income", minimalIncome);
 
-        Double creditLimit = maybeUser.map(UserEntity::getCreditLimit).orElse(null);
-        if (creditLimit == null) creditLimit = monthlyIncome * 0.30;
+        Double creditLimit = minimalIncome;
         m.put("credit_limit", creditLimit);
+
+        // ---- Persist (UPSERT) ----
+        userStatsRepo.upsert(
+            userId,
+            kyc,
+            orders12m,
+            avgOrder,
+            refundRate,
+            onTimeRatio,
+            tenureMonths,
+            onTimeRatio,
+            0,
+            activePlans,
+            tenureMonths,
+            minimalIncome,
+            creditLimit
+        );
 
         return m;
     }
-
     private static int monthsBetween(LocalDate start, LocalDate end) {
         if (start == null || end == null) return 0;
         Period p = Period.between(start, end);
@@ -320,21 +360,28 @@ public class UserApiController implements UsersApi {
         return u;
     }
 
-    private Transaction toDto(TransactionEntity entity) {
-        Transaction t = new Transaction();
-        if (entity.getId() != null) t.setId(entity.getId().toString());
-        try { Transaction.class.getMethod("setUserId", Long.class).invoke(t, entity.getUserId()); } catch (Exception ignore) {}
-        t.setDate(entity.getDate());
-        t.setAmount(entity.getAmount());
-        t.setMethod(entity.getMethod());
-        return t;
-    }
-
     private PaymentMethod toDto(PaymentMethodEntity entity) {
         PaymentMethod pm = new PaymentMethod();
         pm.setId(String.valueOf(entity.getId()));
         try { pm.getClass().getMethod("setUserId", Long.class).invoke(pm, entity.getUserId()); } catch (Exception ignore) {}
         try { pm.getClass().getMethod("setToken", String.class).invoke(pm, entity.getToken()); } catch (Exception ignore) {}
         return pm;
+    }
+
+    
+    private String ensureCorrelationId() {
+        String cid = MDC.get(CID);
+        if (cid == null) {
+            cid = java.util.UUID.randomUUID().toString();
+            MDC.put(CID, cid);
+        }
+        return cid;
+    }
+
+    private static String maskEmail(String email) {
+        if (email == null || email.isBlank()) return null;
+        int at = email.indexOf('@');
+        if (at <= 1) return "***";
+        return email.charAt(0) + "***" + email.substring(at);
     }
 }

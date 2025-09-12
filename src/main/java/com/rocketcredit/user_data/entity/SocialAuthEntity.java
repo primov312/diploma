@@ -1,6 +1,6 @@
 package com.rocketcredit.user_data.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -22,7 +22,7 @@ public class SocialAuthEntity {
 
     @Column(name = "token_hash")
     private String tokenHash;
-
+    
     @Column(name = "fetched_data", columnDefinition = "jsonb")
     private String fetchedData;  // JSONB as String (or use JsonNode if Jackson)
 

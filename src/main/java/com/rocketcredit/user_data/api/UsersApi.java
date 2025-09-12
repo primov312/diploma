@@ -5,7 +5,6 @@
  */
 package com.rocketcredit.user_data.api;
 
-import com.rocketcredit.user_data.model.CreditProfile;
 import com.rocketcredit.user_data.model.NewUser;
 import com.rocketcredit.user_data.model.PaymentMethod;
 import com.rocketcredit.user_data.model.ResolveError;
@@ -31,12 +30,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.validation.Valid;
-import javax.validation.constraints.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Generated;
+import jakarta.annotation.Generated;
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T17:02:00.623423+06:00[Asia/Bishkek]")
 @Validated
@@ -139,45 +138,6 @@ public interface UsersApi {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
                     String exampleString = "{ \"partnerUserId\" : \"partnerUserId\", \"name\" : \"name\", \"id\" : 0, \"email\" : \"email\" }";
-                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
-                    break;
-                }
-            }
-        });
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
-
-    }
-
-
-    /**
-     * GET /users/{id}/credit-profile : Fetch aggregated credit profile and social insights
-     *
-     * @param id  (required)
-     * @return Credit profile (status code 200)
-     *         or User not found (status code 404)
-     */
-    @Operation(
-        operationId = "getUserCreditProfile",
-        summary = "Fetch aggregated credit profile and social insights",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Credit profile", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = CreditProfile.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "User not found")
-        }
-    )
-    @RequestMapping(
-        method = RequestMethod.GET,
-        value = "/users/{id}/credit-profile",
-        produces = { "application/json" }
-    )
-    default ResponseEntity<CreditProfile> getUserCreditProfile(
-        @Parameter(name = "id", description = "", required = true, in = ParameterIn.PATH) @PathVariable("id") Long id
-    ) {
-        getRequest().ifPresent(request -> {
-            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
-                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"annualIncome\" : 6.027456183070403, \"totalSpent\" : 5.637376656633329, \"numPaymentMethods\" : 9, \"socialInsights\" : { \"activitySentiment\" : 7.386281948385884, \"networkQuality\" : 4, \"jobStabilityScore\" : 2 }, \"avgTransactionAmount\" : 2.3021358869347655, \"numTransactions\" : 5, \"onTimePaymentRate\" : 7.061401241503109, \"userId\" : 0, \"creditBureauScore\" : 1, \"numActiveBnpl\" : 3 }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }

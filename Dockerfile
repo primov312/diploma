@@ -1,4 +1,4 @@
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY rocket-credit-claimcheck/pom.xml rocket-credit-claimcheck/pom.xml
@@ -10,7 +10,7 @@ COPY rocket-credit-user-data/src     rocket-credit-user-data/src
 WORKDIR /workspace/rocket-credit-user-data
 RUN mvn -DskipTests package
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
 COPY --from=build /workspace/rocket-credit-user-data/target/user-data-*.jar app.jar
 EXPOSE 8080

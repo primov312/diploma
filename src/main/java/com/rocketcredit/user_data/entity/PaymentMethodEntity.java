@@ -1,6 +1,6 @@
 package com.rocketcredit.user_data.entity;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 
 @Entity

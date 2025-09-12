@@ -1,18 +1,15 @@
 package com.rocketcredit.user_data.entity;
 
-import javax.persistence.*;
-import lombok.Data;
+import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
+import com.vladmihalcea.hibernate.type.json.JsonType;
+
 import java.time.ZonedDateTime;
-import java.util.HashMap;
 import java.util.Map;
 
 @Entity
 @Table(name = "users")
-@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
 public class UserEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,33 +24,14 @@ public class UserEntity {
     private String partnerUserId;
 
     @Column(name = "cardToken")
-    private String cardToken;  
+    private String cardToken;
+
+    @Column(name = "kyc_passed")
+    private Boolean kyc_passed;
 
     @CreationTimestamp
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
-
-    @Column(name = "kyc_passed")
-    private Boolean kycPassed = true;
-
-    @Column(name = "credit_limit")
-    private Double creditLimit;
-
-    @Column(name = "annual_income")
-    private Double annualIncome = 50000.0;  // Default mock
-
-    @Column(name = "credit_bureau_score")
-    private Integer creditBureauScore = 650;  // Default mock (300-850)
-
-    @Column(name = "social_consent")
-    private Boolean socialConsent = false;
-
-    @Type(type = "jsonb")
-    @Column(name = "social_handles", columnDefinition = "jsonb")
-    private Map<String, Object> socialHandles;  // e.g., "{\"linkedin\":\"https://linkedin.com/in/user\", \"x\":\"@handle\"}"
-
-    @Column(name = "email_verified")
-    private Boolean emailVerified = false;
 
     @Column(name = "email_verified_at")
     private ZonedDateTime emailVerifiedAt;
@@ -80,26 +58,8 @@ public class UserEntity {
     public String getCardToken() { return cardToken; }
     public void setCardToken(String cardToken) { this.cardToken = cardToken; }
 
-    public Boolean getKycPassed() { return kycPassed; }
-    public void setKycPassed(Boolean kycPassed) { this.kycPassed = kycPassed; }
-
-    public Double getCreditLimit() { return creditLimit; }
-    public void setCreditLimit(Double creditLimit) { this.creditLimit = creditLimit; }
-
-    public Double getAnnualIncome() { return annualIncome; }
-    public void setAnnualIncome(Double annualIncome) { this.annualIncome = annualIncome; }
-
-    public Integer getCreditBureauScore() { return creditBureauScore; }
-    public void setCreditBureauScore(Integer creditBureauScore) { this.creditBureauScore = creditBureauScore; }
-
-    public Boolean getSocialConsent() { return socialConsent; }
-    public void setSocialConsent(Boolean socialConsent) { this.socialConsent = socialConsent; }
-
-    public Map<String, Object> getSocialHandles() { return socialHandles; }
-    public void setSocialHandles(Map<String, Object> socialHandles) { this.socialHandles = socialHandles; }
-
-    public Boolean getEmailVerified() { return emailVerified; }
-    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
+    public Boolean isKysPassed() { return kyc_passed; }
+    public void setKysPassed(Boolean kyc_passed) { this.kyc_passed = kyc_passed; }
 
     public ZonedDateTime getEmailVerifiedAt() { return emailVerifiedAt; }
     public void setEmailVerifiedAt(ZonedDateTime emailVerifiedAt) { this.emailVerifiedAt = emailVerifiedAt; }
