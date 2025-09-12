@@ -49,11 +49,16 @@ services:
 
       - KAFKA_BOOTSTRAP=kafka:9092
     depends_on:
-      - user-data
-      - credit-analysis
-      - payment
-      - minio
-      - minio-init
+      user-data:
+        condition: service_healthy
+      credit-analysis:
+        condition: service_started
+      payment:
+        condition: service_started
+      minio:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
       # - repayment      # uncomment when you enable the service
       # - notification
 
@@ -64,6 +69,13 @@ services:
     image: rocket-credit-user-data:latest
     ports:
       - "8081:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/user-data?id=1"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 30s
+
     depends_on:
       - userdb
       - minio
@@ -74,19 +86,12 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - VK_CLIENT_ID=your_vk_app_id
-      - VK_CLIENT_SECRET=your_vk_secret
-      - META_CLIENT_ID=your_fb_app_id
-      - META_CLIENT_SECRET=your_fb_secret
-      - EMAIL_VERIFIER_API_KEY=your_hunter_io_key
       
       - S3_ENDPOINT=http://minio:9000
       - S3_ACCESS_KEY=minio
       - S3_SECRET_KEY=minio123
       - S3_REGION=us-east-1
       - S3_BUCKET=credit-repayment
-
-      - KAFKA_BOOTSTRAP=kafka:9092
 
   userdb:
     image: postgres:15
@@ -118,6 +123,12 @@ services:
       - KAFKA_BOOTSTRAP=kafka:9092
     ports:
       - "8082:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 30s
     depends_on:
       - creditdb
       - minio
