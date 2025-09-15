@@ -12,17 +12,16 @@ CREATE TABLE IF NOT EXISTS payments (
     status              VARCHAR(32) NOT NULL
                           CHECK (status IN ('INITIATED','TRANSFERRED','FAILED','CANCELED')),
 
-    payee_type          VARCHAR(32) NOT NULL,     -- BANK_ACCOUNT | CARD | WALLET | OTHER
-    payee_address       TEXT NOT NULL,
     payee_name          TEXT,
+    payee_id       TEXT,
+    payee_email               TEXT,
 
     provider            VARCHAR(128),
     provider_payment_id VARCHAR(128),
     transfer_reference  VARCHAR(128),
     failure_reason      TEXT,
 
-    item                JSONB,
-    metadata            JSONB,
+    items               JSONB,
 
     idempotency_key     VARCHAR(128),
 
