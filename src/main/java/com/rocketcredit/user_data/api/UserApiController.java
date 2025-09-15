@@ -7,15 +7,15 @@ import com.rocketcredit.user_data.repo.PaymentMethodRepository;
 import com.rocketcredit.user_data.repo.TransactionRepository;
 import com.rocketcredit.user_data.repo.UserRepository;
 import com.rocketcredit.user_data.repo.UserStatsRepository;
-import com.rocketcredit.user_data.security.Hasher;
 
-import ch.qos.logback.classic.spi.LoggerRemoteView;
+import com.rocketcredit.user_data.security.Hasher;
 
 import com.rocketcredit.user_data.model.NewUser;
 import com.rocketcredit.user_data.model.PaymentMethod;
 import com.rocketcredit.user_data.model.Transaction;
 import com.rocketcredit.user_data.model.User;
-import com.rocketcredit.user_data.api.UsersApi;
+import com.rocketcredit.user_data.model.UserResolveRequest;
+
 
 import com.rocketcredit.claimcheck.ClaimRef;
 import com.rocketcredit.claimcheck.storage.ClaimStorage;
@@ -24,9 +24,10 @@ import com.rocketcredit.claimcheck.storage.impl.S3ObjectKeyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -35,6 +36,8 @@ import java.time.Period;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
+
 
 @RestController
 public class UserApiController implements UsersApi {
@@ -157,9 +160,10 @@ public class UserApiController implements UsersApi {
     }
 
     // ------------ resolve (find-or-create) + payment method upsert ------------
+    @Transactional
     @Override
     public ResponseEntity<User> resolveUser(
-            @Valid @RequestBody com.rocketcredit.user_data.model.UserResolveRequest body) {
+            @Valid @RequestBody UserResolveRequest body) {
 
         final String cid = ensureCorrelationId();
         final boolean hasPartnerId = body.getPartnerUserId() != null && !body.getPartnerUserId().isBlank();
@@ -237,6 +241,35 @@ public class UserApiController implements UsersApi {
                 logger.debug("[{}] paymentMethod exists userId={} tokenHash={}", cid, hashedUserId, Integer.toHexString(pm.getToken().hashCode()));
             }
         }
+
+        if (body.getTransactions() != null && !body.getTransactions().isEmpty()) {
+        var valid = body.getTransactions().stream()
+            .filter(Objects::nonNull)
+            .filter(t -> t.getDate() != null)
+            .filter(t -> t.getAmount() != null && t.getAmount() > 0.0)
+            .filter(t -> t.getMethod() != null && !t.getMethod().isBlank())
+            .collect(Collectors.toMap(
+                t -> t.getDate() + "|" + t.getAmount() + "|" + t.getMethod().trim().toLowerCase(),
+                t -> t, (a,b) -> a
+            ))
+            .values();
+
+        var entities = valid.stream().map(t -> {
+            var e = new TransactionEntity();
+            e.setUserId(userId);
+            e.setDate(t.getDate());
+            e.setAmount(t.getAmount());
+            e.setMethod(t.getMethod().trim());
+            return e;
+        }).toList();
+
+        if (!entities.isEmpty()) {
+            transactionRepo.saveAll(entities);
+            logger.info("[{}] ingested {} transactions userId={}", cid, entities.size(), hashedUserId);
+            // keep user_stats fresh
+            computeFeatures(userId);
+        }
+    }
 
         logger.info("[{}] resolveUser success id={}", cid, hashedUserId);
         return ResponseEntity.ok(toDto(entity));
