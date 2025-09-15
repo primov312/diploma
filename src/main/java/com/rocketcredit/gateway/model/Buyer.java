@@ -1,17 +1,14 @@
 package com.rocketcredit.gateway.model;
 
-import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import org.openapitools.jackson.nullable.JsonNullable;
-import java.time.OffsetDateTime;
+
 import javax.validation.Valid;
 import javax.validation.constraints.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 
-import java.util.*;
 import javax.annotation.Generated;
 
 /**
@@ -29,9 +26,12 @@ public class Buyer {
 
   private String cardToken;
 
+  private List<Transaction> transactions;
+
+  private List<Item> items;
   /**
    * Default constructor
-   * @deprecated Use {@link Buyer#Buyer(String, String, String, PaymentMethod)}
+   * @deprecated Use {@link Buyer#Buyer(String, String, String, String, List<Transaction>)}
    */
   @Deprecated
   public Buyer() {
@@ -41,11 +41,12 @@ public class Buyer {
   /**
    * Constructor with only required parameters
    */
-  public Buyer(String partnerUserId, String name, String email, String cardToken) {
+  public Buyer(String partnerUserId, String name, String email, String cardToken, List<Transaction> transactions) {
     this.partnerUserId = partnerUserId;
     this.name = name;
     this.email = email;
     this.cardToken = cardToken;
+    this.transactions = transactions;
   }
 
   public Buyer partnerUserId(String partnerUserId) {
@@ -128,6 +129,36 @@ public class Buyer {
     this.cardToken = cardToken;
   }
 
+  /**
+   * Get transactions
+   * @return transactions
+  */
+  @NotNull @Valid 
+  @Schema(name = "transactions", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("transactions")
+  public List<Transaction> getTransactions() {
+    return transactions;
+  }
+
+  public void setTranscations(List<Transaction> transactions) {
+    this.transactions = transactions;
+  }
+
+  /**
+   * Get items
+   * @return items
+  */
+  @NotNull @Valid 
+  @Schema(name = "items", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("items")
+  public List<Item> getItems() {
+    return items;
+  }
+
+  public void setItems(List<Item> items) {
+    this.items = items;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -140,7 +171,9 @@ public class Buyer {
     return Objects.equals(this.partnerUserId, buyer.partnerUserId) &&
         Objects.equals(this.name, buyer.name) &&
         Objects.equals(this.email, buyer.email) &&
-        Objects.equals(this.cardToken, buyer.cardToken);
+        Objects.equals(this.cardToken, buyer.cardToken) &&
+        Objects.equals(this.transactions, buyer.transactions) &&
+        Objects.equals(this.items, buyer.items);
   }
 
   @Override
@@ -156,6 +189,8 @@ public class Buyer {
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    email: ").append(toIndentedString(email)).append("\n");
     sb.append("    cardToken: ").append(toIndentedString(cardToken)).append("\n");
+    sb.append("    transactions: ").append(toIndentedString(transactions)).append("\n");
+    sb.append("    items: ").append(toIndentedString(items)).append("\n");
     sb.append("}");
     return sb.toString();
   }

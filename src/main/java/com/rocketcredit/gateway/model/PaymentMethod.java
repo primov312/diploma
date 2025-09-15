@@ -1,4 +1,4 @@
-package com.rocketcredit.gateway.api;
+package com.rocketcredit.gateway.model;
 
 import java.net.URI;
 import java.util.Objects;

@@ -13,8 +13,10 @@ import org.springframework.web.client.RestTemplate;
 import com.rocketcredit.claimcheck.ClaimRef;
 import com.rocketcredit.gateway.config.ServiceEndpoints;
 
+import java.util.List;
 import java.util.Map;
 import java.net.ConnectException;
+import java.time.LocalDate;
 
 @Component
 public class UserDataClient extends Client{
@@ -50,6 +52,7 @@ public class UserDataClient extends Client{
         private String email;
         private String name;
         private String payment;
+        private List<TransactionDto> transactions;
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor
@@ -59,5 +62,15 @@ public class UserDataClient extends Client{
         private String email;
         @JsonInclude(JsonInclude.Include.NON_NULL)
         private String partnerUserId;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TransactionDto {
+        private String id;
+        private LocalDate date;
+        private double amount;
+        private String method;
     }
 }

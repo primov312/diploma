@@ -4,15 +4,18 @@ import com.rocketcredit.gateway.api.CheckoutRequest;
 import com.rocketcredit.gateway.api.CheckoutResponse;
 import com.rocketcredit.gateway.clients.*;
 import com.rocketcredit.gateway.clients.UserDataClient.ResolveUserRequest;
+import com.rocketcredit.gateway.clients.UserDataClient.TransactionDto;
 import com.rocketcredit.gateway.clients.UserDataClient.User;
 import com.rocketcredit.gateway.clients.NotificationClient.NotifyRequest;
-import com.rocketcredit.gateway.clients.RepaymentClient.Installment;
+import com.rocketcredit.gateway.clients.PaymentClient.ItemDto;
+import com.rocketcredit.gateway.model.Installment;
 
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CheckoutServiceImpl implements CheckoutService {
@@ -41,7 +44,17 @@ public class CheckoutServiceImpl implements CheckoutService {
             req.getBuyer().getPartnerUserId(),
             req.getBuyer().getEmail(),
             req.getBuyer().getName(),
-            req.getBuyer().getCardToken()
+            req.getBuyer().getCardToken(),
+            req.getBuyer().getTransactions().stream()
+                .map(tnx -> {
+                    TransactionDto dto = new TransactionDto();
+                    dto.setId(tnx.getId());
+                    dto.setAmount(tnx.getAmount());
+                    dto.setMethod(tnx.getMethod());
+                    dto.setDate(tnx.getDate());
+                    return dto;
+                })
+                .collect(Collectors.toList())
         );
         User user = uds.resolve(r);
         long userId = user.getId();
@@ -54,7 +67,6 @@ public class CheckoutServiceImpl implements CheckoutService {
         String reason = Optional.ofNullable(decision.getFinal_reason()).orElse("UNSPECIFIED");
 
         if (!approved) {
-            // return a clean business response
             CheckoutResponse out = new CheckoutResponse();
             out.setApproved(false);
             out.setUserId(userId);
@@ -66,7 +78,16 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         // 3) Payment
         var paymentResp = pay.create(new PaymentClient.CreatePaymentRequest(
-            userId, req.getPartnerPaymentId(), req.getAmount(), req.getCurrency()
+            userId, req.getPartnerPaymentId(), req.getAmount(), req.getCurrency(), req.getBuyer().getItems().stream()
+                .map(item -> {
+                    ItemDto dto = new ItemDto();
+                    dto.setSku(item.getSku());
+                    dto.setName(item.getName());
+                    dto.setPrice(item.getPrice());
+                    dto.setQuantity(item.getQuantity());
+                    return dto;
+                })
+                .collect(Collectors.toList())
         ));
         String paymentId = paymentResp.getPaymentId();
         if ("failed".equalsIgnoreCase(paymentResp.getStatus())) {
@@ -95,10 +116,10 @@ public class CheckoutServiceImpl implements CheckoutService {
         out.setPartnerPaymentId(req.getPartnerPaymentId());
         out.setRepaymentPlanId(plan.getRepaymentPlanId());
         out.setInstallmentDurationMonths(req.getInstallmentDurationMonths());
-        // map schedule to gateway model if needed; assuming same shape:
+
         out.setSchedule(
             plan.getSchedule().stream().map(i -> {
-                var inst = new com.rocketcredit.gateway.model.Installment();
+                var inst = new Installment();
                 inst.setDueDate(java.time.LocalDate.parse(i.getDueDate()));
                 inst.setAmount(i.getAmount());
                 return inst;

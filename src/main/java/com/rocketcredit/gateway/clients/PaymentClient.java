@@ -3,9 +3,14 @@ package com.rocketcredit.gateway.clients;
 import lombok.Data; 
 import lombok.NoArgsConstructor; 
 import lombok.AllArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.springframework.http.*; 
 import org.springframework.stereotype.Component; 
 import org.springframework.web.client.RestTemplate;
+
 import com.rocketcredit.gateway.config.ServiceEndpoints;
 
 @Component
@@ -14,7 +19,7 @@ public class PaymentClient extends Client{
 
     public CreatePaymentResponse create(CreatePaymentRequest body) {
         HttpHeaders h = new HttpHeaders(); h.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<CreatePaymentResponse> r = http.exchange(ep.pay + "/payments", HttpMethod.POST, new HttpEntity<>(body, h), CreatePaymentResponse.class);
+        ResponseEntity<CreatePaymentResponse> r = http.exchange(ep.pay + "/payments/transfers", HttpMethod.POST, new HttpEntity<>(body, h), CreatePaymentResponse.class);
         if (!r.getStatusCode().is2xxSuccessful()) throw new IllegalStateException("PAY -> " + r.getStatusCode());
         return r.getBody();
     }
@@ -25,10 +30,20 @@ public class PaymentClient extends Client{
         private String partnerPaymentId;
         private Double amount;
         private String currency;
+        private List<ItemDto> items;
     }
+
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class CreatePaymentResponse {
         private String paymentId;
         private String status;
+    }
+
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class ItemDto {
+        private String sku;
+        private String name;
+        private BigDecimal price;
+        private Integer quantity;
     }
 }
