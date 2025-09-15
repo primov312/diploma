@@ -12,11 +12,26 @@ class ClaimRef(BaseModel):
 class CreditRequest(BaseModel):
     userId: int = Field(..., alias="userId")
     cartTotal: Optional[float] = Field(None, alias="cartTotal")
+    featureClaim: ClaimRef
 
     @root_validator(pre=True)
     def accept_amount_alias(cls, values: Dict[str, Any]):
         if "cartTotal" not in values and "amount" in values:
             values["cartTotal"] = values["amount"]
+        # Accept various keys for the claim
+        for k in ("feature", "claim", "claimRef", "claim_ref", "featureClaim"):
+            if k in values and "feature" not in values:
+                values["features"] = values[k]
+
+        # Optionally, accept alt property names inside the claim
+        feat = values.get("features")
+        if isinstance(feat, dict):
+            # map alternative spellings if present
+            if "content_type" in feat and "contentType" not in feat:
+                feat["contentType"] = feat["content_type"]
+            if "expiry" in feat and "expiresAt" not in feat:
+                feat["expiresAt"] = feat["expiry"]
+
         return values
 
     class Config:

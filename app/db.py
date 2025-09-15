@@ -9,12 +9,15 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, bindparam
 from sqlalchemy.engine import Engine
+from sqlalchemy.dialects.postgresql import JSONB  # <-- add this
 
 from app.models import CreditRequest, CreditResponse
 from app.settings import Settings
+import logging
 
+log = logging.getLogger(__name__)
 
 _ENGINE: Optional[Engine] = None
 
@@ -28,7 +31,7 @@ def get_engine(cfg: Settings) -> Engine:
         _ENGINE = create_engine(
             cfg.sqlalchemy_url,
             future=True,
-            pool_pre_ping=True,       # proactively validate connections
+            pool_pre_ping=True,
             pool_size=5,
             max_overflow=10,
         )
@@ -47,56 +50,43 @@ def health_check(cfg: Settings) -> bool:
     except Exception:
         return False
 
-
-def save_decision(
-    req: CreditRequest,
-    public: CreditResponse,
-    audit: "object",  # duck-typed (expects .reasons, .factors, .score_int, .final_reason, .approved)
-    cfg: Settings,
-) -> None:
-    """
-    Persist the decision into credit_requests. This function is intentionally
-    tolerant: it should never crash the request path.
-
-    Expected table columns (from V1..V4 migrations):
-      - user_external_id BIGINT
-      - request_amount NUMERIC
-      - score INTEGER
-      - decision VARCHAR
-      - reasons JSONB
-      - factors JSONB
-      - created_at TIMESTAMPTZ DEFAULT now()  (if present)
-    """
+def save_decision(req, public, audit, cfg) -> None:
     try:
         eng = get_engine(cfg)
-        decision_str = (
-            "APPROVED" if public.approved else ("REVIEW" if public.reason == "REVIEW" else "DENIED")
-        )
 
-        # JSONB params need serialized strings when using text()
-        reasons_json = json.dumps(getattr(audit, "reasons", []) or [])
-        factors_json = json.dumps(getattr(audit, "factors", {}) or {})
+        # Map to allowed V1 CHECK values
+        if public.approved:
+            decision_str = "APPROVED"
+        elif (public.reason or "").upper() == "REVIEW":
+            decision_str = "PENDING"     # keep CHECK(decision IN (...))
+        else:
+            decision_str = "DENIED"
+
+        reasons_obj = getattr(audit, "reasons", []) or []
+        factors_obj = getattr(audit, "factors", {}) or {}
+        stmt = text("""
+            INSERT INTO credit_requests
+              (user_id, user_external_id, request_amount, score, decision, reasons, factors)
+            VALUES
+              (gen_random_uuid(), :user_external_id, :request_amount, :score, :decision, :reasons, :factors)
+        """).bindparams(
+            bindparam("reasons", type_=JSONB),
+            bindparam("factors", type_=JSONB),
+        )
 
         with eng.begin() as conn:
             conn.execute(
-                text(
-                    """
-                    INSERT INTO credit_requests
-                      (user_external_id, request_amount, score, decision, reasons, factors)
-                    VALUES
-                      (:user_external_id, :request_amount, :score, :decision, :reasons::jsonb, :factors::jsonb)
-                    """
-                ),
-                dict(
-                    user_external_id=req.userId,
-                    request_amount=req.cartTotal,
-                    score=int(getattr(audit, "score_int", public.score)),
-                    decision=decision_str,
-                    reasons=reasons_json,
-                    factors=factors_json,
-                ),
+                stmt,
+                {
+                    "user_external_id": req.userId,             # BIGINT (V3)
+                    "request_amount": req.cartTotal,            # DECIMAL(10,2)
+                    "score": int(getattr(audit, "score_int", public.score)),
+                    "decision": decision_str,
+                    "reasons": reasons_obj,                     # JSONB
+                    "factors": factors_obj,                     # JSONB
+                },
             )
-    except Exception:
-        # Swallow errors in persistence to keep the hot path resilient.
-        # Rely on app/logging.py's logger in the FastAPI layer to record failures if desired.
+    except Exception as e:
+        # Log if you want visibility; keep request path resilient
+        import logging; logging.getLogger(__name__).warning("save_decision skipped: %s", e, exc_info=True)
         return

@@ -45,10 +45,7 @@ async def creditscore(req: CreditRequest, cfg: Settings = Depends(get_settings))
     # ---- Option B: Claim-Check / direct features
     resolved_features = None
     try:
-        if req.features:
-            resolved_features = req.features
-        elif req.featureClaim:
-            resolved_features = fetch_features_from_claim(req.featureClaim, cfg)
+        resolved_features = fetch_features_from_claim(req.featureClaim, cfg)
     except Exception as e:
         # don't fail the request; just log and proceed with default path
         logger.warning("Claim-Check feature fetch failed: %s", e)
