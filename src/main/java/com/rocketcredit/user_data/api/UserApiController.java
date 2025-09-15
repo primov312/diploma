@@ -12,7 +12,6 @@ import com.rocketcredit.user_data.security.Hasher;
 
 import com.rocketcredit.user_data.model.NewUser;
 import com.rocketcredit.user_data.model.PaymentMethod;
-import com.rocketcredit.user_data.model.Transaction;
 import com.rocketcredit.user_data.model.User;
 import com.rocketcredit.user_data.model.UserResolveRequest;
 
@@ -305,8 +304,8 @@ public class UserApiController implements UsersApi {
                 cid, hashedUserId, Hasher.hash(bucket), Hasher.hash(key), ref.getExpiresAt());
         return ResponseEntity.ok(ref);
     }
-    // ------------ internals ------------
 
+    // ------------ internals ------------
     private Map<String, Object> computeFeatures(Long userId) {
         Map<String, Object> m = new LinkedHashMap<>();
         var maybeUser = userRepo.findById(userId);
@@ -324,14 +323,14 @@ public class UserApiController implements UsersApi {
         double avgOrder = last12m.isEmpty() ? 0.0 :
             last12m.stream().mapToDouble(TransactionEntity::getAmount).average().orElse(0.0);
 
-        double refundRate = 0.0;
-        double onTimeRatio = txns.size() > 5 ? 0.95 : 0.70;
+        double refundRate = 1.0;
+        double onTimeRatio = 0.9; // later changed after adding internal db
 
-        int tenureMonths = txns.isEmpty() ? 0
-            : Math.max(0, monthsBetween(
-                txns.stream().map(TransactionEntity::getDate).min(LocalDate::compareTo).orElse(LocalDate.now()),
-                LocalDate.now()));
-
+        // int tenureMonths = txns.isEmpty() ? 0
+        //     : Math.max(0, monthsBetween(
+        //         txns.stream().map(TransactionEntity::getDate).min(LocalDate::compareTo).orElse(LocalDate.now()),
+        //         LocalDate.now()));
+        int tenureMonths = 0;
         m.put("partner_orders_12m", orders12m);
         m.put("partner_avg_order_value", avgOrder);
         m.put("partner_refund_rate", refundRate);
@@ -340,9 +339,7 @@ public class UserApiController implements UsersApi {
 
         m.put("rocket_ontime_ratio", onTimeRatio);
         m.put("rocket_dpd30_12m", 0);
-        int activePlans = (int) txns.stream()
-            .filter(t -> t.getDate() != null && !t.getDate().isBefore(LocalDate.now().minusMonths(6)))
-            .count();
+        int activePlans = 0;
         m.put("rocket_active_plans", activePlans);
         m.put("rocket_tenure_months", tenureMonths);
 
@@ -381,7 +378,6 @@ public class UserApiController implements UsersApi {
     }
 
     // ---- DTO mappers ----
-
     private User toDto(UserEntity e) {
         User u = new User();
         u.setId(e.getId());
