@@ -78,8 +78,8 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         // 3) Payment
         var paymentResp = pay.create(new PaymentClient.CreatePaymentRequest(
-            userId, req.getPartnerPaymentId(), req.getAmount(), req.getCurrency(), req.getBuyer().getItems().stream()
-                .map(item -> {
+            userId, req.getPartnerPaymentId(), req.getAmount(), req.getCurrency(), req.getBuyer(), req.getBuyer().getItems().stream().
+                map(item -> {
                     ItemDto dto = new ItemDto();
                     dto.setSku(item.getSku());
                     dto.setName(item.getName());
@@ -88,7 +88,7 @@ public class CheckoutServiceImpl implements CheckoutService {
                     return dto;
                 })
                 .collect(Collectors.toList())
-        ));
+            ));
         String paymentId = paymentResp.getPaymentId();
         if ("failed".equalsIgnoreCase(paymentResp.getStatus())) {
             CheckoutResponse out = new CheckoutResponse();

@@ -22,6 +22,8 @@ public class Transaction {
 
   private Double amount;
 
+  private String currency;
+
   private String method;
 
   public Transaction id(String id) {

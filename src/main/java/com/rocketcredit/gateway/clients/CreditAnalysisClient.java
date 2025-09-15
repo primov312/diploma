@@ -29,7 +29,7 @@ public class CreditAnalysisClient extends Client {
     }
 
     public Decision scoreWithClaim(long userId, double cartTotal, ClaimRef claim) {
-        var body = Map.of("userId", userId, "cartTotal", cartTotal, "featuresClaim", claim);
+        var body = Map.of("userId", userId, "cartTotal", cartTotal, "featureClaim", claim);
         return post(ep.cas + "/creditscore", body, Decision.class);
     }
 

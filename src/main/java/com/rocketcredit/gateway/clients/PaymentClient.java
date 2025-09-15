@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import com.rocketcredit.gateway.config.ServiceEndpoints;
+import com.rocketcredit.gateway.model.Buyer;
 
 @Component
 public class PaymentClient extends Client{
@@ -30,6 +31,7 @@ public class PaymentClient extends Client{
         private String partnerPaymentId;
         private Double amount;
         private String currency;
+        private Buyer payee;
         private List<ItemDto> items;
     }
 
