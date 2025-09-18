@@ -1,0 +1,26 @@
+# Run on 8080 inside container to match docker-compose
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://repaymentdb:5432/repaymentdb
+    username: postgres
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+repayment:
+  provider: STRIPE             # placeholder: use enum later
+  providerAccount: ""          # Stripe-Account if you’re on Connect
+  schedule:
+    cron: "0 0 3 * * *"        # 03:00 UTC daily
+  business:
+    retryMax: 3
