@@ -37,8 +37,9 @@ public class PaymentClient extends Client{
 
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class CreatePaymentResponse {
-        private String paymentId;
+        private Long id;
         private String status;
+        public String getPaymentId() { return id == null ? null : String.valueOf(id); }
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor

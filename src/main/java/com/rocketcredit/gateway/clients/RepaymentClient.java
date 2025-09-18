@@ -3,7 +3,9 @@ package com.rocketcredit.gateway.clients;
 import lombok.Data; import lombok.NoArgsConstructor; import lombok.AllArgsConstructor;
 import org.springframework.http.*; import org.springframework.stereotype.Component; import org.springframework.web.client.RestTemplate;
 import com.rocketcredit.gateway.config.ServiceEndpoints;
+import com.rocketcredit.gateway.model.Buyer;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Component
@@ -21,10 +23,11 @@ public class RepaymentClient extends Client{
     public static class PlanRequest {
         private Long userId;
         private String paymentId;
+        private String partnerPaymentId;
         private Integer installmentDurationMonths;
-        private Double amount;
+        private BigDecimal totalAmount;
         private String currency;
-        private String cardToken;
+        private Buyer buyer;
     }
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class PlanResponse {

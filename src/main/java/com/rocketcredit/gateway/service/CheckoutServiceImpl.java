@@ -14,6 +14,7 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -102,11 +103,17 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         // 4) Repayment plan
         var plan = rep.createPlan(new RepaymentClient.PlanRequest(
-            userId, paymentId, req.getInstallmentDurationMonths(), req.getAmount(), req.getCurrency(), req.getBuyer().getCardToken()
+            userId,
+            paymentId,
+            req.getPartnerPaymentId(),
+            req.getInstallmentDurationMonths(),
+            BigDecimal.valueOf(req.getAmount()),
+            req.getCurrency(),
+            req.getBuyer()
         ));
 
         // 5) Notify (best-effort)
-        notif.send(new NotifyRequest(userId, paymentId, plan.getRepaymentPlanId(), req.getBuyer().getEmail()));
+        //notif.send(new NotifyRequest(userId, paymentId, plan.getRepaymentPlanId(), req.getBuyer().getEmail()));
 
         // 6) Build response
         CheckoutResponse out = new CheckoutResponse();
