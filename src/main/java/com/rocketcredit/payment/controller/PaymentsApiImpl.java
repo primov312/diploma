@@ -12,6 +12,8 @@ import com.rocketcredit.payment.service.PaymentTransferService;
 import java.net.URI;
 
 import org.openapitools.jackson.nullable.JsonNullable;
+import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Service
 @RestController
+@Validated
 public class PaymentsApiImpl implements PaymentsApi {
   private final PaymentTransferService service;
 
@@ -26,7 +29,7 @@ public class PaymentsApiImpl implements PaymentsApi {
 
   @Override
   public ResponseEntity<Payment> paymentsTransfersPost(
-    CreateTransferRequest body,
+    @Valid CreateTransferRequest body,
     @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
   ) {
     var saved = service.createTransfer(
@@ -49,7 +52,7 @@ public class PaymentsApiImpl implements PaymentsApi {
     return ResponseEntity.ok(map(service.get(id)));
   }
 
-  @Override public ResponseEntity<Payment> patchPaymentsTransfersId(Long id, PaymentPatch patch) {
+  @Override public ResponseEntity<Payment> patchPaymentsTransfersId(Long id, @Valid PaymentPatch patch) {
     var e = service.patch(
         id,
         patch.getStatus() == null ? null : PaymentTransfer.Status.valueOf(patch.getStatus().name()),

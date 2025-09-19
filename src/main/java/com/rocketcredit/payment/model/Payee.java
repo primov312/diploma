@@ -4,6 +4,7 @@ import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.*;
 
 
 import jakarta.annotation.Generated;
@@ -15,10 +16,13 @@ import jakarta.annotation.Generated;
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-23T23:31:22.594277+06:00[Asia/Bishkek]")
 public class Payee {
 
+  @NotBlank
   private String name;
 
+  @NotBlank
   private String partnerUserId;
 
+  @NotBlank @Email
   private String email;
 
   /**
@@ -127,4 +131,3 @@ public class Payee {
     return o.toString().replace("\n", "\n    ");
   }
 }
-

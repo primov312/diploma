@@ -24,12 +24,16 @@ import jakarta.annotation.Generated;
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-23T23:31:22.594277+06:00[Asia/Bishkek]")
 public class ItemSummary {
 
+  @NotBlank
   private String sku;
 
+  @NotBlank
   private String name;
 
+  @NotNull @Positive
   private Integer quantity;
 
+  @NotNull @DecimalMin("0.01") @Digits(integer = 16, fraction = 2)
   private BigDecimal price;
 
   public ItemSummary sku(String sku) {
@@ -155,4 +159,3 @@ public class ItemSummary {
     return o.toString().replace("\n", "\n    ");
   }
 }
-

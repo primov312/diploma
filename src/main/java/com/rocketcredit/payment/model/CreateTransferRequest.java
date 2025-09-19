@@ -18,18 +18,24 @@ import jakarta.annotation.Generated;
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-23T23:31:22.594277+06:00[Asia/Bishkek]")
 public class CreateTransferRequest {
+  @NotBlank
   private String partnerPaymentId;
 
   private String partnerId;
 
+  @NotNull @Positive
   private Long userId;
 
+  @NotNull @DecimalMin(value = "0.01") @Digits(integer = 16, fraction = 2)
   private BigDecimal amount;
 
+  @NotBlank @Pattern(regexp = "^[A-Z]{3}$")
   private String currency;
 
+  @NotNull @Valid
   private Payee payee;
 
+  @Valid
   private List<ItemSummary> items;
 
   /**
@@ -241,4 +247,3 @@ public class CreateTransferRequest {
     return o.toString().replace("\n", "\n    ");
   }
 }
-
