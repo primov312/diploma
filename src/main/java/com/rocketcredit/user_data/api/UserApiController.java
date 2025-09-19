@@ -321,7 +321,10 @@ public class UserApiController implements UsersApi {
 
         int orders12m = last12m.size();
         double avgOrder = last12m.isEmpty() ? 0.0 :
-            last12m.stream().mapToDouble(TransactionEntity::getAmount).average().orElse(0.0);
+            last12m.stream()
+                .map(TransactionEntity::getAmount)
+                .mapToDouble(java.math.BigDecimal::doubleValue)
+                .average().orElse(0.0);
 
         double refundRate = 1.0;
         double onTimeRatio = 0.9; // later changed after adding internal db
@@ -344,7 +347,8 @@ public class UserApiController implements UsersApi {
         m.put("rocket_tenure_months", tenureMonths);
 
         double total12m = last12m.stream()
-            .mapToDouble(TransactionEntity::getAmount)
+            .map(TransactionEntity::getAmount)
+            .mapToDouble(java.math.BigDecimal::doubleValue)
             .sum();
         double minimalIncome = total12m / 12.0;
         m.put("income", minimalIncome);
