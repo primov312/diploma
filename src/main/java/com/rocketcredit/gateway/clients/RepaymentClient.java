@@ -37,7 +37,7 @@ public class RepaymentClient extends Client{
     @Data @NoArgsConstructor @AllArgsConstructor
     public static class Installment {
         private String dueDate;
-        private Double amount;
+        private java.math.BigDecimal amount;
         private String cardToken;
     }
 }

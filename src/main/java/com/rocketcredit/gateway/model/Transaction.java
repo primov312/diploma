@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.validation.Valid;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import org.springframework.format.annotation.DateTimeFormat;
 
 
@@ -20,7 +21,7 @@ public class Transaction {
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
   private LocalDate date;
 
-  private Double amount;
+  private BigDecimal amount;
 
   private String currency;
 
@@ -66,7 +67,7 @@ public class Transaction {
     this.date = date;
   }
 
-  public Transaction amount(Double amount) {
+  public Transaction amount(BigDecimal amount) {
     this.amount = amount;
     return this;
   }
@@ -78,11 +79,11 @@ public class Transaction {
   
   @Schema(name = "amount", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("amount")
-  public Double getAmount() {
+  public BigDecimal getAmount() {
     return amount;
   }
 
-  public void setAmount(Double amount) {
+  public void setAmount(BigDecimal amount) {
     this.amount = amount;
   }
 
@@ -149,4 +150,3 @@ public class Transaction {
     return o.toString().replace("\n", "\n    ");
   }
 }
-

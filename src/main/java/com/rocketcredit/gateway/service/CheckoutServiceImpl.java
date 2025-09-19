@@ -62,7 +62,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         // 2) Credit analysis (requires 'cartTotal')
         var claim = uds.createFeatureClaim(userId);
-        var decision = cas.scoreWithClaim(userId, req.getAmount(), claim);
+        var decision = cas.scoreWithClaim(userId, req.getAmount().doubleValue(), claim);
 
         boolean approved = Boolean.TRUE.equals(decision.getApproved());
         String reason = Optional.ofNullable(decision.getFinal_reason()).orElse("UNSPECIFIED");
@@ -107,7 +107,7 @@ public class CheckoutServiceImpl implements CheckoutService {
             paymentId,
             req.getPartnerPaymentId(),
             req.getInstallmentDurationMonths(),
-            BigDecimal.valueOf(req.getAmount()),
+            req.getAmount(),
             req.getCurrency(),
             req.getBuyer()
         ));
@@ -119,7 +119,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         CheckoutResponse out = new CheckoutResponse();
         out.setApproved(true);
         out.setUserId(userId);
-        out.setPaymentId(Long.parseLong(paymentId));
+        out.setPaymentId(paymentId);
         out.setPartnerPaymentId(req.getPartnerPaymentId());
         out.setRepaymentPlanId(plan.getRepaymentPlanId());
         out.setInstallmentDurationMonths(req.getInstallmentDurationMonths());

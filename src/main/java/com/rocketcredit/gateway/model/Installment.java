@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 
 import javax.annotation.Generated;
+import java.math.BigDecimal;
 
 /**
  * Installment
@@ -20,7 +21,7 @@ public class Installment {
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
   private LocalDate dueDate;
 
-  private Double amount;
+  private BigDecimal amount;
 
   public Installment dueDate(LocalDate dueDate) {
     this.dueDate = dueDate;
@@ -42,7 +43,7 @@ public class Installment {
     this.dueDate = dueDate;
   }
 
-  public Installment amount(Double amount) {
+  public Installment amount(BigDecimal amount) {
     this.amount = amount;
     return this;
   }
@@ -54,11 +55,11 @@ public class Installment {
   
   @Schema(name = "amount", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("amount")
-  public Double getAmount() {
+  public BigDecimal getAmount() {
     return amount;
   }
 
-  public void setAmount(Double amount) {
+  public void setAmount(BigDecimal amount) {
     this.amount = amount;
   }
 
@@ -101,4 +102,3 @@ public class Installment {
     return o.toString().replace("\n", "\n    ");
   }
 }
-

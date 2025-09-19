@@ -29,7 +29,7 @@ public class PaymentClient extends Client{
     public static class CreatePaymentRequest {
         private Long userId;
         private String partnerPaymentId;
-        private Double amount;
+        private BigDecimal amount;
         private String currency;
         private Buyer payee;
         private List<ItemDto> items;

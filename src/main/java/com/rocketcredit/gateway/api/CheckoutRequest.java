@@ -4,6 +4,7 @@ import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rocketcredit.gateway.model.Buyer;
 import javax.validation.Valid;
+import java.math.BigDecimal;
 import javax.validation.constraints.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -19,7 +20,7 @@ public class CheckoutRequest {
 
   private String partnerPaymentId;
 
-  private Double amount;
+  private BigDecimal amount;
 
   private String currency;
 
@@ -29,7 +30,7 @@ public class CheckoutRequest {
 
   /**
    * Default constructor
-   * @deprecated Use {@link CheckoutRequest#CheckoutRequest(String, Double, String, Integer, Buyer)}
+   * @deprecated Use {@link CheckoutRequest#CheckoutRequest(String, BigDecimal, String, Integer, Buyer)}
    */
   @Deprecated
   public CheckoutRequest() {
@@ -39,7 +40,7 @@ public class CheckoutRequest {
   /**
    * Constructor with only required parameters
    */
-  public CheckoutRequest(String partnerPaymentId, Double amount, String currency, Integer installmentDurationMonths, Buyer buyer) {
+  public CheckoutRequest(String partnerPaymentId, BigDecimal amount, String currency, Integer installmentDurationMonths, Buyer buyer) {
     this.partnerPaymentId = partnerPaymentId;
     this.amount = amount;
     this.currency = currency;
@@ -67,7 +68,7 @@ public class CheckoutRequest {
     this.partnerPaymentId = partnerPaymentId;
   }
 
-  public CheckoutRequest amount(Double amount) {
+  public CheckoutRequest amount(BigDecimal amount) {
     this.amount = amount;
     return this;
   }
@@ -77,13 +78,14 @@ public class CheckoutRequest {
    * @return amount
   */
   @NotNull 
+  @javax.validation.constraints.Digits(integer = 16, fraction = 2)
   @Schema(name = "amount", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("amount")
-  public Double getAmount() {
+  public BigDecimal getAmount() {
     return amount;
   }
 
-  public void setAmount(Double amount) {
+  public void setAmount(BigDecimal amount) {
     this.amount = amount;
   }
 
@@ -193,4 +195,3 @@ public class CheckoutRequest {
     return o.toString().replace("\n", "\n    ");
   }
 }
-

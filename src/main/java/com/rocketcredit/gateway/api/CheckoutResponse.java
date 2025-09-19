@@ -26,7 +26,7 @@ public class CheckoutResponse {
 
   private Long userId;
 
-  private Long paymentId;
+  private String paymentId;
 
   private String partnerPaymentId;
 
@@ -97,7 +97,7 @@ public class CheckoutResponse {
     this.userId = userId;
   }
 
-  public CheckoutResponse paymentId(Long paymentId) {
+  public CheckoutResponse paymentId(String paymentId) {
     this.paymentId = paymentId;
     return this;
   }
@@ -109,11 +109,11 @@ public class CheckoutResponse {
   
   @Schema(name = "paymentId", description = "Internal payment id", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
   @JsonProperty("paymentId")
-  public Long getPaymentId() {
+  public String getPaymentId() {
     return paymentId;
   }
 
-  public void setPaymentId(Long paymentId) {
+  public void setPaymentId(String paymentId) {
     this.paymentId = paymentId;
   }
 
@@ -267,4 +267,3 @@ public class CheckoutResponse {
     return o.toString().replace("\n", "\n    ");
   }
 }
-

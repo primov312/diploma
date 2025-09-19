@@ -70,7 +70,7 @@ public class UserDataClient extends Client{
     public static class TransactionDto {
         private String id;
         private LocalDate date;
-        private double amount;
+        private java.math.BigDecimal amount;
         private String method;
     }
 }
