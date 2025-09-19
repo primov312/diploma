@@ -4,6 +4,7 @@ package com.rocketcredit.user_data.entity;
 import java.time.LocalDate;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "transactions")
@@ -17,8 +18,8 @@ public class TransactionEntity {
     @Column(nullable = false)
     private LocalDate date;
     
-    @Column(nullable = false)
-    private Double amount;
+    @Column(nullable = false, precision = 18, scale = 2)
+    private BigDecimal amount;
     
     @Column(nullable = false)
     private String method;
@@ -32,8 +33,8 @@ public class TransactionEntity {
     public LocalDate getDate() { return date; }
     public void setDate(LocalDate date) { this.date = date; }
 
-    public Double getAmount() { return amount; }
-    public void setAmount(double amount) { this.amount = amount; }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
 
     public String getMethod() {return method;}
     public void setMethod(String method) { this.method = method;}

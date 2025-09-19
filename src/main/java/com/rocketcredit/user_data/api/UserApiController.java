@@ -245,10 +245,10 @@ public class UserApiController implements UsersApi {
         var valid = body.getTransactions().stream()
             .filter(Objects::nonNull)
             .filter(t -> t.getDate() != null)
-            .filter(t -> t.getAmount() != null && t.getAmount() > 0.0)
+            .filter(t -> t.getAmount() != null && t.getAmount().compareTo(java.math.BigDecimal.ZERO) > 0)
             .filter(t -> t.getMethod() != null && !t.getMethod().isBlank())
             .collect(Collectors.toMap(
-                t -> t.getDate() + "|" + t.getAmount() + "|" + t.getMethod().trim().toLowerCase(),
+                t -> t.getDate() + "|" + t.getAmount().toPlainString() + "|" + t.getMethod().trim().toLowerCase(),
                 t -> t, (a,b) -> a
             ))
             .values();
@@ -257,7 +257,7 @@ public class UserApiController implements UsersApi {
             var e = new TransactionEntity();
             e.setUserId(userId);
             e.setDate(t.getDate());
-            e.setAmount(t.getAmount());
+            e.setAmount(t.getAmount().setScale(2, java.math.RoundingMode.HALF_UP));
             e.setMethod(t.getMethod().trim());
             return e;
         }).toList();
