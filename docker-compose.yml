@@ -1,5 +1,13 @@
 services:
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server","--appendonly","yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
@@ -31,10 +39,10 @@ services:
       dockerfile: rocket-credit-gateway/Dockerfile
     image: rocket-credit-gateway:latest
     ports:
-      - "8080:8080"          # host:container
+      - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
-      # IMPORTANT: use CONTAINER ports for in-network calls (all 8080 here)
+      - REDIS_URL=redis://redis:6379
       - USER_DATA_URL=http://user-data:8080
       - CREDIT_ANALYSIS_URL=http://credit-analysis:8080
       - PAYMENT_URL=http://payment:8080
@@ -227,3 +235,6 @@ services:
 networks:
   default:
     name: rocket-credit-network
+
+volumes:
+  redisdata:
