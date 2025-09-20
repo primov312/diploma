@@ -134,4 +134,29 @@ public class CheckoutServiceImpl implements CheckoutService {
         );
         return out;
     }
+
+    @Override
+    public CheckoutResponse toErrorResponse(CheckoutRequest req, Throwable t) {
+        String reason;
+        if (t instanceof IllegalArgumentException) {
+            reason = "INVALID_REQUEST";
+        } else if (t instanceof org.springframework.web.client.ResourceAccessException
+                || t instanceof java.net.ConnectException
+                || t instanceof java.net.SocketTimeoutException) {
+            reason = "UPSTREAM_UNAVAILABLE";
+        } else if (t instanceof org.springframework.web.client.HttpStatusCodeException hsce) {
+            reason = "DOWNSTREAM_" + hsce.getStatusCode().value();
+        } else {
+            reason = "INTERNAL_ERROR";
+        }
+
+        CheckoutResponse err = new CheckoutResponse();
+        err.setApproved(false);
+        err.setPartnerPaymentId(req.getPartnerPaymentId());
+        err.setInstallmentDurationMonths(req.getInstallmentDurationMonths());
+        // Avoid leaking internals; set a coarse reason
+        err.setReason(org.openapitools.jackson.nullable.JsonNullable.of(reason));
+        err.setSchedule(java.util.List.of());
+        return err;
+    }
 }

@@ -18,6 +18,8 @@ import javax.annotation.Generated;
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2025-08-20T16:30:25.909637+06:00[Asia/Bishkek]")
 public class CheckoutRequest {
 
+  private String partnerId;
+
   private String partnerPaymentId;
 
   private BigDecimal amount;
@@ -40,12 +42,32 @@ public class CheckoutRequest {
   /**
    * Constructor with only required parameters
    */
-  public CheckoutRequest(String partnerPaymentId, BigDecimal amount, String currency, Integer installmentDurationMonths, Buyer buyer) {
+  public CheckoutRequest(String partnerId, String partnerPaymentId, BigDecimal amount, String currency, Integer installmentDurationMonths, Buyer buyer) {
     this.partnerPaymentId = partnerPaymentId;
     this.amount = amount;
     this.currency = currency;
     this.installmentDurationMonths = installmentDurationMonths;
     this.buyer = buyer;
+  }
+
+  public CheckoutRequest partnerId(String partnerId) {
+    this.partnerId = partnerId;
+    return this;
+  }
+
+  /**
+   * Partner’s identifier to correlate with their platform
+   * @return partnerId
+  */
+  @NotNull 
+  @Schema(name = "partnerId", description = "Partner’s identifier to correlate with their platform", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("partnerId")
+  public String getPartnerId() {
+    return partnerId;
+  }
+
+  public void setPartnerId(String partnerId) {
+    this.partnerId = partnerId;
   }
 
   public CheckoutRequest partnerPaymentId(String partnerPaymentId) {
