@@ -47,6 +47,7 @@ public class RedisConfig {
   public ObjectMapper objectMapper() {
     ObjectMapper om = new ObjectMapper();
     om.registerModule(new JavaTimeModule());
+    om.registerModule(new org.openapitools.jackson.nullable.JsonNullableModule());
     om.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     return om;
   }

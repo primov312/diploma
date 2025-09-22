@@ -43,6 +43,7 @@ public class CheckoutRequest {
    * Constructor with only required parameters
    */
   public CheckoutRequest(String partnerId, String partnerPaymentId, BigDecimal amount, String currency, Integer installmentDurationMonths, Buyer buyer) {
+    this.partnerId = partnerId;
     this.partnerPaymentId = partnerPaymentId;
     this.amount = amount;
     this.currency = currency;

@@ -29,15 +29,20 @@ public class IdempotencyService {
 
   /** If we already finished for this key, return the previous response immediately. */
   public Optional<ResponseEntity<CheckoutResponse>> replayIfComplete(String partner, String pid) {
+    // Normalize inputs to avoid key mismatches
+    if (partner == null) partner = "";
+    if (pid == null || pid.isBlank()) return Optional.empty();
+
     String k = key(partner, pid);
-    var ops = redis.opsForHash();
-    String status = (String) ops.get(k, "status");
+    var ops = redis.boundHashOps(k);
+    Object statusObj = ops.get("status");
+    String status = statusObj == null ? null : statusObj.toString();
     if (status == null) return Optional.empty();
 
     if ("SUCCEEDED".equals(status) || "FAILED".equals(status)) {
       try {
-        int http = Integer.parseInt((String) ops.get(k, "httpStatus"));
-        String body = (String) ops.get(k, "responseBody");
+        int http = Integer.parseInt(String.valueOf(ops.get("httpStatus")));
+        String body = String.valueOf(ops.get("responseBody"));
         return Optional.of(ResponseEntity.status(http).body(om.readValue(body, CheckoutResponse.class)));
       } catch (Exception e) {
         // If corrupt, pretend not found; producer will regenerate
@@ -46,7 +51,7 @@ public class IdempotencyService {
     }
 
     if ("IN_PROGRESS".equals(status)) {
-      long updated = parseLong((String) ops.get(k, "updatedAt"));
+      long updated = parseLong(String.valueOf(ops.get("updatedAt")));
       if (Instant.ofEpochSecond(updated).isAfter(Instant.now().minus(FRESH_WINDOW))) {
         return Optional.of(ResponseEntity.status(409).header("Retry-After", "3").build());
       }
