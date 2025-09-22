@@ -69,6 +69,9 @@ services:
         condition: service_completed_successfully
       repayment:
         condition: service_started
+      redis:
+        condition: service_started
+
       # - notification
 
   user-data:
