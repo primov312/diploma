@@ -19,10 +19,7 @@ public class PaymentClient extends Client{
     public PaymentClient(RestTemplate http, ServiceEndpoints ep) { super(http, ep); }
 
     public CreatePaymentResponse create(CreatePaymentRequest body) {
-        HttpHeaders h = new HttpHeaders(); h.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<CreatePaymentResponse> r = http.exchange(ep.pay + "/payments/transfers", HttpMethod.POST, new HttpEntity<>(body, h), CreatePaymentResponse.class);
-        if (!r.getStatusCode().is2xxSuccessful()) throw new IllegalStateException("PAY -> " + r.getStatusCode());
-        return r.getBody();
+        return post(ep.pay + "/payments/transfers", body, CreatePaymentResponse.class);
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor

@@ -22,10 +22,7 @@ public class CreditAnalysisClient extends Client {
 
     public Decision score(long userId, double cartTotal) {
         var req = Map.of("userId", userId, "cartTotal", cartTotal, "amount", cartTotal);
-        HttpHeaders h = new HttpHeaders(); h.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<Decision> r = http.exchange(ep.cas + "/creditscore", HttpMethod.POST, new HttpEntity<>(req, h), Decision.class);
-        if (!r.getStatusCode().is2xxSuccessful()) throw new IllegalStateException("CAS -> " + r.getStatusCode());
-        return r.getBody();
+        return post(ep.cas + "/creditscore", req, Decision.class);
     }
 
     public Decision scoreWithClaim(long userId, double cartTotal, ClaimRef claim) {

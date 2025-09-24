@@ -9,12 +9,13 @@ import com.rocketcredit.gateway.clients.UserDataClient.User;
 import com.rocketcredit.gateway.clients.NotificationClient.NotifyRequest;
 import com.rocketcredit.gateway.clients.PaymentClient.ItemDto;
 import com.rocketcredit.gateway.model.Installment;
+import com.rocketcredit.gateway.model.Item;
+import com.rocketcredit.gateway.model.Transaction;
 
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,9 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final PaymentClient pay;
     private final RepaymentClient rep;
     private final NotificationClient notif;
+
+    private static final int MAX_TRANSACTIONS = 600;
+    private static final int MAX_ITEMS = 100;
 
     public CheckoutServiceImpl(UserDataClient uds, CreditAnalysisClient cas, PaymentClient pay, RepaymentClient rep, NotificationClient notif) {
         this.uds = uds; this.cas = cas; this.pay = pay; this.rep = rep; this.notif = notif;
@@ -40,13 +44,26 @@ public class CheckoutServiceImpl implements CheckoutService {
             throw new IllegalArgumentException("Missing required fields in checkout request");
         }
 
+        var buyer = req.getBuyer();
+        List<Transaction> transactions =
+            Optional.ofNullable(buyer.getTransactions()).orElse(List.of());
+        List<Item> items =
+            Optional.ofNullable(buyer.getItems()).orElse(List.of());
+
+        if (transactions.size() > MAX_TRANSACTIONS) {
+            throw new IllegalArgumentException("Too many transactions; max " + MAX_TRANSACTIONS);
+        }
+        if (items.size() > MAX_ITEMS) {
+            throw new IllegalArgumentException("Too many items; max " + MAX_ITEMS);
+        }
+
         // 1) Resolve user
         var r = new ResolveUserRequest(
             req.getBuyer().getPartnerUserId(),
             req.getBuyer().getEmail(),
             req.getBuyer().getName(),
             req.getBuyer().getCardToken(),
-            req.getBuyer().getTransactions().stream()
+            transactions.stream()
                 .map(tnx -> {
                     TransactionDto dto = new TransactionDto();
                     dto.setId(tnx.getId());
@@ -65,7 +82,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         var decision = cas.scoreWithClaim(userId, req.getAmount().doubleValue(), claim);
 
         boolean approved = Boolean.TRUE.equals(decision.getApproved());
-        String reason = Optional.ofNullable(decision.getFinal_reason()).orElse("UNSPECIFIED");
+        String reason = coarsenDecisionReason(decision.getFinal_reason());
 
         if (!approved) {
             CheckoutResponse out = new CheckoutResponse();
@@ -79,7 +96,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         // 3) Payment
         var paymentResp = pay.create(new PaymentClient.CreatePaymentRequest(
-            userId, req.getPartnerPaymentId(), req.getAmount(), req.getCurrency(), req.getBuyer(), req.getBuyer().getItems().stream().
+            userId, req.getPartnerPaymentId(), req.getAmount(), req.getCurrency(), req.getBuyer(), items.stream().
                 map(item -> {
                     ItemDto dto = new ItemDto();
                     dto.setSku(item.getSku());
@@ -137,26 +154,43 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     @Override
     public CheckoutResponse toErrorResponse(CheckoutRequest req, Throwable t) {
-        String reason;
-        if (t instanceof IllegalArgumentException) {
-            reason = "INVALID_REQUEST";
-        } else if (t instanceof org.springframework.web.client.ResourceAccessException
-                || t instanceof java.net.ConnectException
-                || t instanceof java.net.SocketTimeoutException) {
-            reason = "UPSTREAM_UNAVAILABLE";
-        } else if (t instanceof org.springframework.web.client.HttpStatusCodeException hsce) {
-            reason = "DOWNSTREAM_" + hsce.getStatusCode().value();
-        } else {
-            reason = "INTERNAL_ERROR";
-        }
+        String reason = coarsenErrorReason(t);
 
         CheckoutResponse err = new CheckoutResponse();
         err.setApproved(false);
         err.setPartnerPaymentId(req.getPartnerPaymentId());
         err.setInstallmentDurationMonths(req.getInstallmentDurationMonths());
         // Avoid leaking internals; set a coarse reason
-        err.setReason(org.openapitools.jackson.nullable.JsonNullable.of(reason));
-        err.setSchedule(java.util.List.of());
+        err.setReason(JsonNullable.of(reason));
+        err.setSchedule(List.of());
         return err;
+    }
+
+    private String coarsenDecisionReason(String raw) {
+        // Do not leak CAS internals; return a single coarse code for denials
+        return "CREDIT_DENIED";
+    }
+
+    private String coarsenErrorReason(Throwable t) {
+        if (t instanceof IllegalArgumentException) {
+            return "INVALID_REQUEST";
+        }
+        if (t instanceof com.rocketcredit.gateway.clients.CircuitOpenException
+                || t instanceof com.rocketcredit.gateway.clients.BulkheadFullException) {
+            return "SERVICE_UNAVAILABLE";
+        }
+        if (t instanceof org.springframework.web.client.ResourceAccessException
+                || t instanceof java.net.ConnectException
+                || t instanceof java.net.SocketTimeoutException) {
+            return "SERVICE_UNAVAILABLE";
+        }
+        if (t instanceof org.springframework.web.client.HttpStatusCodeException hsce) {
+            try {
+                return hsce.getStatusCode().is5xxServerError() ? "SERVICE_UNAVAILABLE" : "UPSTREAM_ERROR";
+            } catch (Throwable ignore) {
+                return "UPSTREAM_ERROR";
+            }
+        }
+        return "INTERNAL_ERROR";
     }
 }

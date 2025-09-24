@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.retry.annotation.EnableRetry;
 
 
@@ -16,6 +17,10 @@ public class GatewayApplication {
 
     @Bean
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        // Configure connect/read timeouts for all downstream calls
+        SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
+        f.setConnectTimeout(2000); // 2s connect timeout
+        f.setReadTimeout(5000);    // 5s read timeout
+        return new RestTemplate(f);
     }
 }

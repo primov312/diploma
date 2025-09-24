@@ -14,8 +14,7 @@ public class NotificationClient extends Client{
 
     public void send(NotifyRequest body) {
         try {
-            HttpHeaders h = new HttpHeaders(); h.setContentType(MediaType.APPLICATION_JSON);
-            http.exchange(ep.notif + "/notifications", HttpMethod.POST, new HttpEntity<>(body, h), Void.class);
+            post(ep.notif + "/notifications", body, Void.class);
         } catch (Exception ignored) { /* non-blocking */ }
     }
 

@@ -13,10 +13,7 @@ public class RepaymentClient extends Client{
     public RepaymentClient(RestTemplate http, ServiceEndpoints ep) { super(http, ep); }
 
     public PlanResponse createPlan(PlanRequest body) {
-        HttpHeaders h = new HttpHeaders(); h.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<PlanResponse> r = http.exchange(ep.rep + "/repayments", HttpMethod.POST, new HttpEntity<>(body, h), PlanResponse.class);
-        if (!r.getStatusCode().is2xxSuccessful()) throw new IllegalStateException("REP -> " + r.getStatusCode());
-        return r.getBody();
+        return post(ep.rep + "/repayments", body, PlanResponse.class);
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor
