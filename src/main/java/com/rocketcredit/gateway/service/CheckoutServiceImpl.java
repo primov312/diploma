@@ -8,6 +8,7 @@ import com.rocketcredit.gateway.clients.UserDataClient.TransactionDto;
 import com.rocketcredit.gateway.clients.UserDataClient.User;
 import com.rocketcredit.gateway.clients.NotificationClient.NotifyRequest;
 import com.rocketcredit.gateway.clients.PaymentClient.ItemDto;
+import com.rocketcredit.gateway.clients.RepaymentClient.PlanResponse;
 import com.rocketcredit.gateway.model.Installment;
 import com.rocketcredit.gateway.model.Item;
 import com.rocketcredit.gateway.model.Transaction;
@@ -15,8 +16,12 @@ import com.rocketcredit.gateway.model.Transaction;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -129,6 +134,9 @@ public class CheckoutServiceImpl implements CheckoutService {
             req.getBuyer()
         ));
 
+        // Validate repayment schedule integrity before returning it
+        validateRepaymentPlan(plan, req.getAmount(), req.getInstallmentDurationMonths());
+
         // 5) Notify (best-effort)
         //notif.send(new NotifyRequest(userId, paymentId, plan.getRepaymentPlanId(), req.getBuyer().getEmail()));
 
@@ -191,6 +199,50 @@ public class CheckoutServiceImpl implements CheckoutService {
                 return "UPSTREAM_ERROR";
             }
         }
+        if (t instanceof IllegalStateException) {
+            return "UPSTREAM_ERROR";
+        }
         return "INTERNAL_ERROR";
+    }
+
+    private void validateRepaymentPlan(PlanResponse plan,
+                                       BigDecimal expectedTotal,
+                                       int expectedInstallments) {
+        if (plan == null || plan.getSchedule() == null) {
+            throw new IllegalStateException("INVALID_SCHEDULE_NULL");
+        }
+        var schedule = plan.getSchedule();
+        if (schedule.size() != expectedInstallments) {
+            throw new IllegalStateException("INVALID_SCHEDULE_SIZE");
+        }
+        // Validate each installment and compute sum
+        LocalDate prev = null;
+        BigDecimal sum = BigDecimal.ZERO;
+        LocalDate today = LocalDate.now();
+        for (com.rocketcredit.gateway.clients.RepaymentClient.Installment inst : schedule) {
+            if (inst == null) throw new IllegalStateException("INVALID_SCHEDULE_ENTRY_NULL");
+            if (inst.getAmount() == null || inst.getAmount().signum() <= 0) {
+                throw new IllegalStateException("INVALID_SCHEDULE_AMOUNT");
+            }
+            sum = sum.add(inst.getAmount());
+            String due = inst.getDueDate();
+            if (due == null || due.isBlank()) throw new IllegalStateException("INVALID_SCHEDULE_DUE_DATE");
+            LocalDate dd;
+            try { dd = LocalDate.parse(due); } catch (DateTimeParseException e) {
+                throw new IllegalStateException("INVALID_SCHEDULE_DUE_DATE_FORMAT");
+            }
+            if (dd.isBefore(today)) {
+                throw new IllegalStateException("INVALID_SCHEDULE_PAST_DUE_DATE");
+            }
+            if (prev != null && !dd.isAfter(prev)) {
+                throw new IllegalStateException("INVALID_SCHEDULE_ORDER");
+            }
+            prev = dd;
+        }
+        // Amount sum must match expected total within 1 cent tolerance
+        BigDecimal diff = sum.subtract(expectedTotal).abs();
+        if (diff.compareTo(new BigDecimal(0.01)) > 0) {
+            throw new IllegalStateException("INVALID_SCHEDULE_TOTAL_MISMATCH");
+        }
     }
 }
