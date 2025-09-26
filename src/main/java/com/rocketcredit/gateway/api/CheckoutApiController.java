@@ -2,6 +2,7 @@ package com.rocketcredit.gateway.api;
 
 import com.rocketcredit.gateway.idem.IdempotencyService;
 import com.rocketcredit.gateway.service.CheckoutService;
+import com.rocketcredit.gateway.web.ErrorMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,6 +13,7 @@ public class CheckoutApiController implements CheckoutApi {
 
   private final CheckoutService checkoutService;
   private final IdempotencyService idem;
+  private final ErrorMapper errors;
 
   @Override
   public ResponseEntity<CheckoutResponse> checkoutPost(CheckoutRequest req) {
@@ -37,9 +39,14 @@ public class CheckoutApiController implements CheckoutApi {
       return ResponseEntity.ok(out);
 
     } catch (Throwable t) {
-      CheckoutResponse err = checkoutService.toErrorResponse(req, t);
-      idem.finish(partner, pid, 400, err, false, t.getClass().getSimpleName());
-      return ResponseEntity.status(400).body(err);
+      var mapping = errors.map(t);
+      CheckoutResponse err = errors.toCheckoutError(req, mapping);
+      idem.finish(partner, pid, mapping.status(), err, false, errorsCodeFor(t));
+      return ResponseEntity.status(mapping.status()).body(err);
     }
+  }
+
+  private String errorsCodeFor(Throwable t) {
+    try { return t.getClass().getSimpleName(); } catch (Throwable ignore) { return "ERROR"; }
   }
 }
