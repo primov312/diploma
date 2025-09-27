@@ -126,6 +126,25 @@ Spring profile can be set via `SPRING_PROFILES_ACTIVE` (e.g. `dev`, `prod`).
 
 ---
 
+### Rate Limiting
+
+Edge rate limiting is applied to `POST /checkout`:
+
+- Per-IP limit: `RATE_LIMIT_PER_IP` requests per `RATE_LIMIT_WINDOW_SECONDS` (default 60 req/min).
+- Per-partner limit: `RATE_LIMIT_PER_PARTNER` requests per `RATE_LIMIT_WINDOW_SECONDS` (default 300 req/min).
+
+Environment variables (with defaults):
+
+| Variable                       | Default | Description                              |
+| ----------------------------- | ------- | ---------------------------------------- |
+| `RATE_LIMIT_WINDOW_SECONDS`   | `60`    | Window size for counters                  |
+| `RATE_LIMIT_PER_IP`           | `60`    | Max requests per IP per window            |
+| `RATE_LIMIT_PER_PARTNER`      | `300`   | Max requests per partner per window       |
+
+Backed by Redis for accuracy across instances. When a limit is exceeded, the gateway returns `429 Too Many Requests` with `Retry-After` header set to the remaining seconds in the current window.
+
+---
+
 ## API Reference
 
 ### POST `/checkout`
