@@ -5,8 +5,9 @@ import org.springframework.web.client.RestTemplate;
 import com.rocketcredit.gateway.config.ServiceEndpoints;
 
 import java.net.ConnectException;
+import java.net.URI;
 import java.time.Duration;
-
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,6 +65,7 @@ public class Client {
     }
 
     private <T> T withGuards(String url, SupplierWithException<T> supplier) {
+        assertPinned(url);
         Guard g = guard(url);
         Guard.Token token = g.enter();
         try {
@@ -197,4 +199,41 @@ public class Client {
             return false;
         }
     }
+
+    // ===== URL pinning (prevent SSRF via unexpected hosts) =====
+    private void assertPinned(String url) {
+        URI u = safeUri(url);
+        if (u == null) throw new UnpinnedEndpointException("INVALID_URL");
+        if (!"http".equalsIgnoreCase(u.getScheme()) && !"https".equalsIgnoreCase(u.getScheme())) {
+            throw new UnpinnedEndpointException("UNSUPPORTED_SCHEME");
+        }
+
+        if (matchesBase(u, safeUri(ep.uds)) || matchesBase(u, safeUri(ep.cas)) ||
+            matchesBase(u, safeUri(ep.pay)) || matchesBase(u, safeUri(ep.rep)) ||
+            matchesBase(u, safeUri(ep.notif))) {
+            return; // pinned
+        }
+        throw new UnpinnedEndpointException("UNPINNED_URL_HOST");
+    }
+
+    private URI safeUri(String s) {
+        try { return s == null ? null : URI.create(s); } catch (IllegalArgumentException iae) { return null; }
+    }
+
+    private boolean matchesBase(URI u, URI base) {
+        if (u == null || base == null) return false;
+        boolean hostEq = Objects.equals(toLower(base.getHost()), toLower(u.getHost()));
+        if (!hostEq) return false;
+        int bp = base.getPort();
+        int up = u.getPort();
+        if (bp == -1) bp = defaultPort(base.getScheme());
+        if (up == -1) up = defaultPort(u.getScheme());
+        if (bp != up) return false;
+        String bPath = base.getPath(); if (bPath == null || bPath.isBlank()) bPath = "/";
+        String uPath = u.getPath();   if (uPath == null || uPath.isBlank()) uPath = "/";
+        return uPath.startsWith(bPath);
+    }
+
+    private String toLower(String s) { return s == null ? null : s.toLowerCase(); }
+    private int defaultPort(String scheme) { return "https".equalsIgnoreCase(scheme) ? 443 : ("http".equalsIgnoreCase(scheme) ? 80 : -1); }
 }

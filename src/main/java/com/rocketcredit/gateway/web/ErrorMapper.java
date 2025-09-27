@@ -26,6 +26,9 @@ public class ErrorMapper {
                 || t instanceof java.net.SocketTimeoutException) {
             return new Mapping(HttpStatus.SERVICE_UNAVAILABLE.value(), "SERVICE_UNAVAILABLE");
         }
+        if (t instanceof com.rocketcredit.gateway.clients.UnpinnedEndpointException) {
+            return new Mapping(HttpStatus.INTERNAL_SERVER_ERROR.value(), "INTERNAL_ERROR");
+        }
         if (t instanceof HttpStatusCodeException hsce) {
             try {
                 return hsce.getStatusCode().is5xxServerError()
@@ -53,4 +56,3 @@ public class ErrorMapper {
         return err;
     }
 }
-
