@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { cn } from "../../utils/cn";
+
 export type SectionHeaderProps = {
   title: ReactNode;
   subtitle?: ReactNode;
@@ -19,28 +21,22 @@ const SectionHeader = ({
   subtitleClassName = "",
   eyebrow,
 }: SectionHeaderProps) => {
-  const containerClassName = [
+  const containerClassName = cn(
     "mb-16",
     align === "center" ? "text-center" : "text-left",
     className,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  );
 
-  const computedTitleClassName = [
+  const computedTitleClassName = cn(
     "mb-4 text-3xl font-bold text-gray-800 lg:text-4xl",
     titleClassName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  );
 
-  const computedSubtitleClassName = [
+  const computedSubtitleClassName = cn(
     "text-xl text-gray-600",
-    align === "center" ? "mx-auto max-w-3xl" : "",
+    align === "center" ? "mx-auto max-w-3xl" : undefined,
     subtitleClassName,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  );
 
   return (
     <div className={containerClassName}>

@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
 
+import { cn } from "../utils/cn";
+import { formatCurrency } from "../utils/format";
+
 const PAYMENT_PLANS = [
   {
     id: "4x",
@@ -21,10 +24,72 @@ const PAYMENT_PLANS = [
   },
 ] as const;
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-    value,
-  );
+type PaymentPlan = (typeof PAYMENT_PLANS)[number];
+type PaymentPlanId = PaymentPlan["id"];
+
+const PAYMENT_PLAN_BY_ID = PAYMENT_PLANS.reduce<Record<PaymentPlanId, PaymentPlan>>(
+  (lookup, plan) => {
+    lookup[plan.id] = plan;
+    return lookup;
+  },
+  {} as Record<PaymentPlanId, PaymentPlan>,
+);
+
+const parsePurchaseAmount = (rawValue: string): number => {
+  const parsed = Number.parseFloat(rawValue);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+type PaymentBreakdown = {
+  todayDue: number;
+  recurringPayment: number;
+  recurringCount: number;
+  totalWithInterest: number;
+  interestDescription: string;
+  formattedTodayDue: string;
+  formattedRecurringPayment: string;
+  formattedTotal: string;
+};
+
+const createBreakdown = (
+  plan: PaymentPlan,
+  purchaseAmount: number,
+): PaymentBreakdown => {
+  if (plan.installments <= 0) {
+    const formattedZero = formatCurrency(0);
+    return {
+      todayDue: 0,
+      recurringPayment: 0,
+      recurringCount: 0,
+      totalWithInterest: 0,
+      interestDescription: "—",
+      formattedTodayDue: formattedZero,
+      formattedRecurringPayment: formattedZero,
+      formattedTotal: formattedZero,
+    };
+  }
+
+  const sanitizedAmount = Math.max(purchaseAmount, 0);
+  const totalWithInterest = sanitizedAmount * (1 + plan.interestRate);
+  const installment = plan.installments > 0 ? totalWithInterest / plan.installments : totalWithInterest;
+  const recurringCount = Math.max(plan.installments - 1, 0);
+  const interestAmount = Math.max(totalWithInterest - sanitizedAmount, 0);
+  const interestDescription =
+    plan.interestRate > 0
+      ? `${Math.round(plan.interestRate * 100)}% interest applied (${formatCurrency(interestAmount)})`
+      : "No interest, no fees";
+
+  return {
+    todayDue: installment,
+    recurringPayment: installment,
+    recurringCount,
+    totalWithInterest,
+    interestDescription,
+    formattedTodayDue: formatCurrency(installment),
+    formattedRecurringPayment: formatCurrency(installment),
+    formattedTotal: formatCurrency(totalWithInterest),
+  };
+};
 
 type PaymentCalculatorProps = {
   className?: string;
@@ -32,66 +97,20 @@ type PaymentCalculatorProps = {
 
 const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
   const [amountInput, setAmountInput] = useState("500");
-  const [selectedPlanId, setSelectedPlanId] = useState<
-    (typeof PAYMENT_PLANS)[number]["id"]
-  >(PAYMENT_PLANS[0].id);
+  const [selectedPlanId, setSelectedPlanId] = useState<PaymentPlanId>(PAYMENT_PLANS[0].id);
 
-  const plan = useMemo(
-    () =>
-      PAYMENT_PLANS.find((candidate) => candidate.id === selectedPlanId) ??
-      PAYMENT_PLANS[0],
-    [selectedPlanId],
-  );
-
-  const purchaseAmount = useMemo(() => {
-    const parsed = Number.parseFloat(amountInput);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      return 0;
-    }
-
-    return parsed;
-  }, [amountInput]);
-
+  const plan = PAYMENT_PLAN_BY_ID[selectedPlanId] ?? PAYMENT_PLANS[0];
+  const purchaseAmount = useMemo(() => parsePurchaseAmount(amountInput), [amountInput]);
   const {
-    todayDue,
-    recurringPayment,
-    recurringCount,
-    totalWithInterest,
+    formattedTodayDue,
+    formattedRecurringPayment,
+    formattedTotal,
     interestDescription,
-  } = useMemo(() => {
-    if (plan.installments <= 0) {
-      return {
-        todayDue: 0,
-        recurringPayment: 0,
-        recurringCount: 0,
-        totalWithInterest: 0,
-        interestDescription: "—",
-      };
-    }
-
-    const total = purchaseAmount * (1 + plan.interestRate);
-    const installment = plan.installments ? total / plan.installments : total;
-    const remainingPayments = Math.max(plan.installments - 1, 0);
-    const interest = total - purchaseAmount;
-
-    return {
-      todayDue: installment,
-      recurringPayment: installment,
-      recurringCount: remainingPayments,
-      totalWithInterest: total,
-      interestDescription:
-        plan.interestRate > 0
-          ? `${Math.round(plan.interestRate * 100)}% interest applied (${formatCurrency(interest)})`
-          : "No interest, no fees",
-    };
-  }, [plan.installments, plan.interestRate, purchaseAmount]);
+    recurringCount,
+  } = useMemo(() => createBreakdown(plan, purchaseAmount), [plan, purchaseAmount]);
 
   return (
-    <div
-      className={["rounded-2xl bg-white p-6 shadow-hover lg:p-8", className]
-        .filter(Boolean)
-        .join(" ")}
-    >
+    <div className={cn("rounded-2xl bg-white p-6 shadow-hover lg:p-8", className)}>
       <h3 className="mb-6 text-center text-xl font-semibold text-gray-800">
         Payment Calculator
       </h3>
@@ -135,18 +154,14 @@ const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
         <div className="mt-6 rounded-lg bg-gradient-secondary p-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm text-gray-600">Today</span>
-            <span className="font-semibold text-gray-800">
-              {formatCurrency(todayDue || 0)}
-            </span>
+            <span className="font-semibold text-gray-800">{formattedTodayDue}</span>
           </div>
           {recurringCount > 0 ? (
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm text-gray-600">
                 {`${recurringCount} payments of`}
               </span>
-              <span className="font-semibold text-gray-800">
-                {formatCurrency(recurringPayment || 0)}
-              </span>
+              <span className="font-semibold text-gray-800">{formattedRecurringPayment}</span>
             </div>
           ) : (
             <div className="mb-2 flex items-center justify-between">
@@ -157,9 +172,7 @@ const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
           <div className="mt-2 border-t border-gray-200 pt-2">
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-800">Total</span>
-              <span className="text-lg font-bold text-primary">
-                {formatCurrency(totalWithInterest || 0)}
-              </span>
+              <span className="text-lg font-bold text-primary">{formattedTotal}</span>
             </div>
             <p className="mt-1 text-xs text-gray-500">{interestDescription}</p>
           </div>
