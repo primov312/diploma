@@ -1,5 +1,13 @@
+import type { SyntheticEvent } from "react";
 import SectionHeader from "../components/common/SectionHeader";
 import StatGrid from "../components/common/StatGrid";
+
+const createImageErrorHandler = (fallbackSrc: string) =>
+  (event: SyntheticEvent<HTMLImageElement>) => {
+    const target = event.currentTarget;
+    target.src = fallbackSrc;
+    target.onerror = null;
+  };
 
 const AboutUs = () => (
   <div className="bg-gradient-hero">
@@ -129,7 +137,7 @@ const AboutUs = () => (
                 alt="Team collaboration"
                 className="w-full h-80 object-cover rounded-xl"
                 loading="lazy"
-                onerror="this.src='https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3'; this.onerror=null;"
+                onError={createImageErrorHandler("https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3")}
               />
             </div>
           </div>
@@ -153,7 +161,7 @@ const AboutUs = () => (
               alt="Sarah Chen, CEO & Co-Founder"
               className="w-full h-96 object-cover rounded-2xl shadow-hover"
               loading="lazy"
-              onerror="this.src='https://images.unsplash.com/photo-1494790108755-2616b612b786?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3'; this.onerror=null;"
+              onError={createImageErrorHandler("https://images.unsplash.com/photo-1494790108755-2616b612b786?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3")}
             />
 
             {/* Quote Overlay */}
@@ -337,7 +345,7 @@ const AboutUs = () => (
               alt="Sarah Chen"
               className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
               loading="lazy"
-              onerror="this.src='https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'; this.onerror=null;"
+              onError={createImageErrorHandler("https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop")}
             />
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               Sarah Chen
@@ -383,7 +391,7 @@ const AboutUs = () => (
               alt="Michael Rodriguez"
               className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
               loading="lazy"
-              onerror="this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop&ixlib=rb-4.0.3'; this.onerror=null;"
+              onError={createImageErrorHandler("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop&ixlib=rb-4.0.3")}
             />
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               Michael Rodriguez
@@ -429,7 +437,7 @@ const AboutUs = () => (
               alt="David Kim"
               className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
               loading="lazy"
-              onerror="this.src='https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=300&auto=format&fit=crop&ixlib=rb-4.0.3'; this.onerror=null;"
+              onError={createImageErrorHandler("https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=300&auto=format&fit=crop&ixlib=rb-4.0.3")}
             />
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               David Kim
@@ -474,7 +482,7 @@ const AboutUs = () => (
               alt="Emily Rodriguez"
               className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
               loading="lazy"
-              onerror="this.src='https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'; this.onerror=null;"
+              onError={createImageErrorHandler("https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop")}
             />
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               Emily Rodriguez
@@ -521,7 +529,7 @@ const AboutUs = () => (
               alt="James Wilson"
               className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
               loading="lazy"
-              onerror="this.src='https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=300&auto=format&fit=crop&ixlib=rb-4.0.3'; this.onerror=null;"
+              onError={createImageErrorHandler("https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=300&auto=format&fit=crop&ixlib=rb-4.0.3")}
             />
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               James Wilson
@@ -567,7 +575,7 @@ const AboutUs = () => (
               alt="Lisa Thompson"
               className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
               loading="lazy"
-              onerror="this.src='https://images.pexels.com/photos/1181519/pexels-photo-1181519.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'; this.onerror=null;"
+              onError={createImageErrorHandler("https://images.pexels.com/photos/1181519/pexels-photo-1181519.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop")}
             />
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
               Lisa Thompson
