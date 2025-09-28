@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #FF69B4;
+    --color-primary-50: #FDF2F8;
+    --color-primary-100: #FCE7F3;
+    --color-primary-200: #FBCFE8;
+    --color-primary-300: #F9A8D4;
+    --color-primary-400: #F472B6;
+    --color-primary-500: #FF69B4;
+    --color-primary-600: #EC4899;
+    --color-primary-700: #BE185D;
+    --color-primary-800: #9D174D;
+    --color-primary-900: #831843;
+    --color-secondary: #E6E6FA;
+    --color-secondary-50: #F8FAFC;
+    --color-secondary-100: #F1F5F9;
+    --color-secondary-200: #E2E8F0;
+    --color-secondary-300: #CBD5E1;
+    --color-secondary-400: #94A3B8;
+    --color-secondary-500: #E6E6FA;
+    --color-secondary-600: #64748B;
+    --color-secondary-700: #475569;
+    --color-secondary-800: #334155;
+    --color-secondary-900: #1E293B;
+    --color-accent: #40E0D0;
+    --color-accent-50: #F0FDFA;
+    --color-accent-100: #CCFBF1;
+    --color-accent-200: #99F6E4;
+    --color-accent-300: #5EEAD4;
+    --color-accent-400: #2DD4BF;
+    --color-accent-500: #40E0D0;
+    --color-accent-600: #0D9488;
+    --color-accent-700: #0F766E;
+    --color-accent-800: #115E59;
+    --color-accent-900: #134E4A;
+    --color-success: #48BB78;
+    --color-success-50: #F0FDF4;
+    --color-success-100: #DCFCE7;
+    --color-success-500: #48BB78;
+    --color-success-600: #22C55E;
+    --color-success-700: #16A34A;
+    --color-warning: #ED8936;
+    --color-warning-50: #FFFBEB;
+    --color-warning-100: #FEF3C7;
+    --color-warning-500: #ED8936;
+    --color-warning-600: #F59E0B;
+    --color-warning-700: #D97706;
+    --color-error: #F56565;
+    --color-error-50: #FEF2F2;
+    --color-error-100: #FEE2E2;
+    --color-error-500: #F56565;
+    --color-error-600: #EF4444;
+    --color-error-700: #DC2626;
+    --color-border: #E2E8F0;
+    --color-border-light: #F1F5F9;
+    --color-background: #FAFAFA;
+    --color-surface: #FFFFFF;
+    --color-text-primary: #2D3748;
+    --color-text-secondary: #718096;
+    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  html {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  body {
+    @apply bg-secondary-50 text-secondary-900 antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply rounded-lg bg-primary text-white font-semibold py-3 px-6 shadow-card transition-smooth;
+    box-shadow: var(--shadow-card);
+  }
+
+  .btn-primary:hover {
+    @apply opacity-90;
+    box-shadow: var(--shadow-hover);
+  }
+
+  .btn-secondary {
+    @apply rounded-lg border border-gray-200 bg-white text-gray-800 font-semibold py-3 px-6 shadow-card transition-smooth;
+    box-shadow: var(--shadow-card);
+  }
+
+  .btn-secondary:hover {
+    @apply bg-gray-50;
+    box-shadow: var(--shadow-hover);
+  }
+
+  .btn-gradient {
+    @apply rounded-lg text-white font-semibold py-3 px-6 transition-smooth shadow-card;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+    box-shadow: var(--shadow-card);
+  }
+
+  .btn-gradient:hover {
+    @apply opacity-90;
+    box-shadow: var(--shadow-hover);
+  }
+
+  .form-input {
+    @apply rounded-lg border border-gray-200 px-4 py-3 text-gray-800 placeholder-gray-500 transition-smooth focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none;
+  }
+}
+
+@layer utilities {
+  .transition-smooth {
+    transition: all 300ms ease-out;
+  }
+
+  .transition-quick {
+    transition: all 200ms ease-out;
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-hover {
+    box-shadow: var(--shadow-hover);
+  }
+}
