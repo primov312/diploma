@@ -5,6 +5,7 @@ import com.rocketcredit.user_data.entity.TransactionEntity;
 import com.rocketcredit.user_data.entity.UserEntity;
 import com.rocketcredit.user_data.repo.PaymentMethodRepository;
 import com.rocketcredit.user_data.repo.TransactionRepository;
+import com.rocketcredit.user_data.repo.UserRepaymentPlanRepository;
 import com.rocketcredit.user_data.repo.UserRepository;
 import com.rocketcredit.user_data.repo.UserStatsRepository;
 
@@ -48,6 +49,7 @@ public class UserApiController implements UsersApi {
     private final UserStatsRepository userStatsRepo;
     private final TransactionRepository transactionRepo;
     private final PaymentMethodRepository paymentMethodRepo;
+    private final com.rocketcredit.user_data.repo.UserRepaymentPlanRepository planMirrorRepo;
 
     private final ClaimStorage claimStorage;
 
@@ -58,12 +60,14 @@ public class UserApiController implements UsersApi {
             UserStatsRepository userStatsRepo,
             TransactionRepository transactionRepo,
             PaymentMethodRepository paymentMethodRepo,
+            UserRepaymentPlanRepository planMirrorRepo,
             ClaimStorage claimStorage
     ) {
         this.userRepo = userRepo;
         this.userStatsRepo = userStatsRepo;
         this.transactionRepo = transactionRepo;
         this.paymentMethodRepo = paymentMethodRepo;
+        this.planMirrorRepo = planMirrorRepo;
         this.claimStorage = claimStorage;
     }
 
@@ -343,6 +347,7 @@ public class UserApiController implements UsersApi {
         m.put("rocket_ontime_ratio", onTimeRatio);
         m.put("rocket_dpd30_12m", 0);
         int activePlans = 0;
+        try { activePlans = planMirrorRepo.countByUserIdAndStatus(userId, "ACTIVE"); } catch (Exception ignore) {}
         m.put("rocket_active_plans", activePlans);
         m.put("rocket_tenure_months", tenureMonths);
 
@@ -353,7 +358,7 @@ public class UserApiController implements UsersApi {
         double minimalIncome = total12m / 12.0;
         m.put("income", minimalIncome);
 
-        Double creditLimit = minimalIncome;
+        double creditLimit = minimalIncome;
         m.put("credit_limit", creditLimit);
 
         // ---- Persist (UPSERT) ----

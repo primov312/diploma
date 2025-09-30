@@ -68,3 +68,17 @@ src/
 - [X] Add create/update/delete endpoints.
 - [ ] Integrate with `gateway` microservice end-to-end.
 - [ ] Deploy to AWS (RDS for DB + ECS or EC2).
+
+---
+
+## 🔐 Repayment Webhook Ingestion
+
+The service ingests repayment plan events from the Repayment service to mirror plan metadata for analytics and features.
+
+- Endpoint: `POST /internal/repayment/plan-created`
+- Auth: HMAC-SHA256 via headers `X-Timestamp`, `X-Nonce`, `X-Signature` using `WEBHOOK_SECRET`.
+- Idempotency: DB uniqueness on `(plan_uid)` and `(plan_uid, installment_no)` makes deliveries safe to retry.
+
+Environment variables:
+
+- `WEBHOOK_SECRET` (no default): Shared secret with the Repayment service.
