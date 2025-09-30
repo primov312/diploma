@@ -1,5 +1,6 @@
+# Run on 8080 inside container to match docker-compose
 server:
-  port: 8084
+  port: 8080
 
 spring:
   datasource:
@@ -23,3 +24,7 @@ repayment:
     cron: "0 0 3 * * *"        # 03:00 UTC daily
   business:
     retryMax: 3
+
+userData:
+  baseUrl: ${USER_DATA_URL:http://user-data:8080}
+  webhookSecret: ${UDS_WEBHOOK_SECRET:}

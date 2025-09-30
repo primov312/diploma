@@ -12,6 +12,8 @@
 /Users/timur/Desktop/rocket-credits/rocket-credit-repayment/src/main/java/com/rocketcredit/repayment/repository/InstallmentRepository.java
 /Users/timur/Desktop/rocket-credits/rocket-credit-repayment/src/main/java/com/rocketcredit/repayment/repository/PlanRepository.java
 /Users/timur/Desktop/rocket-credits/rocket-credit-repayment/src/main/java/com/rocketcredit/repayment/service/ChargeProvider.java
+/Users/timur/Desktop/rocket-credits/rocket-credit-repayment/src/main/java/com/rocketcredit/repayment/service/FakeChargeProvider.java
 /Users/timur/Desktop/rocket-credits/rocket-credit-repayment/src/main/java/com/rocketcredit/repayment/service/RepaymentService.java
 /Users/timur/Desktop/rocket-credits/rocket-credit-repayment/src/main/java/com/rocketcredit/repayment/service/SchedulerService.java
+/Users/timur/Desktop/rocket-credits/rocket-credit-repayment/src/main/java/com/rocketcredit/repayment/service/UserDataNotifier.java
 /Users/timur/Desktop/rocket-credits/rocket-credit-repayment/src/main/java/com/rocketcredit/repayment/util/IdGenerator.java

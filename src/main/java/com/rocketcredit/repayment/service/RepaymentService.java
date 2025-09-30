@@ -20,6 +20,7 @@ public class RepaymentService {
   private final PlanRepository planRepo;
   private final InstallmentRepository instRepo;
   private final IdGenerator idGen;
+  private final UserDataNotifier notifier;
 
   @Value("${repayment.provider}")
   private String providerName;
@@ -63,7 +64,14 @@ public class RepaymentService {
       instRepo.save(inst);
       out.add(new InstallmentItem(n, inst.getDueDate().toString(), inst.getAmount(), inst.getStatus(), null));
     }
-    return new PlanResponse(planUid, out);
+    var response = new PlanResponse(planUid, out);
+
+    // 4) Side-effect: notify User Data (best-effort, out-of-tx)
+    try {
+      notifier.notifyPlanCreated(planUid, req.userId(), req.totalAmount(), req.currency(), req.installmentDurationMonths(), out);
+    } catch (Exception ignore) {}
+
+    return response;
   }
 
   public PlanResponse getPlan(String planUid) {
