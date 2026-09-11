@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: user-data  # Service name for discovery/logging
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}  # Default to dev; override in env
+  
+  security:
+    user:
+      name: disabled  # Override auto-user
+      password: disabled
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/userdb}  # Overridden in docker-compose to userdb container
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:  # Connection pool tuning
+      maximum-pool-size: 10  # Adjust for load
+
+  jpa:
+    hibernate:
+      ddl-auto: none  # Flyway handles schema; prevent accidental changes
+    show-sql: true  # Debug queries in dev
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect  # For JSONB support
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration  # Versioned SQL files (V1__, V2__, etc.)
+    baseline-on-migrate: true  # Auto-baseline fresh DBs
+    user: ${SPRING_DATASOURCE_USERNAME:postgres}  # Reuse datasource creds
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
+server:
+  port: ${SERVER_PORT:8080}  # Internal port; mapped in docker-compose (e.g., 8081:8080)
+
+external:
+  apis:
+    # linkedin:
+    #   key: ${LINKEDIN_KEY:dev-mock}  # Mock for dev; real from AWS Secrets Manager
+    #   base-url: ${LINKEDIN_BASE_URL:https://api.linkedin.com/v2}
+    # x:
+    #   api-key: ${X_API_KEY:dev-mock}
+    #   base-url: ${X_BASE_URL:https://api.twitter.com/2}
+    vkontakte:  # New
+      client-id: ${VK_CLIENT_ID:dev-mock}
+      client-secret: ${VK_CLIENT_SECRET:dev-mock}
+      base-url: ${VK_BASE_URL:https://api.vk.com/method}
+      oauth-url: ${VK_OAUTH_URL:https://oauth.vk.com}
+    meta:  # New (covers Instagram/Facebook; Threads uses same)
+      client-id: ${META_CLIENT_ID:dev-mock}
+      client-secret: ${META_CLIENT_SECRET:dev-mock}
+      base-url: ${META_BASE_URL:https://graph.facebook.com/v20.0}
+    email-verifier:  # New (e.g., Hunter.io or similar)
+      api-key: ${EMAIL_VERIFIER_API_KEY:dev-mock}
+      base-url: ${EMAIL_VERIFIER_BASE_URL:https://api.hunter.io/v2}
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG  # For RestTemplate calls
+    org.flywaydb: DEBUG  # Migration details
+    com.rocketcredit.userdata: DEBUG  # Service-specific logs
