@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: CreDIT Gateway API
+  version: 1.2.0
+  description: Rocket Credit Gateway
+servers:
+  - url: http://localhost:8080
+    description: Local gateway
+
+paths:
+  /checkout:
+    post:
+      operationId: checkoutPost
+      summary: Run full checkout flow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+            examples:
+              partnerFlow:
+                value:
+                  partnerPaymentId: "PAY-12345"
+                  amount: 250.00
+                  currency: "USD"
+                  installmentDurationMonths: 6
+                  buyer:
+                    partnerUserId: "partner-uid-789"
+                    name: "Alice Doe"
+                    email: "alice@company.com"
+                    paymentMethod:
+                      type: "card"
+                      last4: "4242"
+                      token: "pm_tok_abc"
+      responses:
+        '200':
+          description: Approved & scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+        '402':
+          description: Credit denied / payment failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: Invalid input / email domain not allowed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+components:
+  schemas:
+    CheckoutRequest:
+      type: object
+      required: [partnerPaymentId, amount, currency, installmentDurationMonths, buyer]
+      properties:
+        partnerPaymentId:
+          type: string
+          description: Partner’s payment identifier to correlate with their platform
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        installmentDurationMonths:
+          type: integer
+          minimum: 1
+        buyer:
+          $ref: '#/components/schemas/Buyer'
+
+    Buyer:
+      type: object
+      required: [partnerUserId, name, email, paymentMethod]
+      properties:
+        partnerUserId: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+
+    PaymentMethod:
+      type: object
+      description: Partner’s payment method summary/token (non-PCI)
+      properties:
+        type: { type: string, enum: [card, wallet, bank] }
+        last4: { type: string }
+        token: { type: string, description: "PSP token; never raw PAN" }
+
+    CheckoutResponse:
+      type: object
+      properties:
+        approved: { type: boolean }
+        reason: { type: string, nullable: true }
+        userId: { type: integer, format: int64 }
+        paymentId: { type: string, description: "Internal payment id" }
+        partnerPaymentId: { type: string }
+        repaymentPlanId: { type: string }
+        installmentDurationMonths: { type: integer }
+        schedule:
+          type: array
+          items: { $ref: '#/components/schemas/Installment' }
+
+    Installment:
+      type: object
+      properties:
+        dueDate: { type: string, format: date }
+        amount: { type: number, format: double }
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }

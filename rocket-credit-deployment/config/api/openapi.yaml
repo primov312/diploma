@@ -1,0 +1,269 @@
+openapi: 3.0.3
+info:
+  title: CreDIT API
+  version: 1.0.0
+  description: |
+    Rocket Credit (CreDIT) public‐facing and internal endpoints.
+servers:
+  - url: http://localhost:8080
+    description: Local dev gateway
+
+paths:
+  /checkout:
+    post:
+      summary: “Run full checkout flow”
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '200':
+          description: Successful initiation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+  /users:
+    post:
+      operationId: createUser
+      summary: "Create a new user"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/{id}:
+    get:
+      operationId: getUserById
+      summary: "Fetch a user by ID"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      operationId: updateUser
+      summary: "Update an existing user"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      operationId: deleteUser
+      summary: "Delete a user"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: No Content
+    
+  /users/{id}/transactions:
+    get:
+      operationId: getUserTransactions
+      summary: "Fetch user's transactions"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+  /users/{id}/payment-methods:
+    get:
+      operationId: getUserPaymentMethods
+      summary: "Fetch user's payment methods"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentMethod'
+
+  /users/{id}/credit-report:
+    get:
+      operationId: getUserCreditReport
+      summary: "Fetch user's credit report"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditReport'
+
+
+components:
+  schemas:
+    CheckoutRequest:
+      type: object
+      required: [userId, cartTotal]
+      properties:
+        userId:
+          type: integer
+          format: int64
+        cartTotal:
+          type: number
+          format: double
+    
+    CheckoutResponse:
+      type: object
+      properties:
+        paymentId:
+          type: string
+        schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installment'
+
+    Installment:
+      type: object
+      properties:
+        dueDate:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+    
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    NewUser:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+    
+    UserFull:
+      type: object
+      properties:
+        id:            { type: integer, format: int64 }
+        name:          { type: string }
+        email:         { type: string, format: email }
+        dateOfBirth:   { type: string, format: date }
+        passportData:  { type: string }
+        citizenship:   { type: string }
+        status:        { type: string, enum: [Adult,Student] }
+        transactions:
+          type: array
+          items: 
+            $ref: '#/components/schemas/Transaction'
+        paymentMethods:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentMethod'
+        creditReport:
+          $ref: '#/components/schemas/CreditReport'
+
+    Transaction:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: double
+        method:
+          type: string
+
+    PaymentMethod:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        last4:
+          type: string
+
+    CreditReport:
+      type: object
+      properties:
+        score:
+          type: integer
+        history:
+          type: array
+          items:
+            type: string

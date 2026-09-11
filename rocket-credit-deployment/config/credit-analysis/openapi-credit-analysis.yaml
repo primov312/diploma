@@ -1,0 +1,50 @@
+openapi: 3.0.3
+info:
+  title: CreDIT Credit-Analysis API
+  version: 1.0.0
+  description: Analyze a user’s credit for checkout approval.
+servers:
+  - url: http://localhost:8082
+    description: Local credit-analysis service
+
+paths:
+  /creditscore:
+    post:
+      operationId: analyzeCredit
+      summary: Analyze credit for a user’s purchase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditRequest'
+      responses:
+        '200':
+          description: Credit decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditResponse'
+
+components:
+  schemas:
+    CreditRequest:
+      type: object
+      required: [userId, cartTotal]
+      properties:
+        userId:
+          type: integer
+          format: int64
+        cartTotal:
+          type: number
+          format: double
+
+    CreditResponse:
+      type: object
+      properties:
+        approved:
+          type: boolean
+        score:
+          type: integer
+        reason:
+          type: string
