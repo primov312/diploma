@@ -136,7 +136,7 @@ services:
     ports:
       - "8082:8080"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/_health"]
       interval: 5s
       timeout: 2s
       retries: 20

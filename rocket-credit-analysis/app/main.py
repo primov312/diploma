@@ -44,11 +44,13 @@ async def creditscore(req: CreditRequest, cfg: Settings = Depends(get_settings))
 
     # ---- Option B: Claim-Check / direct features
     resolved_features = None
-    try:
-        resolved_features = fetch_features_from_claim(req.featureClaim, cfg)
-    except Exception as e:
-        # don't fail the request; just log and proceed with default path
-        logger.warning("Claim-Check feature fetch failed: %s", e)
+    if req.featureClaim is not None:
+        try:
+            resolved_features = fetch_features_from_claim(req.featureClaim, cfg)
+        except Exception as e:
+            # Don't fail the request; scoring can still load the normalized
+            # feature bundle directly from User Data.
+            logger.warning("Claim-Check feature fetch failed: %s", e)
 
     try:
         # pass preloaded features if available; scoring falls back to UDS otherwise

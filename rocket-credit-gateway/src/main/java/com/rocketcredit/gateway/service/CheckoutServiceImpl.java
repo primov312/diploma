@@ -67,7 +67,7 @@ public class CheckoutServiceImpl implements CheckoutService {
             req.getBuyer().getPartnerUserId(),
             req.getBuyer().getEmail(),
             req.getBuyer().getName(),
-            req.getBuyer().getCardToken(),
+            new UserDataClient.PaymentMethodDto(req.getBuyer().getCardToken()),
             transactions.stream()
                 .map(tnx -> {
                     TransactionDto dto = new TransactionDto();
@@ -101,7 +101,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         // 3) Payment
         var paymentResp = pay.create(new PaymentClient.CreatePaymentRequest(
-            userId, req.getPartnerPaymentId(), req.getAmount(), req.getCurrency(), req.getBuyer(), items.stream().
+            userId, req.getPartnerPaymentId(), req.getPartnerId(), req.getAmount(), req.getCurrency(), req.getBuyer(), items.stream().
                 map(item -> {
                     ItemDto dto = new ItemDto();
                     dto.setSku(item.getSku());

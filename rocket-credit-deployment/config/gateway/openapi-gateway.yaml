@@ -55,8 +55,11 @@ components:
   schemas:
     CheckoutRequest:
       type: object
-      required: [partnerPaymentId, amount, currency, installmentDurationMonths, buyer]
+      required: [partnerId, partnerPaymentId, amount, currency, installmentDurationMonths, buyer]
       properties:
+        partnerId:
+          type: string
+          description: Stable identifier of the demo partner initiating the checkout.
         partnerPaymentId:
           type: string
           description: Partner’s payment identifier to correlate with their platform
@@ -74,13 +77,14 @@ components:
 
     Buyer:
       type: object
-      required: [partnerUserId, name, email, paymentMethod]
+      required: [partnerUserId, name, email, cardToken]
       properties:
         partnerUserId: { type: string }
         name: { type: string }
         email: { type: string, format: email }
-        paymentMethod:
-          $ref: '#/components/schemas/PaymentMethod'
+        cardToken:
+          type: string
+          description: Demo payment-provider token or vault reference. Never send a PAN.
 
     PaymentMethod:
       type: object

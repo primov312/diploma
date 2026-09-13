@@ -38,6 +38,24 @@ components:
         cartTotal:
           type: number
           format: double
+        featureClaim:
+          $ref: '#/components/schemas/ClaimRef'
+
+    ClaimRef:
+      type: object
+      required: [bucket, key]
+      properties:
+        bucket:
+          type: string
+        key:
+          type: string
+        contentType:
+          type: string
+        expiresAt:
+          type: integer
+          format: int64
+        correlationId:
+          type: string
 
     CreditResponse:
       type: object

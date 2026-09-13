@@ -51,8 +51,13 @@ public class UserDataClient extends Client{
         private String partnerUserId;
         private String email;
         private String name;
-        private String payment;
+        private PaymentMethodDto paymentMethod;
         private List<TransactionDto> transactions;
+    }
+
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class PaymentMethodDto {
+        private String token;
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor
