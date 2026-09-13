@@ -315,6 +315,14 @@ public class UserApiController implements UsersApi {
         var maybeUser = userRepo.findById(userId);
         var txns = transactionRepo.findByUserId(userId);
 
+        // Demo profiles are stored as normalized, derived feature sets. Prefer
+        // that stable snapshot until a partner has supplied transaction data
+        // that needs a fresh calculation.
+        var persistedStats = userStatsRepo.findByUserId(userId);
+        if (txns.isEmpty() && persistedStats.isPresent()) {
+            return toFeatureMap(persistedStats.get());
+        }
+
         boolean kyc = maybeUser.map(UserEntity::isKysPassed).orElse(Boolean.TRUE);
         m.put("kyc_passed", kyc);
 
@@ -380,6 +388,28 @@ public class UserApiController implements UsersApi {
 
         return m;
     }
+
+    private Map<String, Object> toFeatureMap(com.rocketcredit.user_data.entity.UserStatsEntity stats) {
+        Map<String, Object> features = new LinkedHashMap<>();
+        features.put("kyc_passed", Boolean.TRUE.equals(stats.isKyc_passed()));
+        features.put("partner_orders_12m", valueOrZero(stats.getPartner_orders_12m()));
+        features.put("partner_avg_order_value", valueOrZero(stats.getPartner_avg_order_value()));
+        features.put("partner_refund_rate", valueOrZero(stats.getPartner_refund_rate()));
+        features.put("partner_ontime_ratio", valueOrZero(stats.getPartner_ontime_ratio()));
+        features.put("partner_tenure_months", valueOrZero(stats.getPartner_tenure_months()));
+        features.put("rocket_ontime_ratio", valueOrZero(stats.getRocket_ontime_ratio()));
+        features.put("rocket_dpd30_12m", valueOrZero(stats.getRocket_dpd30_12m()));
+        features.put("rocket_active_plans", valueOrZero(stats.getRocket_active_plans()));
+        features.put("rocket_tenure_months", valueOrZero(stats.getRocket_tenure_months()));
+        features.put("income", valueOrZero(stats.getIncome()));
+        features.put("credit_limit", valueOrZero(stats.getCredit_limit()));
+        return features;
+    }
+
+    private static Number valueOrZero(Number value) {
+        return value == null ? 0 : value;
+    }
+
     private static int monthsBetween(LocalDate start, LocalDate end) {
         if (start == null || end == null) return 0;
         Period p = Period.between(start, end);

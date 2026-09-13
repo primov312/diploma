@@ -13,5 +13,5 @@ public interface RepaymentsApi {
   ResponseEntity<PlanResponse> createPlan(@Valid @RequestBody CreatePlanRequest req);
 
   @GetMapping("/repayments/{planUid}")
-  ResponseEntity<PlanResponse> getPlan(@PathVariable String planUid);
+  ResponseEntity<PlanResponse> getPlan(@PathVariable("planUid") String planUid);
 }
