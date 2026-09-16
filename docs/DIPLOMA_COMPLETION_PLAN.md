@@ -1,195 +1,150 @@
-# Rocket Credit — Diploma Completion Plan
+# Rocket Credit — Simple Diploma Completion Plan
 
-## Goal
+Updated: 2026-09-16. This plan replaces the earlier 12-phase distributed-system roadmap.
 
-Deliver a working Buy Now, Pay Later prototype in which a customer signs in, shops at a demo partner, requests financing through Rocket Credit, receives an explainable decision, and can later view transactions and repayment plans in a customer dashboard.
+Scope: [README](../README.md). Design: [simple architecture](DIPLOMA_ARCHITECTURE.md). Research description: [diploma topic](DIPLOMA_PROJECT_TOPIC.md).
 
-The diploma focus is not just the visual demo. It must demonstrate authentication, safe data handling, concurrent service orchestration, explainable scoring, and a consent-first AI-assisted factor.
+## 1. Goal and completion boundary
 
-## Current-State Assessment
+Build a customer account with demo partner transaction history, a credit request form, explained decisions and three store pages linking into the application. Demonstrate authentication, multithreading, scoring modules, safe data keeping and AI analysis.
 
-| Area | Status | Finding |
+Target runtime: one React app, one Java backend, one Python analysis service and one PostgreSQL database. No payments, separate partner backend, identity-provider deployment, queue, object store or distributed workflow is required.
+
+The code has not yet been simplified. Existing microservices and earlier Docker smoke results are reuse material, not evidence that this target is implemented. All steps below are pending. This documentation change starts no services.
+
+## 2. What to reuse and what to stop building
+
+- Reuse the React layout/pages, useful User Data entities and seed concepts, Gateway's basic request coordination, and Python rule functions.
+- Build `rocket-credit-backend` from the User Data Java/Spring foundation, bringing only required orchestration across. Account for the old Gateway's Java 17 / Spring Boot 2 / `javax` code versus User Data's Java 21 / Spring Boot 3 / `jakarta` code; adapt source rather than copying both application bootstraps.
+- Turn `rocket-credit-analysis` into a stateless scoring service. Backend stores its result in the single database.
+- Keep Payment, Repayment, old Gateway/User Data deployments and claim-check code out of the new runtime. Retain them as reference until the simplified app works; do not delete user changes or volumes.
+- Drop the old roadmap's offers, payment acceptance, operator portal, partner credentials/webhooks, Keycloak, bank integration, scraping, outbox and recovery-worker requirements.
+- Supersede old persona amounts and payment-oriented scenarios when writing the new demo script. The old `DEMO_SCENARIOS.md` is a historical fixture description until updated in Step 3.
+
+## 3. Implementation order
+
+| Step | Depends on | Deliverable |
 | --- | --- | --- |
-| Customer frontend | Starter only | `demo-repository` contains marketing pages and hard-coded dashboard data; it has no authentication or API integration. |
-| Partner storefronts | Missing | No demo e-commerce applications currently exist. |
-| Gateway | Partial | It resolves a user, scores a request, creates a payment transfer, and creates a repayment schedule. Redis idempotency and rate limiting are present. |
-| Authentication | Missing/inactive | Customer authentication does not exist; partner HMAC and mTLS filters are commented out; User Data permits all requests. |
-| User data | Partial | It persists users, transactions, payment references, and repayment-plan mirrors, but current feature calculation includes placeholder values. |
-| Credit analysis | Good foundation | Rule-based scoring, reason codes, policy versioning, and decision audit persistence exist. There is no bank adapter or enabled AI/footprint factor. |
-| Payment and repayment | Demo implementation | Transfers and charging use simulated providers; repayment schedules and a scheduled worker are present. |
-| Deployment and testing | Incomplete | Compose exists but its health check and several API contracts do not match implementation. No automated test suite was found. |
+| 1. Reduce the runtime | Existing repository | Java backend + Python analysis + one DB start together. |
+| 2. Add accounts and sessions | Step 1 | Register, login, logout and user isolation. |
+| 3. Add demo data and history | Step 2 | Three partners and per-user transaction history. |
+| 4. Implement rules and saved decisions | Step 3 | Complete request → score → save → read flow. |
+| 5. Connect the customer/store UI | Step 4 | Working browser demonstration with rules. |
+| 6. Add trained AI analysis | Steps 3–4 | Evaluated model and optional hybrid scoring. |
+| 7. Demonstrate multithreading | Steps 4 and 6 | Sequential/parallel comparison using the same inputs. |
+| 8. Verify and write the diploma | Steps 1–7 | Focused tests, experiments and reproducible demo. |
 
-## Immediate Compatibility Blockers
+Security checks and tests accompany each step. Do not postpone ownership checks until the final step.
 
-1. The documented checkout request uses `buyer.paymentMethod`, whereas the generated Gateway DTO expects `buyer.cardToken`.
-2. Gateway sends `payment` when resolving users, whereas User Data expects `paymentMethod`.
-3. Credit Analysis OpenAPI specifies only `userId` and `cartTotal`, whereas its actual model requires a `featureClaim`.
-4. Docker Compose probes Credit Analysis at `/actuator/health`, but that service exposes `/_health`.
-5. `partnerId` is used as part of Gateway idempotency but is absent from the documented checkout schema.
-6. User-facing dashboard APIs for application history, repayment plans, and transactions do not exist.
+### Step 1 — Reduce the runtime
 
-## Target Demo Architecture
+Locations: proposed `rocket-credit-backend/`, existing `rocket-credit-analysis/`, `rocket-credit-deployment/`.
 
-```text
-Customer web app ─┐
-                  ├─ Gateway / BFF ─┬─ Identity and consent
-Demo partner apps ┘                 ├─ User/history service
-                                    ├─ Bank-data demo adapter
-                                    ├─ Footprint feature service
-                                    ├─ Credit-analysis service
-                                    ├─ Payment simulation
-                                    └─ Repayment service
+- [ ] 1.1 Record the current state and preserve existing source/volumes. Select the User Data Java foundation for the consolidated backend; copy source only and remove unused startup/configuration dependencies.
+- [ ] 1.2 Create backend packages for auth, users, partners, transactions, applications and analysis. Replace required cross-service user-data calls with local service/repository calls.
+- [ ] 1.3 Make Python accept a validated JSON feature bundle and return a decision. Remove its runtime dependency on PostgreSQL, User Data HTTP, MinIO and Kafka. Replace DB policy loading with a versioned local configuration; retain useful pure rule functions.
+- [ ] 1.4 Add `rocket-credit-deployment/docker-compose.diploma.yml` for backend, analysis and one PostgreSQL database with a new named volume. Serve built React files from Java; support Vite's API proxy for development. Give analysis only an internal port and simple backend-call authentication via an environment secret.
+- [ ] 1.5 Document one start command, one stop command and health endpoints. Label original Compose as legacy. Keep old databases untouched; new synthetic fixtures need no production-style cross-database migration.
 
-Partner store backend ── authenticated partner API / webhook flow
-```
+Done when: all three server containers start without Redis, MinIO or the old services; backend can call the stateless analysis health/scoring endpoints.
 
-Use fictional partner identities so the application does not imply a real commercial integration:
+### Step 2 — Implement accounts and session authentication
 
-- **StreamBox**: subscriptions and digital goods.
-- **MarketHub**: general retail.
-- **Threadly**: clothing store.
+Locations: backend `auth`/`users`, migrations and frontend auth integration.
 
-Each store has a cart, seeded customer/order history, and a **Pay with Rocket Credit** flow. The store sends the customer to Rocket Credit checkout and receives the purchase outcome after the decision.
+- [ ] 2.1 Add users with unique normalized email and password hash. Use Spring Security's password encoder, request validation and generic login errors. Never return hashes in API responses.
+- [ ] 2.2 Implement registration, login, current-user lookup and logout using framework sessions. Rotate session IDs on login; invalidate on logout. Document that restart ends in-memory sessions.
+- [ ] 2.3 Configure HttpOnly cookies, SameSite, Secure when using HTTPS, CSRF handling and same-origin frontend/API requests. Include the CSRF token flow for the React client.
+- [ ] 2.4 Derive user identity from the session for every private query. Test two accounts, wrong passwords, absent/expired sessions, missing CSRF tokens and cross-user record IDs.
 
-## Completion Plan
+Done when: register → login → protected request → logout works, and customer A cannot access customer B's data. Capture this sequence for the authentication chapter.
 
-### Phase 1 — Stabilize contracts, local runtime, and test data
+### Step 3 — Seed partner history and demonstrate safe storage
 
-- Make Gateway OpenAPI the source of truth and regenerate/align all DTOs.
-- Define one checkout request containing `partnerId`, `orderId`, amount, items, selected plan, buyer identity, payment-token reference, consent snapshot, and idempotency key.
-- Return a safe response with `APPROVED`, `REJECTED`, or `REVIEW`, approved amount, repayment schedule, safe reason codes, and trace ID.
-- Fix the Credit Analysis health probe and add readiness checks for dependencies.
-- Add deterministic seed data for approved, rejected, review, and reduced-offer cases.
-- Add API contract tests and a runnable smoke-test script.
+Locations: backend migrations, fixture loader, history APIs and `research/fixtures/`.
 
-**Deliverable:** one working, documented `POST /checkout` flow through every backend service.
+- [ ] 3.1 Add partners, products, transactions, synthetic financial profiles and credit-application tables from the architecture document. Use foreign keys, decimal money, timestamps and database constraints; support USD only.
+- [ ] 3.2 Seed StreamBox, MarketHub and Threadly catalogs plus several customers with distinct histories. Make repeated seeding safe through stable fixture IDs. New registrations get a clearly labeled synthetic starter dataset, not another account's history.
+- [ ] 3.3 Add public catalog/partner reads and authenticated `GET /api/me` and `GET /api/transactions` with partner filtering. Financial fixture values cannot be arbitrarily overwritten by the browser.
+- [ ] 3.4 Use parameterized ORM queries, restricted DB credentials and environment secrets. Redact passwords, cookies and personal payloads from logs. Document local disk protection separately from password hashing.
+- [ ] 3.5 Demonstrate one local DB backup/restore, and update `DEMO_SCENARIOS.md` with new fixture identities and expected behavior. Keep old fixture expectations clearly separated until the new scoring policy is applied.
 
-### Phase 2 — Identity, roles, and consent
+Done when: two customers see their own three-partner history; duplicate seeding does not inflate it; the database stores hashes and restores successfully.
 
-- Add an OIDC identity provider, such as Keycloak, using Authorization Code + PKCE.
-- Implement roles: `CUSTOMER`, `PARTNER_ADMIN`, and `OPERATOR`.
-- Make Gateway validate JWTs; protect User Data and all internal service endpoints.
-- Authenticate demo partner backends with per-partner credentials. Browser clients never receive partner secrets.
-- Store consent records with purpose, version, timestamp, withdrawal time, and request ID.
-- Exclude bank and footprint factors when their consent is absent; never silently collect data.
+### Step 4 — Implement modular scoring and persist decisions
 
-**Deliverable:** protected login, role-aware routes, consent management, and an auditable consent trail.
+Locations: Python `app/` modules, backend `applications`/`analysis`, API models.
 
-### Phase 3 — Customer web application
+- [ ] 4.1 Define one request: partner ID, requested amount, optional product ID and `useAi`. Use session identity. Validate positive amount/currency; resolve product ownership and price server-side when product ID is present.
+- [ ] 4.2 Prepare profile, partner-history and finance features from stored synthetic data. Keep all preparation sequential initially; capture the observation time and send derived data without identifying fields to Python.
+- [ ] 4.3 Separate profile rules, history rules, affordability and decision combination into testable Python functions. Correct existing zero-capacity behavior and return an explicit `decisionStatus` rather than mapping every negative result to generic denial.
+- [ ] 4.4 Return decision, score, possible amount, reasons, factors and policy version. Use the architecture's simple policy; missing required evidence gives review, insufficient capacity gives rejection. A lower possible amount is a suggestion for a new request, not an accepted purchase.
+- [ ] 4.5 Implement `POST /api/applications`, `GET /api/applications` and `GET /api/applications/{id}`. Save request, feature snapshot, result, AI choice/status and versions atomically in one DB; enforce ownership on reads.
+- [ ] 4.6 Test approval, rejection, review, over-cap amount, zero capacity and invalid inputs. Return a technical error on analysis timeout or failed DB write; do not invent or display a saved decision. Disable repeated submit while pending; duplicate financial execution is irrelevant because this app makes no payment.
 
-Turn `demo-repository` into the Rocket Credit customer app with these routes:
+Done when: an API request produces an explained, persisted decision that survives application restart and can only be read by its owner.
 
-- `/login` and `/register`
-- `/dashboard`
-- `/checkout` and `/checkout/result`
-- `/applications/:id`
-- `/repayments`
-- `/profile`
-- `/privacy-and-consent`
+### Step 5 — Connect the customer app and demo store pages
 
-The dashboard must show real API data: purchases by partner, application history, active/completed plans, upcoming installments, and consent state. User-facing explanations must be readable rather than expose only raw model scores.
+Location: `demo-repository/src/`.
 
-**Deliverable:** a customer can sign in, request financing, see a decision, and view repayment history.
+- [ ] 5.1 Add login/register, dashboard, transaction history, request form, decision detail and application-history routes. Connect them through one API client with session cookies and CSRF support.
+- [ ] 5.2 Replace hard-coded account figures with stored data. Clearly distinguish historical purchases from credit applications.
+- [ ] 5.3 Build three branded store pages with small catalogs and “Apply with Rocket Credit” links. Share components and use backend catalog data; no store backend or checkout session service is needed.
+- [ ] 5.4 Allow direct selection of partner/amount and store-prefilled requests. Preserve intended navigation through login and resolve product details from the backend.
+- [ ] 5.5 Show approved, rejected and review outcomes with plain-language reasons and suggested possible amount. State that review is an inconclusive automatic result, and no money is moved. Support loading, errors, empty data, logout and mobile/keyboard use.
 
-### Phase 4 — Demo storefronts and partner portal
+Done when: an examiner can register, inspect history and submit a request from Rocket Credit or any of the three store pages.
 
-Build StreamBox, MarketHub, and Threadly as lightweight storefront apps. Each includes a catalog, cart, seeded customer, historical orders, and Rocket Credit checkout handoff.
+### Step 6 — Add AI analysis and evaluate it
 
-Add a small partner portal with checkout history, trace IDs, sandbox credentials, webhook delivery logs, and an event replay control.
+Locations: Python analysis and `research/training/`, `research/results/`.
 
-**Deliverable:** an examiner can start in any demo store, pay through Rocket Credit, then return to the store with the result.
+- [ ] 6.1 Specify the model's target and inputs: normalized history, profile and synthetic financial features. Generate reproducible labeled data with fixed seeds; document the label-generation assumptions.
+- [ ] 6.2 Split by synthetic customer before preprocessing/training. Exclude future transactions, customer identifiers, target labels and fields that directly reveal the target from model inputs.
+- [ ] 6.3 Train one logistic-regression model and compare it with the rules baseline. Save trusted model/preprocessing artifacts, feature schema and version locally; load once at startup. No model registry or separate AI service is needed.
+- [ ] 6.4 Add the AI module to the same Python scoring process. Return risk semantics, version and understandable feature contributions; combine it with rules using documented weights.
+- [ ] 6.5 Wire “Use AI analysis for this request” into the form and saved result. When disabled, do not invoke inference. If the model alone is unavailable, record fallback and use rules; if the whole analysis service fails, use the technical-error behavior from Step 4.
+- [ ] 6.6 Evaluate both modes on identical held-out data and save a confusion matrix, precision/recall, ROC-AUC where meaningful and decision examples. Report improvement only if measured; explain synthetic-data limitations.
 
-### Phase 5 — Data model and customer APIs
+Done when: training/evaluation is reproducible, the UI can use rules or hybrid analysis, and saved results identify the exact model/policy and whether AI ran.
 
-Add migrations for:
+### Step 7 — Add the multithreading experiment
 
-- applications and decisions;
-- normalized partner orders/history features;
-- bank-data and footprint consent;
-- consent ledger;
-- model and policy version snapshots;
-- decision audit records;
-- user-facing application and repayment queries.
+Locations: backend feature-preparation code and `research/benchmarks/`.
 
-Expose only Gateway customer APIs:
+- [ ] 7.1 Extract profile, history and finance preparation behind three independent provider interfaces. Keep a sequential implementation for comparison.
+- [ ] 7.2 Add one shared bounded Java executor and a parallel implementation. Give each worker its own short DB read transaction or immutable materialized inputs. Do not share JPA sessions, lazy entities or mutable score state.
+- [ ] 7.3 Join all required tasks before the single scoring call. Add a deadline, bounded queue, explicit task-failure handling and clean executor shutdown.
+- [ ] 7.4 Assert identical features and decisions for both modes. Exercise simultaneous requests from two users to catch accidental shared state.
+- [ ] 7.5 Benchmark repeated runs on normal local data, then with controlled simulated I/O delays. Record pool size, timings, median/p95, errors and dataset size in CSV. Separate simulated-delay results from ordinary operation; discuss thread overhead and possible lack of speedup.
 
-- `GET /me/dashboard`
-- `GET /me/applications`
-- `GET /me/repayment-plans`
-- `GET /me/transactions`
-- `PUT /me/consents`
-- `POST /checkout`
+Done when: the diploma contains an understandable sequential/parallel experiment with measured results and a correctness check, without requiring more services.
 
-Keep raw partner data separate from derived scoring features. Pseudonymize partner identity values before cross-partner aggregation.
+### Step 8 — Verify, document and present
 
-### Phase 6 — Partner and bank-data adapters
+Locations: tests, `research/`, `docs/` and the run instructions.
 
-Use deterministic mock adapters, not real banking credentials. The bank adapter returns only derived signals: income estimate, income stability, disposable income, existing obligations, and balance trend. Partner adapters normalize order history, refunds, tenure, order velocity, and repayment outcomes.
+- [ ] 8.1 Run focused checks: authentication/ownership/CSRF, feature calculations, score/cap boundaries, decision persistence, rules/AI behavior and thread-result equality.
+- [ ] 8.2 Add one browser smoke scenario covering login, history, a store handoff, application submission, saved result and logout. Include approval, rejection and review fixture cases in API tests.
+- [ ] 8.3 Finalize evidence for all five research topics using the table below. Include a DB backup/restore example and clearly state local security limits.
+- [ ] 8.4 Write the diploma chapters and a short demo script. Update screenshots, architecture and fixture instructions to match implemented behavior.
+- [ ] 8.5 Verify a fresh start from the simplified Compose setup and document shutdown. Archive or remove unused legacy code only in a separate reviewed cleanup after the new path passes; deleting old volumes is not part of completion.
 
-Store data source, collection time, consent version, and feature-schema version with each feature set.
+Done when: another person can start the simple app, follow the demo and reproduce the two research experiments without running the legacy stack.
 
-### Phase 7 — Consent-first AI/footprint factor
+## 4. Minimum research evidence
 
-Do not scrape social media. Implement a permitted footprint feature service based on:
+| Topic | Implementation evidence | Experiment / check |
+| --- | --- | --- |
+| Authentication | Password hashes, Spring Security session, cookie and logout flow | Wrong-password, no-session and cross-user access tests |
+| Multithreading | Shared bounded executor and three independent feature providers | Same results; sequential/parallel timing table |
+| Scoring modules | Profile/history rules, affordability and combiner | Known inputs, expected factors, boundary decisions |
+| Safe data keeping | Ownership, constraints, secret configuration and backup procedure | Denied reads, no secret logging, backup/restore |
+| AI analysis | Offline training, versioned model, inference and fallback | Rules vs hybrid results on fixed held-out customers |
 
-- verified email and phone;
-- account age;
-- checkout/session consistency;
-- abnormal order velocity;
-- demo device/session trust;
-- partner-account consistency.
+## 5. First implementation task
 
-Begin with deterministic scoring for repeatable tests. Then add an offline-trained model using synthetic labelled data. A logistic-regression or monotonic gradient-boosted model is more suitable than an LLM for structured credit data.
+Start with Step 1: create the consolidated backend and database-free Python analysis path, then run them against the new diploma database. Do not add features to the legacy five-service checkout while building the simplified route.
 
-Use a hybrid decision:
-
-```text
-Hard eligibility rules
-+ affordability cap
-+ versioned weighted scoring
-+ bounded explainable AI risk signal
-= APPROVED / REJECTED / REVIEW + possible amount
-```
-
-Persist the model version, feature version, policy weights, immutable feature snapshot/reference, factor contributions, reason codes, final decision, and later human-review outcome.
-
-### Phase 8 — Concurrency and reliability research
-
-- Resolve identity first, then fetch independent feature groups in parallel.
-- Use bounded executors or Java 21 virtual threads; do not use unbounded thread creation.
-- Apply timeouts, retries with jitter, circuit breakers, and bulkheads per downstream service.
-- Use idempotency keys for checkout, payment, and repayment creation.
-- Use a transactional outbox for decision, payment, and repayment events.
-- Let multiple scheduler replicas claim due installments safely with transactional row locking such as `SKIP LOCKED`.
-
-Measure sequential versus parallel feature collection using p50/p95 latency, throughput, timeout rate, and recovery behaviour. Demonstrate the safe fallback when the AI service times out.
-
-### Phase 9 — Safe data handling
-
-- Use an identity provider for password storage; do not store passwords in application services.
-- Store only fake payment-provider tokens or vault references, never raw card data.
-- Encrypt high-value PII at rest and keep keys/secrets outside source control.
-- Restrict internal endpoints to authenticated services.
-- Retain raw partner data only for the defined demo period; retain derived/audit data only as needed.
-- Implement consent withdrawal for future decisions and subject-data export/deletion workflows.
-
-### Phase 10 — Tests, observability, and diploma evidence
-
-Add:
-
-- API contract, unit, integration, authorization, idempotency, scheduler-concurrency, browser-flow, and load tests;
-- structured logs, trace IDs, metrics, and dashboards;
-- a scripted approval, denial, review, AI-timeout, and duplicate-checkout demonstration.
-
-The written diploma should include architecture and sequence diagrams, auth flow, data classification and consent lifecycle, scoring equation, AI feature rationale, audit examples, concurrency measurements, security controls, fairness checks on synthetic cohorts, and prototype limitations.
-
-## Recommended Implementation Order
-
-1. Stabilize contracts, health checks, migrations, and seed data.
-2. Add identity, consent, and protected customer APIs.
-3. Build customer checkout, result, and dashboard screens.
-4. Build three demo storefronts and their handoff flow.
-5. Add reliable partner/bank feature adapters.
-6. Add the footprint service and hybrid scoring factor.
-7. Add concurrency controls, outbox processing, tests, and observability.
-8. Finish partner portal and scripted demo.
+After that, prioritize a thin complete path: login → own transaction history → rules-only request → saved result. Add the trained AI model and thread experiment to that working path.

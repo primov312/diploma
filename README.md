@@ -1,1 +1,4 @@
 # diploma
+I see the final result is the demo web app, where the user can have account with his transaction history from other demo partners - web stores(netflix, amazon, stores of clothes). So user can request the amount of money and choose one of the partners, where he wants to buy something and then our modules are analyzing him and give decision for that request. 
+The main focus is to do research about the implementation of this app: how auth working, multithreading, modules of scoring, safe data keeping, AI for analyzing data. 
+I need the frontend, backend and frontend of demo partners to leading to our website.

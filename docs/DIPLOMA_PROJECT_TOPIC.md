@@ -1,332 +1,202 @@
 # Diploma Project Topic
 
+Updated: 2026-09-16. This revision follows the research priorities in [README](../README.md) and replaces the earlier microservice-commerce scope.
+
+Detailed design: [architecture](DIPLOMA_ARCHITECTURE.md). Implementation tasks: [completion plan](DIPLOMA_COMPLETION_PLAN.md).
+
 ## Title
 
-AI-Based Credit Decision Web Application Using User, Store, Bank, and Digital Footprint Data
+A Credit Decision Web Application: Authentication, Multithreading, Modular Scoring, Secure Data Storage and AI Analysis
 
-## Short Description
+## Short description
 
-The goal of this diploma project is to design and implement a full web application for credit decision making in an online purchase and consumer financing scenario. The application collects data about the user, partner store activity, bank-related financial information, and the user's consent-based digital footprint. These data sources are analyzed by an AI-assisted decision model to estimate whether a user can receive credit and what maximum credit amount can be offered.
+The diploma develops a small web application in which a customer has an account and synthetic transaction history from several demo stores. The customer selects a store and requests an amount of credit. The application analyzes stored profile, purchase-history and synthetic financial data, then returns an explained decision and a possible amount.
 
-The system is built as a microservice web platform. A frontend application allows users to apply for credit, provide required consent, and view the decision result. A gateway service coordinates the request flow. The main backend modules are user data, web scraping for digital footprint collection, credit analysis, payment processing, and repayment planning. The analysis module combines rule-based scoring, affordability checks, and AI-generated risk signals to produce an explainable credit decision.
+The project is a practical setting for researching five software topics: authentication, multithreading, modular scoring, safe data keeping and AI analysis. Its contribution is the implementation and evaluation of these mechanisms in a working application.
 
-## Project Motivation
+## Main objective
 
-Traditional credit scoring often depends on limited historical financial records. This can exclude users who have insufficient credit history but still have stable income, responsible spending behavior, and trustworthy digital activity. Modern online commerce and banking data create additional signals that may help evaluate creditworthiness more accurately in digital credit services.
+Build and explain a simple full-stack credit decision prototype, showing how user accounts are protected, independent tasks run concurrently, scoring modules work together, data is stored safely, and a trained model contributes to analysis.
 
-The project investigates how different categories of data can be combined in a transparent and privacy-aware credit decision system. The main challenge is to improve decision quality while keeping the model explainable, auditable, and compliant with data protection principles.
+## Research questions
 
-## Problem Statement
+1. How do password hashing, server-side sessions and ownership checks protect account data?
+2. How does a bounded thread pool affect independent feature preparation compared with sequential execution, and what correctness risks must be controlled?
+3. How can separate rule modules produce an understandable credit decision and amount limit?
+4. Which storage and access controls are sufficient to demonstrate responsible handling of a prototype's user data?
+5. How does a simple trained model compare with rules alone on a fixed synthetic dataset, and how can its contribution be explained?
 
-The problem addressed by this project is the development of a web-based credit decision platform that can:
+## Demonstration scenario
 
-- Collect credit application data from the frontend and partner stores.
-- Use bank and financial behavior data to estimate affordability.
-- Use consent-based digital footprint data collected by a web scraping module as an additional risk factor.
-- Analyze the combined data with an AI-assisted scoring model.
-- Decide whether credit should be approved, rejected, or sent for manual review.
-- Calculate a possible approved credit amount.
-- Provide clear reason codes and an audit trail for each decision.
+1. A customer registers and logs in.
+2. They inspect their transaction history across StreamBox, MarketHub and Threadly.
+3. They choose a partner and requested amount, or navigate from a demo store's product page.
+4. They choose whether to use AI analysis for this request.
+5. The backend prepares features and sends them to the scoring service.
+6. The application displays approval, rejection or an inconclusive review result with reasons and a possible amount.
+7. The customer can revisit saved applications and log out.
 
-The system must avoid making opaque decisions that cannot be explained to users, developers, or auditors.
+Transactions represent seeded historical purchases. A credit application is a separate record and does not transfer money or create a new purchase.
 
-## Main Objective
+## Scope
 
-The main objective is to create a working prototype of a full-stack credit decision web application that uses AI-assisted analysis of store, bank, and digital footprint data to support credit approval and credit limit calculation.
+Required:
 
-## Specific Objectives
+- Customer registration, login, logout and session handling.
+- Per-user history from three fictional demo partners.
+- A credit request form and persisted, explained results.
+- Demo partner frontend pages linking to that form.
+- Independent profile/history rules and affordability calculation.
+- A small trained AI model operating on synthetic structured data.
+- Sequential and multithreaded feature preparation with a measured comparison.
+- Focused tests and documented data protection controls.
 
-- Design a frontend for customers and partner stores.
-- Implement a credit request flow where a user can request financing.
-- Integrate backend services through an API Gateway.
-- Collect and normalize user, store, bank, and digital footprint data.
-- Build a credit analysis module that combines multiple scoring factors.
-- Add an AI digital footprint analysis component.
-- Generate explainable decisions with reason codes and factor contributions.
-- Store every decision for audit and later model evaluation.
-- Consider privacy, consent, fairness, and regulatory requirements.
+Outside the required scope:
 
-## Research Questions
+- Real banks, payment providers, credit issuance or automatic repayment collection.
+- Separate partner backends, merchant authentication and webhooks.
+- External identity-provider deployment, social login or enterprise roles.
+- Queues, distributed transactions, outbox delivery, workflow engines or high-availability infrastructure.
+- Web scraping, social-network accounts and real digital-footprint collection.
+- Operator/merchant portals, offer acceptance and negotiation.
+- Production compliance certification or claims of real credit-risk accuracy.
 
-1. How can store, bank, and digital footprint data be combined to improve credit decision making?
-2. Which features are useful for estimating creditworthiness and affordability?
-3. How can AI-based scoring remain explainable and auditable?
-4. How can user consent and data minimization be implemented in a credit decision application?
-5. How can the system calculate not only approval or rejection, but also a possible credit amount?
+A `REVIEW` result demonstrates uncertainty in automatic decisions. Resolving it through a human-review workflow is future work. A lower possible amount is informational; the customer may submit a new request.
 
-## Scope Of The Project
+## Simple architecture
 
-The project focuses on a prototype system rather than a production banking platform. It includes:
-
-- A web frontend for credit requests and user dashboard.
-- Backend microservices for gateway, user data, web scraping, credit analysis, payments, and repayment schedules.
-- A proposed AI module for analyzing the user's digital footprint.
-- Database persistence for users, credit requests, decisions, reasons, and scoring factors.
-- A simple model evaluation approach using test or simulated data.
-
-The project does not aim to become a legally certified credit institution system. Real production usage would require legal, banking, compliance, and security review.
-
-## Proposed System Architecture
-
-```text
-Frontend Web Application
-        |
-        v
-API Gateway
-        |
-        +--> User Data Service
-        |
-        +--> Bank Data Adapter
-        |
-        +--> Web Scraping / Digital Footprint Service
-        |
-        +--> Credit Analysis Service
-        |
-        +--> Payment Service
-        |
-        +--> Repayment Service
+```mermaid
+flowchart LR
+    web["React app: customer screens and three demo stores"]
+    backend["Java backend: auth, data and applications"]
+    analysis["Python service: rule scoring and AI"]
+    database[("PostgreSQL")]
+    web -->|"Session-authenticated API"| backend
+    backend -->|"Read and save data"| database
+    backend <-->|"Features / explained decision"| analysis
 ```
 
-## Main Components
+Customer and store pages are part of one React application. The Java backend owns all persistent data. The Python service is stateless and reads a trusted local model artifact plus versioned policy configuration. It does not connect to PostgreSQL or collect data from other services.
 
-### Frontend Web Application
+This keeps the existing Java/Python technologies useful while reducing deployment to one backend, one analysis service and one database. The built React application can be served by Java; Vite is used during development.
 
-The frontend is the main user interface. It allows the user to:
+## Research topic 1 — Authentication
 
-- Start a credit request.
-- Review repayment options.
-- Give or reject consent for digital footprint collection and analysis.
-- Submit the application.
-- See the result: approved, rejected, or manual review.
-- View active repayment schedules in a dashboard.
+Implement authentication using Spring Security, a framework password encoder such as BCrypt, and server-side sessions.
 
-Partner stores can use the same frontend or integrate through an SDK/API.
+Study registration, hashing and verification, session creation/rotation, cookie attributes, CSRF protection, authenticated requests and logout. Use the session's user identity to authorize access to history and applications.
 
-### API Gateway
+Demonstrate two accounts: each can access its own data and cannot retrieve the other's records. Session state can remain in the single backend process; persistence across backend restarts is unnecessary for this demonstration.
 
-The Gateway is the public backend entry point. It receives credit requests from the frontend and coordinates calls to internal services. It hides internal service complexity from the frontend and provides a stable API contract.
+Expected evidence: authentication-flow explanation and tests for invalid credentials, missing session, logout, CSRF and cross-user access.
 
-### User Data Service
+## Research topic 2 — Multithreading
 
-The User Data service stores customer profile data such as identity, KYC status, contact information, and historical platform activity. It provides the Credit Analysis service with normalized user features.
+Compare sequential and concurrent preparation of three independent feature groups: profile, partner history and synthetic finances.
 
-### Bank Data Adapter
+Use a shared bounded Java executor. Workers have isolated data access or immutable inputs and return separate results. Join those results before scoring. Explain thread safety, database transaction boundaries, queue limits and timeout handling.
 
-The Bank Data Adapter represents the integration with bank or open banking data sources. In the prototype, this can use mock or generated data. In a real system, it would retrieve consented financial signals such as:
+Measure ordinary local execution and a separate controlled experiment with simulated I/O delays. Keep features and decisions identical in both modes. Present timing results even if thread overhead means no improvement on small local datasets.
 
-- Income regularity.
-- Account balance trends.
-- Expense behavior.
-- Existing debt or repayment obligations.
-- Cash flow stability.
+Expected evidence: implementation comparison, correctness tests and a repeated-run median/p95 timing table with experiment conditions.
 
-The adapter should return derived features, not raw bank statements.
+## Research topic 3 — Modular scoring
 
-### Web Scraping And Digital Footprint Module
+Separate scoring into profile rules, partner-history rules, affordability, optional AI inference and a final combiner.
 
-The web scraping and digital footprint module collects consent-based public or user-authorized information that can help evaluate the consistency and reliability of the applicant's digital profile. It should collect only permitted data sources and convert raw observations into structured features.
+Each rule module returns a score and reason codes. Affordability computes an illustrative cap from synthetic disposable income and the partner's limit. The combiner applies versioned weights and thresholds.
 
-Example digital footprint signals include:
-
-- Email and phone verification consistency.
-- Account age and account consistency.
-- Public business or professional profile consistency, if relevant and allowed.
-- Device/session trust indicators.
-- Partner store interaction behavior.
-- Order velocity and abnormal behavior patterns.
-
-The AI part of this module analyzes the collected digital footprint features and converts them into a risk score.
-
-The service returns:
-
-- Digital footprint score.
-- Risk level.
-- Reason codes.
-- Model version.
-- Feature version.
-
-Sensitive or legally risky data should not be used. The system should avoid raw social media scraping, special category personal data, precise location tracking, and any data source without explicit consent.
-
-### Credit Analysis Service
-
-The Credit Analysis service combines all available scoring factors:
-
-- Store behavior score.
-- Platform history score.
-- Bank affordability score.
-- Web scraping and digital footprint AI score.
-- Requested amount risk.
-
-The service produces:
-
-- `APPROVED`, `REJECTED`, or `REVIEW`.
-- Credit score.
-- Maximum possible credit amount.
-- Main reason for the decision.
-- Detailed factor contributions for audit.
-
-### Payment And Repayment Services
-
-If credit is approved, the Payment service creates the payment intent and the Repayment service creates the installment schedule. These services complete the financing flow after the credit decision.
-
-## Data Flow
-
-1. The user starts a credit request in the frontend or through a partner store.
-2. The frontend displays repayment terms and consent options.
-3. The user submits the credit request.
-4. The Gateway receives the request.
-5. User, store, bank, and digital footprint features are collected.
-6. The web scraping and AI module generates an additional digital footprint risk signal.
-7. The Credit Analysis service calculates the credit score and possible amount.
-8. The decision and explanation are saved in the database.
-9. The result is returned to the frontend.
-10. If approved, payment and repayment schedule creation continues.
-
-## Decision Model Concept
-
-The first version can use a hybrid scoring approach:
+Example experimental policy:
 
 ```text
-Final Score =
-  Store Behavior Score * 0.25 +
-  Platform History Score * 0.25 +
-  Bank Affordability Score * 0.30 +
-  Web Scraping / Digital Footprint AI Score * 0.15 +
-  Requested Amount Score * 0.05
+rulesScore = 0.60 * historyScore + 0.40 * profileScore
+aiScore = 1 - predictedSyntheticRisk
+finalScore = 0.80 * rulesScore + 0.20 * aiScore  if enabled and available
+finalScore = rulesScore                       otherwise
+
+disposableIncome = max(0, income - expenses - obligations)
+possibleAmount = min(partnerCap, disposableIncome * demoMultiplier)
 ```
 
-The weights should be configurable. The system should store the exact weights used for every decision so past decisions remain explainable.
+Validate positive requested amounts and use decimal money in USD. Missing required evidence produces review. Known zero capacity or an amount above the cap produces rejection. Other cases use the configured score thresholds; approval always requires the amount to be within the cap.
 
-## Possible Credit Amount Calculation
+Weights and the multiplier are illustrative research settings, not banking recommendations. Persist the policy version and factor results so examples can be explained.
 
-The system should not only approve or reject the user. It should also estimate a safe credit limit.
+Expected evidence: module-level tests, score contributions, amount boundaries and understandable decision examples.
 
-Example formula:
+## Research topic 4 — Safe data keeping
 
-```text
-baseLimit = monthlyDisposableIncome * affordabilityMultiplier
-riskAdjustedLimit = baseLimit * finalScore
-possibleCreditAmount = min(riskAdjustedLimit, partnerMaximumLimit)
-```
+Store users, partner/product fixtures, synthetic financial profiles, transactions and credit applications in one PostgreSQL database.
 
-The requested amount is approved only if:
+Demonstrate:
 
-```text
-requestedAmount <= possibleCreditAmount
-```
+- Password hashing and omission of credential fields from responses.
+- User ownership checks on private queries.
+- Parameterized access, foreign keys and numeric constraints.
+- Database credentials and service secrets outside source control.
+- Redacted logs and restricted database/service access.
+- Atomic storage of the request, feature snapshot and result.
+- A local backup and restore procedure.
 
-If the requested amount is too high, the system can reject the request or offer a lower approved amount.
+Send only derived features to Python, excluding names, email addresses, password hashes and sessions. Store small decision snapshots directly in PostgreSQL JSONB.
 
-## Explainability
+Explain the difference between password hashing, database access controls and encryption at rest. The local demonstration relies on documented host/disk protection; use HTTPS for a hosted demo. The project demonstrates selected controls without claiming production certification.
 
-Every decision should include stable reason codes. Examples:
+Expected evidence: access tests, schema explanation, saved decision example and backup/restore demonstration.
 
-- `LOW_AFFORDABILITY`
-- `INSUFFICIENT_INCOME_STABILITY`
-- `HIGH_RECENT_ORDER_VELOCITY`
-- `GOOD_REPAYMENT_HISTORY`
-- `DIGITAL_FOOTPRINT_CONSENT_MISSING`
-- `EMAIL_AND_PHONE_VERIFIED`
-- `REQUESTED_AMOUNT_TOO_HIGH`
+## Research topic 5 — AI analysis
 
-Explainability is important because credit decisions can significantly affect users. The system should make it possible to understand which factors influenced the outcome.
+Train a logistic-regression model on synthetic customer data using selected profile, transaction-history and financial features. The model predicts a defined synthetic risk label, not a proven probability of real credit default.
 
-## Privacy And Compliance Considerations
+Document data generation and label assumptions. Split by customer before training, fit preprocessing on training data only and exclude identifiers, future outcomes and label-revealing fields. Avoid defining the evaluation target as an exact copy of the baseline rules.
 
-Because the system uses personal data and AI-assisted credit assessment, privacy and compliance are important parts of the project.
+Train offline and load the versioned artifact into the existing Python scoring service. Record whether inference was used for each request. When the customer disables AI or only the model is unavailable, use rules alone and record the fallback. A failure of the entire service is a technical error, not a credit rejection.
 
-Key principles:
+Compare rules and rules-plus-AI on the same held-out customers. Report a confusion matrix, precision/recall and ROC-AUC where meaningful, along with examples of model contributions and limitations. Improvement is an experimental question, not an assumed outcome.
 
-- Use explicit consent for bank and digital footprint data.
-- Apply data minimization: collect only features needed for the decision.
-- Store derived features instead of raw sensitive data where possible.
-- Provide audit logs for all credit decisions.
-- Keep human review possible for uncertain or disputed decisions.
-- Avoid prohibited or sensitive data categories.
-- Monitor the model for bias and unfair outcomes.
+Expected evidence: repeatable training/evaluation scripts, model version, metric table and explained examples.
 
-In the European context, AI systems used to evaluate creditworthiness of natural persons are treated as high-risk under the EU AI Act. GDPR also gives users protections around automated decision-making and profiling. Therefore, the project should include transparency, human oversight, record keeping, and the possibility to contest decisions.
+## Technology choices
 
-## Methodology
+| Area | Choice |
+| --- | --- |
+| Frontend | Existing React, TypeScript, Vite and Tailwind application |
+| Main backend | Java and Spring Boot, based on the existing User Data foundation |
+| Authentication | Spring Security, password hashes and in-process sessions |
+| Concurrent work | Bounded Java executor |
+| Scoring and ML | Existing Python/FastAPI project with scikit-learn |
+| Persistence | One PostgreSQL database with migrations |
+| Local setup | Small Docker Compose configuration |
+| Research artifacts | Scripts, JSON/CSV results and simple plots |
 
-The project can be developed using the following methodology:
+Exact dependency versions are selected and tested during implementation. Existing Payment, Repayment, Redis and MinIO components are not required by this revised design.
 
-1. Requirement analysis.
-2. Architecture design.
-3. Database and API design.
-4. Frontend implementation.
-5. Backend microservice implementation.
-6. AI scoring prototype.
-7. Integration of the scoring model with the credit request flow.
-8. Testing with simulated user and transaction data.
-9. Evaluation of decision quality, explainability, and system performance.
-10. Documentation of limitations and future improvements.
+## Methodology and completion order
 
-## Technology Stack
+1. Consolidate the backend and simplify Python into a stateless service.
+2. Implement sessions, accounts and user isolation.
+3. Add synthetic partner history, financial fixtures and storage controls.
+4. Implement rules and save explained decisions.
+5. Connect customer screens and three store pages.
+6. Train, integrate and evaluate the AI model.
+7. Implement and measure the sequential/parallel experiment.
+8. Verify the complete demonstration and write the research findings.
 
-Possible stack based on the existing repository:
+Detailed steps and completion checks are in [DIPLOMA_COMPLETION_PLAN.md](DIPLOMA_COMPLETION_PLAN.md).
 
-- Frontend: React, TypeScript, Vite, Tailwind CSS.
-- Gateway: Java, Spring Boot.
-- User Data, Payment, Repayment: Java, Spring Boot.
-- Credit Analysis: Python, FastAPI.
-- AI Digital Footprint Service: Python, FastAPI, scikit-learn or another ML library.
-- Databases: PostgreSQL.
-- Cache and rate limiting: Redis.
-- Deployment: Docker and Docker Compose.
-- API documentation: OpenAPI.
+## Expected result and limitations
 
-## Evaluation Plan
+The result is a small, reproducible web application and research report covering all five topics from README. An examiner can log in, inspect history, apply directly or from a store page, and inspect the saved explanation.
 
-The prototype can be evaluated using:
+The financial data and labels are synthetic. The system makes no payment and performs no real identity verification. Model metrics describe this dataset only. Scaling, production operations and real financial integrations remain future work.
 
-- Functional tests for credit request and credit decision flow.
-- Unit tests for scoring functions.
-- API integration tests between services.
-- Simulated datasets with different user risk profiles.
-- Comparison of decisions with and without digital footprint features.
-- Explainability checks to ensure every decision has reason codes.
-- Basic fairness checks across synthetic user groups.
-- Performance tests for response time of the credit request flow.
+## Suggested diploma chapters
 
-## Expected Result
-
-The expected result is a working web application prototype where a user can apply for credit, the system analyzes multiple data sources, and the application returns an explainable credit decision with a possible approved amount. The project should demonstrate how AI can support credit decision making while preserving auditability, privacy, and user consent.
-
-## Limitations
-
-- The prototype may use simulated bank and digital footprint data.
-- The AI model may be simple and not trained on real production credit data.
-- Legal compliance is discussed at a design level but not certified.
-- Real bank integrations require regulated open banking providers and strong security controls.
-- Real credit deployment requires professional model validation, legal approval, and continuous monitoring.
-
-## Future Improvements
-
-- Integrate real open banking APIs.
-- Add human review dashboard.
-- Add partner portal for merchants.
-- Improve model training with larger datasets.
-- Add bias monitoring and model drift detection.
-- Add user appeal and decision contest workflow.
-- Add production-grade identity verification.
-
-## Suggested Diploma Structure
-
-1. Introduction
-2. Background and related work
-3. Problem statement
-4. Requirements analysis
-5. System architecture
-6. Data model and API design
-7. AI credit decision model
-8. Implementation
-9. Testing and evaluation
-10. Privacy, security, and ethical considerations
-11. Conclusion and future work
-
-## References
-
-- Regulation (EU) 2024/1689, Artificial Intelligence Act, especially high-risk AI system requirements and creditworthiness classification: https://eur-lex.europa.eu/eli/reg/2024/1689/oj
-- GDPR Article 22, automated individual decision-making and profiling: https://gdpr.eu/article-22-automated-individual-decision-making/
-- European Banking Authority Guidelines on loan origination and monitoring: https://www.eba.europa.eu/activities/single-rulebook/regulatory-activities/credit-risk/guidelines-loan-origination-and-monitoring
+1. Introduction, objectives and research questions.
+2. Application requirements and simplified architecture.
+3. Authentication and authorization.
+4. Data model and safe storage.
+5. Rule modules and explainable decisions.
+6. AI model, dataset and evaluation.
+7. Multithreading implementation and measurements.
+8. Demonstration, tests, limitations and conclusions.
