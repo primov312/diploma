@@ -1,463 +1,117 @@
-const AccountDashboard = () => (
-  <div className="bg-gradient-hero py-20 lg:py-24">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="grid gap-8 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-8">
-          <section className="bg-white rounded-2xl p-6 shadow-card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Payment Timeline
-              </h2>
-              <button className="btn-secondary text-sm px-4 py-2">
-                View All
-              </button>
-            </div>
+import { Link } from 'react-router-dom';
+import { applicationsApi, meApi, transactionsApi } from '../api/rocket';
+import { useAuth } from '../auth/AuthContext';
+import { Card, Empty, LinkButton, Loading, Notice, Page, StatusBadge, SyntheticTag } from '../components/app/Ui';
+import { errorMessage, useApi } from '../hooks/useApi';
+import { formatCurrency } from '../utils/format';
 
-            <div className="space-y-4">
-              {/* Upcoming Payment */}
-              <div className="flex items-center p-4 bg-gradient-secondary rounded-xl">
-                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mr-4">
-                  <svg
-                    className="w-6 h-6 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+/**
+ * Everything shown here comes from the backend: the synthetic financial profile,
+ * seeded purchase history and saved credit applications. Purchases and credit
+ * applications are separate things and are shown in separate cards.
+ */
+const AccountDashboard = () => {
+  const { user } = useAuth();
+  const profile = useApi(() => meApi.profile(), []);
+  const transactions = useApi(() => transactionsApi.list(), []);
+  const applications = useApi(() => applicationsApi.list(), []);
+
+  const byPartner = transactions.data
+    ? Object.values(
+        transactions.data.reduce<Record<string, { name: string; count: number; total: number }>>((acc, t) => {
+          const entry = (acc[t.partnerSlug] ??= { name: t.partnerName, count: 0, total: 0 });
+          if (t.status === 'COMPLETED') {
+            entry.count += 1;
+            entry.total += t.amount;
+          }
+          return acc;
+        }, {}),
+      )
+    : [];
+
+  return (
+    <Page
+      title={`Hello, ${user?.displayName ?? ''}`}
+      subtitle="Your account, purchase history from the three demo stores and your credit applications."
+      actions={
+        <>
+          <LinkButton to="/apply">Apply for financing</LinkButton>
+          <LinkButton to="/stores" variant="secondary">Visit the stores</LinkButton>
+        </>
+      }
+    >
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card title="Synthetic financial profile" className="lg:col-span-1">
+          {profile.status === 'loading' && <Loading />}
+          {profile.status === 'error' && <Notice tone="error">{errorMessage(profile.error)}</Notice>}
+          {profile.status === 'ready' && (
+            <dl className="space-y-3 text-sm">
+              <div className="flex justify-between"><dt className="text-gray-600">Monthly income</dt><dd className="font-medium">{formatCurrency(profile.data.monthlyIncome)}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-600">Monthly expenses</dt><dd className="font-medium">{formatCurrency(profile.data.monthlyExpenses)}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-600">Other obligations</dt><dd className="font-medium">{formatCurrency(profile.data.monthlyObligations)}</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-600">Account age</dt><dd className="font-medium">{profile.data.accountAgeMonths} months</dd></div>
+              <div className="flex justify-between"><dt className="text-gray-600">Profile</dt><dd className="font-medium">{profile.data.profileComplete ? 'complete' : 'incomplete'}, email {profile.data.emailVerified ? 'verified' : 'not verified'}</dd></div>
+              <div className="pt-2">
+                <SyntheticTag>{profile.data.syntheticSource === 'STARTER' ? 'Synthetic starter data for new accounts' : 'Synthetic demo fixture'}</SyntheticTag>
+                <p className="mt-2 text-xs text-gray-500">These figures are invented for the demonstration and cannot be edited in the browser.</p>
+              </div>
+            </dl>
+          )}
+        </Card>
+
+        <Card
+          title="Purchase history by store"
+          className="lg:col-span-2"
+          footer={<Link to="/history" className="font-medium text-primary hover:text-primary-600">See all purchases →</Link>}
+        >
+          {transactions.status === 'loading' && <Loading />}
+          {transactions.status === 'error' && <Notice tone="error">{errorMessage(transactions.error)}</Notice>}
+          {transactions.status === 'ready' && byPartner.length === 0 && <Empty>No purchases yet.</Empty>}
+          {transactions.status === 'ready' && byPartner.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {byPartner.map((p) => (
+                <div key={p.name} className="rounded-xl border border-gray-100 p-4">
+                  <div className="text-sm text-gray-600">{p.name}</div>
+                  <div className="mt-1 text-2xl font-bold text-gray-800">{p.count}</div>
+                  <div className="text-xs text-gray-500">completed purchases · {formatCurrency(p.total)}</div>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-800">
-                      MacBook Pro Payment
-                    </h3>
-                    <span className="text-lg font-bold text-gray-800">
-                      $125.00
-                    </span>
+              ))}
+            </div>
+          )}
+          <p className="mt-4 text-xs text-gray-500">Purchases are seeded historical data from the demo stores. They are not credit applications.</p>
+        </Card>
+
+        <Card
+          title="Credit applications"
+          className="lg:col-span-3"
+          footer={<Link to="/applications" className="font-medium text-primary hover:text-primary-600">All applications →</Link>}
+        >
+          {applications.status === 'loading' && <Loading />}
+          {applications.status === 'error' && <Notice tone="error">{errorMessage(applications.error)}</Notice>}
+          {applications.status === 'ready' && applications.data.length === 0 && (
+            <Empty>
+              You have not applied yet. <Link to="/apply" className="font-medium text-primary">Submit your first request</Link>.
+            </Empty>
+          )}
+          {applications.status === 'ready' && applications.data.length > 0 && (
+            <ul className="divide-y divide-gray-100">
+              {applications.data.slice(0, 5).map((a) => (
+                <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div>
+                    <Link to={`/applications/${a.id}`} className="font-medium text-gray-800 hover:text-primary">
+                      {formatCurrency(a.requestedAmount)} at {a.partnerName}
+                    </Link>
+                    <div className="text-xs text-gray-500">{new Date(a.createdAt).toLocaleString()}</div>
                   </div>
-                  <p className="text-sm text-gray-600">
-                    Due October 4, 2025 • 7 days remaining
-                  </p>
-                  <div className="flex items-center mt-2">
-                    <button className="btn-gradient text-sm px-4 py-2 mr-3">
-                      Pay Now
-                    </button>
-                    <button className="text-sm text-primary hover:text-primary-600 transition-smooth">
-                      Pay Early &amp; Save
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recent Payment */}
-              <div className="flex items-center p-4 border border-gray-100 rounded-xl">
-                <div className="w-12 h-12 bg-success/20 rounded-xl flex items-center justify-center mr-4">
-                  <svg
-                    className="w-6 h-6 text-success"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-800">
-                      iPhone 15 Payment
-                    </h3>
-                    <span className="text-lg font-bold text-success">
-                      $200.00
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Paid September 20, 2025 • On time
-                  </p>
-                </div>
-              </div>
-
-              {/* Scheduled Payment */}
-              <div className="flex items-center p-4 border border-gray-100 rounded-xl">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mr-4">
-                  <svg
-                    className="w-6 h-6 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-800">
-                      Furniture Set Payment
-                    </h3>
-                    <span className="text-lg font-bold text-gray-800">
-                      $150.00
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Due November 1, 2025 • Scheduled
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Spending Analytics */}
-          <section className="bg-white rounded-2xl p-6 shadow-card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Spending Analytics
-              </h2>
-              <select className="form-input text-sm py-2 px-3">
-                <option>This Month</option>
-                <option>Last 3 Months</option>
-                <option>This Year</option>
-              </select>
-            </div>
-
-            {/* Chart Placeholder */}
-            <div className="h-64 bg-gradient-secondary rounded-xl flex items-center justify-center mb-6">
-              <div className="text-center">
-                <svg
-                  className="w-16 h-16 text-primary mx-auto mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-                <p className="text-gray-600">Interactive spending chart</p>
-              </div>
-            </div>
-
-            {/* Category Breakdown */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-primary rounded-full mr-3" />
-                  <span className="text-sm text-gray-600">Electronics</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-800">
-                  $1,200
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-accent rounded-full mr-3" />
-                  <span className="text-sm text-gray-600">
-                    Home &amp; Garden
-                  </span>
-                </div>
-                <span className="text-sm font-semibold text-gray-800">
-                  $450
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-secondary rounded-full mr-3" />
-                  <span className="text-sm text-gray-600">Fashion</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-800">
-                  $320
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-warning rounded-full mr-3" />
-                  <span className="text-sm text-gray-600">Other</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-800">
-                  $180
-                </span>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-8">
-          {/* Quick Actions */}
-          <section className="bg-white rounded-2xl p-6 shadow-card">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">
-              Quick Actions
-            </h2>
-
-            <div className="space-y-4">
-              <button className="w-full flex items-center p-4 bg-gradient-primary text-white rounded-xl hover:opacity-90 transition-smooth">
-                <svg
-                  className="w-6 h-6 mr-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                Make a Payment
-              </button>
-
-              <button className="w-full flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-smooth">
-                <svg
-                  className="w-6 h-6 mr-3 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
-                </svg>
-                <span className="text-gray-800">New Purchase</span>
-              </button>
-
-              <button className="w-full flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-smooth">
-                <svg
-                  className="w-6 h-6 mr-3 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-                <span className="text-gray-800">View Reports</span>
-              </button>
-            </div>
-          </section>
-
-          {/* Financial Wellness Score */}
-          <section className="bg-white rounded-2xl p-6 shadow-card">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">
-              Financial Wellness
-            </h2>
-
-            <div className="text-center mb-6">
-              <div className="relative w-32 h-32 mx-auto mb-4">
-                <svg
-                  className="w-32 h-32 transform -rotate-90"
-                  viewBox="0 0 120 120"
-                >
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="50"
-                    stroke="#E5E7EB"
-                    strokeWidth="8"
-                    fill="none"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="50"
-                    stroke="url(#gradient)"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeDasharray="314"
-                    strokeDashoffset="47"
-                    strokeLinecap="round"
-                  />
-                  <defs>
-                    <linearGradient
-                      id="gradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="0%"
-                    >
-                      <stop offset="0%" stopColor="#FF69B4" />
-                      <stop offset="100%" stopColor="#40E0D0" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-800">85</div>
-                    <div className="text-sm text-gray-600">Excellent</div>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600">
-                Your financial wellness has improved by 12 points this month!
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-start p-3 bg-success/10 rounded-lg">
-                <svg
-                  className="w-5 h-5 text-success mr-3 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    On-time payments
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Keep up the great work!
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start p-3 bg-warning/10 rounded-lg">
-                <svg
-                  className="w-5 h-5 text-warning mr-3 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    Budget tracking
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    Set monthly spending limits
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Notifications Center */}
-          <section className="bg-white rounded-2xl p-6 shadow-card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Notifications
-              </h2>
-              <button className="text-sm text-primary hover:text-primary-600 transition-smooth">
-                Mark all read
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-start p-3 bg-primary/5 rounded-lg border-l-4 border-primary">
-                <svg
-                  className="w-5 h-5 text-primary mr-3 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    Payment reminder
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    MacBook Pro payment due in 7 days
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">2 hours ago</p>
-                </div>
-              </div>
-
-              <div className="flex items-start p-3 bg-gray-50 rounded-lg">
-                <svg
-                  className="w-5 h-5 text-success mr-3 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    Payment successful
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    iPhone 15 payment processed
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">1 week ago</p>
-                </div>
-              </div>
-
-              <div className="flex items-start p-3 bg-gray-50 rounded-lg">
-                <svg
-                  className="w-5 h-5 text-accent mr-3 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                  />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    Referral bonus earned
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    $25 added to your account
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">2 weeks ago</p>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+                  <StatusBadge status={a.decisionStatus} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
-    </div>
-  </div>
-);
+    </Page>
+  );
+};
 
 export default AccountDashboard;

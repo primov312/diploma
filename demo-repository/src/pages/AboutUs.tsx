@@ -597,7 +597,7 @@ const AboutUs = () => (
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href="/account-dashboard"
+            href="/register"
             className="bg-white text-primary font-semibold py-4 px-8 rounded-lg hover:bg-gray-50 transition-smooth shadow-card hover:shadow-hover inline-flex items-center justify-center"
           >
             Get Started Today

@@ -146,7 +146,7 @@ const HomePage = () => (
 
             <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
               <Link
-                to="/account-dashboard"
+                to="/stores"
                 className="btn-gradient inline-flex items-center justify-center px-8 py-4 text-lg"
               >
                 <svg
@@ -288,7 +288,7 @@ const HomePage = () => (
             Download App
           </button>
           <Link
-            to="/account-dashboard"
+            to="/stores"
             className="inline-flex items-center justify-center rounded-lg border border-white/30 px-8 py-4 font-semibold text-white transition-smooth hover:bg-white/30"
           >
             Sign Up Now

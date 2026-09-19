@@ -96,13 +96,15 @@ Status 2026-09-19: done. `applications/` (service, controller, `features/` provi
 
 Location: `demo-repository/src/`.
 
-- [ ] 5.1 Add login/register, dashboard, transaction history, request form, decision detail and application-history routes. Connect them through one API client with session cookies and CSRF support.
-- [ ] 5.2 Replace hard-coded account figures with stored data. Clearly distinguish historical purchases from credit applications.
-- [ ] 5.3 Build three branded store pages with small catalogs and “Apply with Rocket Credit” links. Share components and use backend catalog data; no store backend or checkout session service is needed.
-- [ ] 5.4 Allow direct selection of partner/amount and store-prefilled requests. Preserve intended navigation through login and resolve product details from the backend.
-- [ ] 5.5 Show approved, rejected and review outcomes with plain-language reasons and suggested possible amount. State that review is an inconclusive automatic result, and no money is moved. Support loading, errors, empty data, logout and mobile/keyboard use.
+- [x] 5.1 Add login/register, dashboard, transaction history, request form, decision detail and application-history routes. Connect them through one API client with session cookies and CSRF support.
+- [x] 5.2 Replace hard-coded account figures with stored data. Clearly distinguish historical purchases from credit applications.
+- [x] 5.3 Build three branded store pages with small catalogs and “Apply with Rocket Credit” links. Share components and use backend catalog data; no store backend or checkout session service is needed.
+- [x] 5.4 Allow direct selection of partner/amount and store-prefilled requests. Preserve intended navigation through login and resolve product details from the backend.
+- [x] 5.5 Show approved, rejected and review outcomes with plain-language reasons and suggested possible amount. State that review is an inconclusive automatic result, and no money is moved. Support loading, errors, empty data, logout and mobile/keyboard use.
 
 Done when: an examiner can register, inspect history and submit a request from Rocket Credit or any of the three store pages.
+
+Status 2026-09-19: implemented (`demo-repository/src/pages/app/*`, `pages/stores/*`, `api/*`, `utils/reasons.ts`); routes `/stores`, `/stores/:slug`, `/apply`, `/history`, `/applications`, `/applications/:id`; store links carry only partner slug + product id. Verified by type-check, production build and the served bundle; the browser click-through is part of 8.2.
 
 ### Step 6 — Add AI analysis and evaluate it
 

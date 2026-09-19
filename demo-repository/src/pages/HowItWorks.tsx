@@ -254,7 +254,7 @@ const HowItWorks = () => (
           get approved instantly, and check out with confidence.
         </p>
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Link to="/account-dashboard" className="btn-gradient px-8 py-4">
+          <Link to="/register" className="btn-gradient px-8 py-4">
             Get Started Today
           </Link>
           <Link

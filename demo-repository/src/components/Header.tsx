@@ -8,9 +8,15 @@ type NavLinkItem = {
 };
 
 const NAV_LINKS: NavLinkItem[] = [
+  { to: '/stores', label: 'Demo Stores' },
   { to: '/how-it-works', label: 'How It Works' },
-  { to: '/for-businesses', label: 'For Businesses' },
   { to: '/about-us', label: 'About Us' },
+];
+
+const ACCOUNT_LINKS: NavLinkItem[] = [
+  { to: '/account-dashboard', label: 'Dashboard' },
+  { to: '/history', label: 'History' },
+  { to: '/applications', label: 'Applications' },
 ];
 
 const Header = () => {
@@ -27,17 +33,25 @@ const Header = () => {
   const accountControls = (block: boolean) =>
     loading ? null : user ? (
       <>
-        <NavLink
-          to="/account-dashboard"
-          className={({ isActive }) =>
-            `${block ? 'block' : 'hidden sm:inline-flex'} text-sm font-medium transition-smooth ${
-              isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
-            }`
-          }
+        {ACCOUNT_LINKS.map(({ to, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `${block ? 'block' : 'hidden lg:inline-flex'} text-sm font-medium transition-smooth ${
+                isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
+              }`
+            }
+          >
+            {label}
+          </NavLink>
+        ))}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className={`btn-secondary px-4 py-2 text-sm ${block ? 'block w-full' : ''}`}
+          title={`Signed in as ${user.email}`}
         >
-          {user.displayName}
-        </NavLink>
-        <button type="button" onClick={handleLogout} className={`btn-secondary px-4 py-2 text-sm ${block ? 'block w-full' : ''}`}>
           Sign out
         </button>
       </>
@@ -87,12 +101,6 @@ const Header = () => {
               {label}
             </NavLink>
           ))}
-          <button
-            type="button"
-            className="font-medium text-gray-600 transition-smooth hover:text-primary"
-          >
-            Help Center
-          </button>
         </div>
 
         <div className="flex items-center space-x-4">
@@ -132,12 +140,6 @@ const Header = () => {
                 {label}
               </NavLink>
             ))}
-            <button
-              type="button"
-              className="block font-medium text-gray-700 transition-smooth hover:text-primary"
-            >
-              Help Center
-            </button>
             <div className="space-y-3 pt-3">{accountControls(true)}</div>
           </div>
         </div>
