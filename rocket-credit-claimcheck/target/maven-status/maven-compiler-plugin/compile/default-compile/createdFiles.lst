@@ -1,5 +1,0 @@
-com/rocketcredit/claimcheck/storage/ClaimStorage.class
-com/rocketcredit/claimcheck/ClaimRef.class
-com/rocketcredit/claimcheck/ClaimRef$ClaimRefBuilder.class
-com/rocketcredit/claimcheck/storage/impl/S3ClaimStorage.class
-com/rocketcredit/claimcheck/storage/impl/S3ObjectKeyBuilder.class
