@@ -145,6 +145,8 @@ Locations: tests, `research/`, `docs/` and the run instructions.
 - [ ] 8.4 Write the diploma chapters and a short demo script. Update screenshots, architecture and fixture instructions to match implemented behavior.
 - [ ] 8.5 Verify a fresh start from the simplified Compose setup and document shutdown. Archive or remove unused legacy code only in a separate reviewed cleanup after the new path passes; deleting old volumes is not part of completion.
 
+  Legacy cleanup done 2026-09-19 (after Steps 1–7 passed): `rocket-credit-gateway`, `rocket-credit-user-data`, `rocket-credit-payment`, `rocket-credit-repayment`, `rocket-credit-claimcheck`, `rocket-credit-analysis/legacy/` and the five-service `docker-compose.yml` with its OpenAPI configs and stub generator were removed; last commit containing them is `1b886c0`. Old Docker volumes were not touched. The fresh-start verification itself is still pending.
+
 Done when: another person can start the simple app, follow the demo and reproduce the two research experiments without running the legacy stack.
 
 ## 4. Minimum research evidence

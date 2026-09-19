@@ -38,7 +38,7 @@ The backend owns persistence. Python receives a small JSON feature bundle and re
 | Part | Responsibility | Existing code to reuse |
 | --- | --- | --- |
 | React app | Login, dashboard, history, request/result screens and three store pages | `demo-repository` |
-| Java backend | Spring Security, users, history, catalog, feature preparation, application API and saving decisions | Start from `rocket-credit-user-data`; adapt useful Gateway orchestration |
+| Java backend | Spring Security, users, history, catalog, feature preparation, application API and saving decisions | Built from the former `rocket-credit-user-data` foundation (legacy services removed after Step 7; see git history) |
 | Python analysis | Rule modules, affordability, model inference and explainable result | `rocket-credit-analysis` pure scoring functions |
 | PostgreSQL | Users, partner/product fixtures, transactions and applications | Adapt useful User Data schema and seed concepts |
 | Offline research scripts | Generate synthetic data, train/evaluate model and benchmark threads | Small new `research/` directory |

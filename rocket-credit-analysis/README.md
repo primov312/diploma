@@ -31,7 +31,5 @@ ANALYSIS_SHARED_SECRET=dev-secret uvicorn app.main:app --port 8000 --reload
 
 ## Legacy
 
-The previous checkout-oriented service (`/creditscore`, PostgreSQL audit
-table, Kafka events, MinIO claim-check) is kept as reference in
-[`legacy/`](legacy/). It is not part of the diploma runtime and is not built
-into the image.
+The previous checkout-oriented service (`/creditscore`, PostgreSQL audit table, Kafka events, MinIO
+claim-check) was removed from the repository after Step 7; see git history up to `1b886c0`.

@@ -6,7 +6,7 @@
 #
 # Start:  docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build -d
 # Stop:   docker compose -f docker-compose.diploma.yml --env-file diploma/.env down
-# See rocket-credit-deployment/DIPLOMA_RUNTIME.md. docker-compose.yml is the legacy five-service stack.
+# See rocket-credit-deployment/DIPLOMA_RUNTIME.md.
 
 name: rocket-credit-diploma
 

@@ -39,5 +39,5 @@ Possible amount = min(partner cap, disposable income × 3.0) (policy `rules-v1`)
 ## Legacy (superseded)
 
 The earlier five-service checkout used four personas keyed by partner identifiers (`streambox-approved`, …)
-and a KYC gate. Those fixtures live in `rocket-credit-user-data` migrations `V7`/`V8` and are not loaded
-by the diploma runtime.
+and a KYC gate. Those fixtures lived in `rocket-credit-user-data` migrations `V7`/`V8`; the service was removed from the
+repository after Step 7 (git history up to `1b886c0`).

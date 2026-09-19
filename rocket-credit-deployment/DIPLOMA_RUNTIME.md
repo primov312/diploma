@@ -57,10 +57,11 @@ cd demo-repository && npm run dev
 
 ## Legacy
 
-`docker-compose.yml` in this directory is the original five-service checkout stack (Gateway, User Data,
-Payment, Repayment, Redis, MinIO, four databases). It is kept as reference and is not part of the diploma
-demo. Its `credit-analysis` service no longer matches the rewritten analysis API. Its database volumes and
-host ports (5434–5437, 8080–8084) are untouched; the diploma stack uses 5438 and its own volume.
+The original five-service checkout stack (Gateway, User Data, Payment, Repayment, Redis, MinIO, four
+databases) was removed from the repository in the cleanup after Step 7; it is available in git history up to
+commit `1b886c0`. Its Docker images and volumes (`userdb`, `creditdb`, `paymentdb`, `repaymentdb`,
+`rocket-credit-deployment_redisdata`) may still exist on the machine; the diploma stack does not use them
+and uses its own volume `rocket-credit-diploma-dbdata` and host port 5438.
 
 ## Backup and restore
 
