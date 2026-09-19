@@ -1,0 +1,52 @@
+{
+  "_comment": "Synthetic diploma personas. Every value is invented for the demonstration; no real financial data. Transactions are generated deterministically from each 'history' block (one purchase every 'everyDays' days, ending at 'anchorDate', amounts cycling through 'amounts'). Indices in 'refunded'/'late' are 0-based positions in that partner's sequence, newest first.",
+  "anchorDate": "2026-09-01",
+  "password": "rocket-demo-123",
+  "customers": [
+    {
+      "fixtureId": "avery",
+      "email": "avery@demo.rocket.local",
+      "displayName": "Avery Approved",
+      "accountAgeMonths": 30,
+      "finance": { "monthlyIncome": 4500.00, "monthlyExpenses": 2500.00, "monthlyObligations": 300.00, "profileComplete": true, "emailVerified": true },
+      "history": [
+        { "partner": "streambox", "count": 12, "everyDays": 30, "amounts": [15.99], "refunded": [], "late": [] },
+        { "partner": "markethub", "count": 8,  "everyDays": 40, "amounts": [129.00, 89.50, 249.00, 64.99], "refunded": [5], "late": [] },
+        { "partner": "threadly",  "count": 5,  "everyDays": 55, "amounts": [99.00, 59.00, 129.00], "refunded": [], "late": [] }
+      ]
+    },
+    {
+      "fixtureId": "riley",
+      "email": "riley@demo.rocket.local",
+      "displayName": "Riley Review",
+      "accountAgeMonths": 4,
+      "finance": { "monthlyIncome": 2500.00, "monthlyExpenses": 1900.00, "monthlyObligations": 300.00, "profileComplete": false, "emailVerified": true },
+      "history": [
+        { "partner": "markethub", "count": 2, "everyDays": 45, "amounts": [64.99, 39.00], "refunded": [], "late": [1] },
+        { "partner": "threadly",  "count": 1, "everyDays": 30, "amounts": [59.00], "refunded": [0], "late": [] }
+      ]
+    },
+    {
+      "fixtureId": "drew",
+      "email": "drew@demo.rocket.local",
+      "displayName": "Drew Denied",
+      "accountAgeMonths": 1,
+      "finance": { "monthlyIncome": 1800.00, "monthlyExpenses": 1700.00, "monthlyObligations": 150.00, "profileComplete": false, "emailVerified": false },
+      "history": [
+        { "partner": "threadly", "count": 1, "everyDays": 30, "amounts": [129.00], "refunded": [], "late": [0] }
+      ]
+    },
+    {
+      "fixtureId": "casey",
+      "email": "casey@demo.rocket.local",
+      "displayName": "Casey Limited",
+      "accountAgeMonths": 18,
+      "finance": { "monthlyIncome": 2200.00, "monthlyExpenses": 1900.00, "monthlyObligations": 100.00, "profileComplete": true, "emailVerified": true },
+      "history": [
+        { "partner": "streambox", "count": 10, "everyDays": 30, "amounts": [9.99], "refunded": [], "late": [] },
+        { "partner": "markethub", "count": 4,  "everyDays": 60, "amounts": [79.00, 129.00], "refunded": [], "late": [] },
+        { "partner": "threadly",  "count": 3,  "everyDays": 70, "amounts": [59.00, 99.00], "refunded": [], "late": [] }
+      ]
+    }
+  ]
+}

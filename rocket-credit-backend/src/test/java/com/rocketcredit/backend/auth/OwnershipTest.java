@@ -38,14 +38,14 @@ class OwnershipTest extends AbstractIntegrationTest {
         // B sees it
         mvc.perform(get("/api/transactions").session(b))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(tx.getId()))
-                .andExpect(jsonPath("$[0].partnerSlug").value(partner.getSlug()));
+                .andExpect(jsonPath("$[?(@.id == %d)].partnerSlug".formatted(tx.getId())).value(partner.getSlug()));
         mvc.perform(get("/api/transactions/" + tx.getId()).session(b)).andExpect(status().isOk());
 
-        // A's list is empty and B's record ID is a 404 for A (not 403: no existence leak)
+        // A's list never contains B's record, and B's record ID is a 404 for A (not 403: no existence leak)
         mvc.perform(get("/api/transactions").session(a))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$[?(@.id == %d)]".formatted(tx.getId())).isEmpty())
+                .andExpect(jsonPath("$[?(@.partnerSlug == '%s')]".formatted(partner.getSlug())).isEmpty());
         mvc.perform(get("/api/transactions/" + tx.getId()).session(a)).andExpect(status().isNotFound());
 
         // and without any session the endpoint is closed

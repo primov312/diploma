@@ -40,21 +40,24 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final UserService userService;
+    private final RegistrationService registrationService;
     private final AuthenticationManager authenticationManager;
     private final SecurityContextRepository securityContextRepository;
     private final SecurityContextHolderStrategy contextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
     private final SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 
-    public AuthController(UserService userService, AuthenticationManager authenticationManager,
+    public AuthController(UserService userService, RegistrationService registrationService,
+                          AuthenticationManager authenticationManager,
                           SecurityContextRepository securityContextRepository) {
         this.userService = userService;
+        this.registrationService = registrationService;
         this.authenticationManager = authenticationManager;
         this.securityContextRepository = securityContextRepository;
     }
 
     @PostMapping("/auth/register")
     public ResponseEntity<UserDto> register(@Valid @RequestBody AuthRequests.Register body) {
-        var user = userService.register(body.email(), body.password(), body.displayName());
+        var user = registrationService.register(body.email(), body.password(), body.displayName());
         log.info("user registered id={}", user.getId());
         return ResponseEntity.created(URI.create("/api/me")).body(UserDto.from(user));
     }

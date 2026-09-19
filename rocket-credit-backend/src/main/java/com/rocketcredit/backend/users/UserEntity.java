@@ -31,6 +31,12 @@ public class UserEntity {
         this.displayName = displayName;
     }
 
+    /** Fixture constructor: seeded demo customers get a back-dated registration time. */
+    public UserEntity(String email, String passwordHash, String displayName, OffsetDateTime createdAt) {
+        this(email, passwordHash, displayName);
+        this.createdAt = createdAt;
+    }
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }

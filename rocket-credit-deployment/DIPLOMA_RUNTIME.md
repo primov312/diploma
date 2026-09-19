@@ -61,3 +61,19 @@ cd demo-repository && npm run dev
 Payment, Repayment, Redis, MinIO, four databases). It is kept as reference and is not part of the diploma
 demo. Its `credit-analysis` service no longer matches the rewritten analysis API. Its database volumes and
 host ports (5434–5437, 8080–8084) are untouched; the diploma stack uses 5438 and its own volume.
+
+## Backup and restore
+
+```bash
+./diploma/backup.sh                                   # -> diploma/backups/rocketcredit-<stamp>.sql.gz
+./diploma/restore.sh diploma/backups/rocketcredit-<stamp>.sql.gz
+```
+
+`backup.sh` runs `pg_dump --clean` inside the `db` container; `restore.sh` stops the backend, replays the
+dump as the application role (so table ownership is unchanged) and starts the backend again. Backups are
+git-ignored and unencrypted — see [docs/SAFE_DATA_KEEPING.md](../docs/SAFE_DATA_KEEPING.md).
+
+## Demo accounts
+
+Seeded at every backend start (idempotent). Password for all: `rocket-demo-123`. Details and expected
+outcomes: [docs/DEMO_SCENARIOS.md](../docs/DEMO_SCENARIOS.md).

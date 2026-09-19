@@ -67,13 +67,15 @@ Status 2026-09-19: done. Backend `auth` package + `AuthFlowTest`/`OwnershipTest`
 
 Locations: backend migrations, fixture loader, history APIs and `research/fixtures/`.
 
-- [ ] 3.1 Add partners, products, transactions, synthetic financial profiles and credit-application tables from the architecture document. Use foreign keys, decimal money, timestamps and database constraints; support USD only.
-- [ ] 3.2 Seed StreamBox, MarketHub and Threadly catalogs plus several customers with distinct histories. Make repeated seeding safe through stable fixture IDs. New registrations get a clearly labeled synthetic starter dataset, not another account's history.
-- [ ] 3.3 Add public catalog/partner reads and authenticated `GET /api/me` and `GET /api/transactions` with partner filtering. Financial fixture values cannot be arbitrarily overwritten by the browser.
-- [ ] 3.4 Use parameterized ORM queries, restricted DB credentials and environment secrets. Redact passwords, cookies and personal payloads from logs. Document local disk protection separately from password hashing.
-- [ ] 3.5 Demonstrate one local DB backup/restore, and update `DEMO_SCENARIOS.md` with new fixture identities and expected behavior. Keep old fixture expectations clearly separated until the new scoring policy is applied.
+- [x] 3.1 Add partners, products, transactions, synthetic financial profiles and credit-application tables from the architecture document. Use foreign keys, decimal money, timestamps and database constraints; support USD only.
+- [x] 3.2 Seed StreamBox, MarketHub and Threadly catalogs plus several customers with distinct histories. Make repeated seeding safe through stable fixture IDs. New registrations get a clearly labeled synthetic starter dataset, not another account's history.
+- [x] 3.3 Add public catalog/partner reads and authenticated `GET /api/me` and `GET /api/transactions` with partner filtering. Financial fixture values cannot be arbitrarily overwritten by the browser.
+- [x] 3.4 Use parameterized ORM queries, restricted DB credentials and environment secrets. Redact passwords, cookies and personal payloads from logs. Document local disk protection separately from password hashing.
+- [x] 3.5 Demonstrate one local DB backup/restore, and update `DEMO_SCENARIOS.md` with new fixture identities and expected behavior. Keep old fixture expectations clearly separated until the new scoring policy is applied.
 
 Done when: two customers see their own three-partner history; duplicate seeding does not inflate it; the database stores hashes and restores successfully.
+
+Status 2026-09-19: done. Catalog in `V2__seed_partners_and_products.sql`; personas in `fixtures/demo-customers.json` loaded by `DemoDataLoader` (restart: 0 inserted); `StarterDataService` for new registrations; `GET /api/partners[/{slug}]`, `GET /api/me/profile`; `DemoDataTest`. Backup/restore scripts in `rocket-credit-deployment/diploma/` demonstrated. Security notes and limits in `docs/SAFE_DATA_KEEPING.md`; scenarios in `docs/DEMO_SCENARIOS.md`.
 
 ### Step 4 — Implement modular scoring and persist decisions
 
