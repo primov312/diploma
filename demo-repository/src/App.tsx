@@ -1,10 +1,13 @@
 import { Route, Routes } from 'react-router-dom';
+import RequireAuth from './auth/RequireAuth';
 import Layout from './components/Layout';
-import AccountDashboard from './pages/AccountDashboard';
 import AboutUs from './pages/AboutUs';
+import AccountDashboard from './pages/AccountDashboard';
 import ForBusinesses from './pages/ForBusinesses';
 import HomePage from './pages/HomePage';
 import HowItWorks from './pages/HowItWorks';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
 
 const NotFound = () => (
   <div className="bg-gradient-hero py-24 text-center">
@@ -20,7 +23,14 @@ const App = () => (
       <Route path="how-it-works" element={<HowItWorks />} />
       <Route path="for-businesses" element={<ForBusinesses />} />
       <Route path="about-us" element={<AboutUs />} />
-      <Route path="account-dashboard" element={<AccountDashboard />} />
+      <Route path="login" element={<LoginPage />} />
+      <Route path="register" element={<RegisterPage />} />
+
+      {/* Everything below needs a session; RequireAuth redirects to /login and back. */}
+      <Route element={<RequireAuth />}>
+        <Route path="account-dashboard" element={<AccountDashboard />} />
+      </Route>
+
       <Route path="*" element={<NotFound />} />
     </Route>
   </Routes>

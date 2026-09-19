@@ -54,12 +54,14 @@ Status 2026-09-19: done and verified with `docker-compose.diploma.yml` (see `roc
 
 Locations: backend `auth`/`users`, migrations and frontend auth integration.
 
-- [ ] 2.1 Add users with unique normalized email and password hash. Use Spring Security's password encoder, request validation and generic login errors. Never return hashes in API responses.
-- [ ] 2.2 Implement registration, login, current-user lookup and logout using framework sessions. Rotate session IDs on login; invalidate on logout. Document that restart ends in-memory sessions.
-- [ ] 2.3 Configure HttpOnly cookies, SameSite, Secure when using HTTPS, CSRF handling and same-origin frontend/API requests. Include the CSRF token flow for the React client.
-- [ ] 2.4 Derive user identity from the session for every private query. Test two accounts, wrong passwords, absent/expired sessions, missing CSRF tokens and cross-user record IDs.
+- [x] 2.1 Add users with unique normalized email and password hash. Use Spring Security's password encoder, request validation and generic login errors. Never return hashes in API responses.
+- [x] 2.2 Implement registration, login, current-user lookup and logout using framework sessions. Rotate session IDs on login; invalidate on logout. Document that restart ends in-memory sessions.
+- [x] 2.3 Configure HttpOnly cookies, SameSite, Secure when using HTTPS, CSRF handling and same-origin frontend/API requests. Include the CSRF token flow for the React client.
+- [x] 2.4 Derive user identity from the session for every private query. Test two accounts, wrong passwords, absent/expired sessions, missing CSRF tokens and cross-user record IDs.
 
 Done when: register → login → protected request → logout works, and customer A cannot access customer B's data. Capture this sequence for the authentication chapter.
+
+Status 2026-09-19: done. Backend `auth` package + `AuthFlowTest`/`OwnershipTest` (Testcontainers), React `src/api/client.ts` (CSRF cookie flow), `AuthContext`, `RequireAuth`, `/login`, `/register`. API summary in `rocket-credit-backend/README.md`. `GET /api/transactions[/{id}]` exists already (ownership-scoped) so the cross-user check is a real HTTP test; 3.3 adds `GET /api/me` (done) and partner filtering (done) on top of seeded data.
 
 ### Step 3 — Seed partner history and demonstrate safe storage
 

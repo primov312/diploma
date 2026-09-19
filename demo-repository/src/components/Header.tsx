@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 
 type NavLinkItem = {
   to: string;
@@ -14,7 +15,49 @@ const NAV_LINKS: NavLinkItem[] = [
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, loading, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/', { replace: true });
+  };
+
+  const accountControls = (block: boolean) =>
+    loading ? null : user ? (
+      <>
+        <NavLink
+          to="/account-dashboard"
+          className={({ isActive }) =>
+            `${block ? 'block' : 'hidden sm:inline-flex'} text-sm font-medium transition-smooth ${
+              isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
+            }`
+          }
+        >
+          {user.displayName}
+        </NavLink>
+        <button type="button" onClick={handleLogout} className={`btn-secondary px-4 py-2 text-sm ${block ? 'block w-full' : ''}`}>
+          Sign out
+        </button>
+      </>
+    ) : (
+      <>
+        <NavLink
+          to="/login"
+          className={({ isActive }) =>
+            `${block ? 'block' : 'hidden sm:inline-flex'} text-sm font-medium transition-smooth ${
+              isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
+            }`
+          }
+        >
+          Sign In
+        </NavLink>
+        <Link to="/register" className={`btn-gradient px-4 py-2 text-sm ${block ? 'block text-center' : ''}`}>
+          Get Started
+        </Link>
+      </>
+    );
 
   useEffect(() => {
     setIsMobileOpen(false);
@@ -53,19 +96,7 @@ const Header = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <NavLink
-            to="/account-dashboard"
-            className={({ isActive }) =>
-              `hidden text-sm font-medium transition-smooth sm:inline-flex ${
-                isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
-              }`
-            }
-          >
-            Sign In
-          </NavLink>
-          <Link to="/account-dashboard" className="btn-gradient px-4 py-2 text-sm">
-            Get Started
-          </Link>
+          {accountControls(false)}
           <button
             type="button"
             className="rounded-lg p-2 transition-smooth hover:bg-gray-100 md:hidden"
@@ -107,21 +138,7 @@ const Header = () => {
             >
               Help Center
             </button>
-            <div className="pt-3">
-              <Link to="/account-dashboard" className="btn-gradient block text-center">
-                Get Started
-              </Link>
-            </div>
-            <NavLink
-              to="/account-dashboard"
-              className={({ isActive }) =>
-                `block text-sm font-medium transition-smooth ${
-                  isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
-                }`
-              }
-            >
-              Sign In
-            </NavLink>
+            <div className="space-y-3 pt-3">{accountControls(true)}</div>
           </div>
         </div>
       )}

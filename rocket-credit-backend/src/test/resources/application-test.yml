@@ -1,0 +1,8 @@
+rocket:
+  analysis:
+    base-url: http://127.0.0.1:1   # nothing listens; tests that need analysis mock it
+    shared-secret: test
+logging:
+  level:
+    root: WARN
+    com.rocketcredit.backend: INFO

@@ -24,3 +24,22 @@ mvn spring-boot:run            # needs PostgreSQL + analysis; see rocket-credit-
 ```
 
 Environment: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `ANALYSIS_URL`, `ANALYSIS_SHARED_SECRET`, `COOKIE_SECURE`.
+
+## Authentication (Step 2)
+
+| Call | Result |
+| --- | --- |
+| `GET /api/csrf` | sets `XSRF-TOKEN` cookie (readable by JS), returns `{headerName, token}` |
+| `POST /api/auth/register` `{email,password,displayName}` | 201 user; 409 `EMAIL_TAKEN`; 400 `VALIDATION_FAILED` (field names only) |
+| `POST /api/auth/login` `{email,password}` | 200 user + `RCSESSION` cookie (HttpOnly, SameSite=Lax, Secure if `COOKIE_SECURE=true`); 401 `INVALID_CREDENTIALS` for wrong password **and** unknown email |
+| `GET /api/me` | 200 current user; 401 without session |
+| `POST /api/auth/logout` | 204, session invalidated |
+
+Every `POST` needs `X-XSRF-TOKEN` equal to the `XSRF-TOKEN` cookie (double-submit); otherwise 403.
+Emails are trimmed and lower-cased before storage and lookup (DB `CHECK` enforces it). Passwords are BCrypt
+hashes verified by Spring Security's `DaoAuthenticationProvider`; the hash never leaves the database layer.
+Logging in from an existing anonymous session rotates the session ID. Sessions live in the Java process:
+a restart logs everyone out. Private endpoints take the user ID from the session principal only; a record
+that belongs to another user answers 404, the same as a record that does not exist.
+
+Tests: `AuthFlowTest`, `OwnershipTest` (Testcontainers PostgreSQL; needs Docker).

@@ -1,6 +1,7 @@
 package com.rocketcredit.backend.transactions;
 
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -10,5 +11,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TransactionRepository extends JpaRepository<TransactionEntity, Long> {
     List<TransactionEntity> findByUserIdOrderByOccurredOnDesc(Long userId);
     List<TransactionEntity> findByUserIdAndPartnerIdOrderByOccurredOnDesc(Long userId, Long partnerId);
+    Optional<TransactionEntity> findByIdAndUserId(Long id, Long userId);
     boolean existsByFixtureId(String fixtureId);
 }
