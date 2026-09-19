@@ -1,0 +1,9 @@
+# Applies to every image built with the repository root as context.
+**/node_modules
+**/dist
+**/target
+**/.venv
+**/__pycache__
+**/.git
+**/*.log
+rocket-credit-deployment/.env

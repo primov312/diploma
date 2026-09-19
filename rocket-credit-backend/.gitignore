@@ -1,0 +1,3 @@
+target/
+# built React app is copied here by the Docker build
+src/main/resources/static/

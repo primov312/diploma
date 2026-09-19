@@ -1,47 +1,92 @@
+# app/models.py
+"""Request/response contract between the Java backend and this service.
+
+The bundle contains derived features only: no names, emails, user IDs,
+password hashes or session data. Each feature section is optional so the
+backend can report that evidence is missing; the combiner turns missing
+required evidence into REVIEW rather than guessing.
+"""
 from __future__ import annotations
-from typing import Optional, Any, Dict
-from pydantic import BaseModel, Field, root_validator  
 
-class ClaimRef(BaseModel):
-    bucket: str
-    key: str
-    contentType: Optional[str] = None
-    expiresAt: Optional[int] = None
-    correlationId: Optional[str] = None
+from datetime import datetime
+from decimal import Decimal
+from enum import Enum
+from typing import Dict, List, Literal, Optional
 
-class CreditRequest(BaseModel):
-    userId: int = Field(..., alias="userId")
-    cartTotal: Optional[float] = Field(None, alias="cartTotal")
-    # Gateway normally sends a claim-check reference. Keeping it optional also
-    # supports the documented direct API, where analysis loads the feature
-    # bundle from User Data itself.
-    featureClaim: Optional[ClaimRef] = None
+from pydantic import BaseModel, ConfigDict, Field
 
-    @root_validator(pre=True)
-    def accept_amount_alias(cls, values: Dict[str, Any]):
-        if "cartTotal" not in values and "amount" in values:
-            values["cartTotal"] = values["amount"]
-        # Accept various keys for the claim
-        for k in ("feature", "claim", "claimRef", "claim_ref"):
-            if k in values and "featureClaim" not in values:
-                values["featureClaim"] = values[k]
 
-        # Optionally, accept alt property names inside the claim
-        feat = values.get("featureClaim")
-        if isinstance(feat, dict):
-            # map alternative spellings if present
-            if "content_type" in feat and "contentType" not in feat:
-                feat["contentType"] = feat["content_type"]
-            if "expiry" in feat and "expiresAt" not in feat:
-                feat["expiresAt"] = feat["expiry"]
+class ProfileFeatures(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
-        return values
+    accountAgeMonths: int = Field(..., ge=0)
+    profileComplete: bool
+    emailVerified: bool
 
-    class Config:
-        allow_population_by_field_name = True
-        anystr_strip_whitespace = True
 
-class CreditResponse(BaseModel):
-    approved: bool
-    score: int
-    reason: Optional[str] = None
+class HistoryFeatures(BaseModel):
+    """Purchase history with the partner the customer is applying at, plus a
+    small cross-partner summary."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    partnerOrders12m: int = Field(..., ge=0)
+    partnerAvgOrderValue: Decimal = Field(..., ge=0)
+    partnerRefundRate: float = Field(..., ge=0.0, le=1.0)
+    partnerOnTimeRatio: float = Field(..., ge=0.0, le=1.0)
+    partnerTenureMonths: int = Field(..., ge=0)
+    totalOrders12m: int = Field(..., ge=0)
+
+
+class FinanceFeatures(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    monthlyIncome: Decimal = Field(..., ge=0)
+    monthlyExpenses: Decimal = Field(..., ge=0)
+    monthlyObligations: Decimal = Field(..., ge=0)
+
+
+class ScoreRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    requestedAmount: Decimal = Field(..., gt=0)
+    currency: Literal["USD"] = "USD"
+    partnerCap: Decimal = Field(..., gt=0)
+    useAi: bool = False
+    observedAt: datetime
+    profile: Optional[ProfileFeatures] = None
+    history: Optional[HistoryFeatures] = None
+    finance: Optional[FinanceFeatures] = None
+
+
+class DecisionStatus(str, Enum):
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    REVIEW = "REVIEW"
+
+
+class AiStatus(str, Enum):
+    NOT_REQUESTED = "NOT_REQUESTED"
+    UNAVAILABLE = "UNAVAILABLE"  # requested, model missing/failed -> rules only
+    APPLIED = "APPLIED"
+
+
+class FactorResult(BaseModel):
+    score: Optional[float] = None
+    weight: float
+    reasons: List[str] = []
+    details: Dict[str, float | int | bool | str | None] = {}
+
+
+class ScoreResponse(BaseModel):
+    decisionStatus: DecisionStatus
+    score: float = Field(..., ge=0.0, le=1.0)
+    possibleAmount: Decimal = Field(..., ge=0)
+    currency: Literal["USD"] = "USD"
+    reasons: List[str]
+    factors: Dict[str, FactorResult]
+    policyVersion: str
+    aiRequested: bool
+    aiStatus: AiStatus
+    modelVersion: Optional[str] = None
+    aiContributions: Dict[str, float] = {}

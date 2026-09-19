@@ -1,25 +1,16 @@
 # app/settings.py
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
 class Settings(BaseSettings):
-    port: int = 8082
-    user_data_url: str = "http://user-data:8080"
-    user_data_timeout: float = 1.5
-    threshold: float = 0.60
-    sqlalchemy_url: str = "postgresql+psycopg://postgres:postgres@creditdb:5432/creditdb"
-    # kafka_bootstrap: str = "kafka:9092"
-    enable_events: bool = False
-    # thresholds as safe fallback if DB policy missing
-    approve_threshold: float = 0.60
-    review_threshold: float = 0.50
+    """Runtime configuration. The service is stateless: no database, object store
+    or message broker. Everything it needs is this file, the policy JSON and
+    (later) a local model artifact."""
 
-    # cache TTL for policy
-    policy_cache_ttl_seconds: int = 30
+    model_config = SettingsConfigDict(env_prefix="ANALYSIS_")
 
-    # amount capacity calc
-    income_affordability_multiplier: float = 0.3
-
-    # S3 
-    s3_endpoint: str = "http://minio:9000"
-    s3_access_key: str = "minio"
-    s3_secret_key: str = "minio123"
-    s3_region: str = "us-east-1"
+    port: int = 8000
+    # Shared secret the Java backend sends in X-Analysis-Token. Empty disables the
+    # check (local development only); Compose always sets it.
+    shared_secret: str = ""
+    policy_path: str = "app/policy.json"

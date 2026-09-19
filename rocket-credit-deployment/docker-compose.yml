@@ -1,3 +1,8 @@
+# LEGACY — original five-service checkout stack (Gateway, User Data, Payment, Repayment + Redis/MinIO).
+# Kept as reference only. The diploma runtime is docker-compose.diploma.yml (see DIPLOMA_RUNTIME.md).
+# Note: rocket-credit-analysis was rewritten as a stateless service; the `credit-analysis` entry below
+# no longer matches the Gateway's /creditscore contract.
+
 services:
 
   redis:
@@ -113,7 +118,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: userdb
     ports:
-      - "5433:5432"
+      - "${USERDB_HOST_PORT:-5437}:5432"
 
   credit-analysis:
     build:

@@ -1,0 +1,80 @@
+# Rocket Credit - simplified diploma runtime.
+#
+#   backend  : Java 21 / Spring Boot 3 - auth, data, applications; serves the React build on :8080
+#   analysis : Python / FastAPI       - stateless rule scoring (+ AI later); internal port only
+#   db       : PostgreSQL 16          - the single database, new named volume
+#
+# Start:  docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build -d
+# Stop:   docker compose -f docker-compose.diploma.yml --env-file diploma/.env down
+# See rocket-credit-deployment/DIPLOMA_RUNTIME.md. docker-compose.yml is the legacy five-service stack.
+
+name: rocket-credit-diploma
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-rocketcredit}
+      POSTGRES_USER: ${DB_ADMIN_USER:-rocket_admin}
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:?set DB_ADMIN_PASSWORD in diploma/.env}
+      APP_DB_USER: ${DB_APP_USER:-rocket_app}
+      APP_DB_PASSWORD: ${DB_APP_PASSWORD:?set DB_APP_PASSWORD in diploma/.env}
+    volumes:
+      - diploma_dbdata:/var/lib/postgresql/data
+      - ./diploma/db-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      # Host port for psql / backups only; the old service databases use 5434-5437.
+      - "${DB_HOST_PORT:-5438}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_ADMIN_USER:-rocket_admin} -d ${DB_NAME:-rocketcredit}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  analysis:
+    build:
+      context: ..
+      dockerfile: rocket-credit-analysis/Dockerfile
+    image: rocket-credit-analysis:diploma
+    environment:
+      ANALYSIS_PORT: "8000"
+      ANALYSIS_WORKERS: ${ANALYSIS_WORKERS:-2}
+      ANALYSIS_SHARED_SECRET: ${ANALYSIS_SHARED_SECRET:?set ANALYSIS_SHARED_SECRET in diploma/.env}
+    expose:
+      - "8000"          # reachable from backend only; no host port
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  backend:
+    build:
+      context: ..
+      dockerfile: rocket-credit-backend/Dockerfile
+    image: rocket-credit-backend:diploma
+    depends_on:
+      db:
+        condition: service_healthy
+      analysis:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-rocketcredit}
+      DB_USER: ${DB_APP_USER:-rocket_app}
+      DB_PASSWORD: ${DB_APP_PASSWORD}
+      ANALYSIS_URL: http://analysis:8000
+      ANALYSIS_SHARED_SECRET: ${ANALYSIS_SHARED_SECRET}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "${BACKEND_HOST_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+      start_period: 40s
+
+volumes:
+  diploma_dbdata:
+    name: rocket-credit-diploma-dbdata

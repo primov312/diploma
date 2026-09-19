@@ -1,6 +1,6 @@
 # Rocket Credit — Simple Diploma Completion Plan
 
-Updated: 2026-09-16. This plan replaces the earlier 12-phase distributed-system roadmap.
+Updated: 2026-09-19. This plan replaces the earlier 12-phase distributed-system roadmap.
 
 Scope: [README](../README.md). Design: [simple architecture](DIPLOMA_ARCHITECTURE.md). Research description: [diploma topic](DIPLOMA_PROJECT_TOPIC.md).
 
@@ -40,13 +40,15 @@ Security checks and tests accompany each step. Do not postpone ownership checks 
 
 Locations: proposed `rocket-credit-backend/`, existing `rocket-credit-analysis/`, `rocket-credit-deployment/`.
 
-- [ ] 1.1 Record the current state and preserve existing source/volumes. Select the User Data Java foundation for the consolidated backend; copy source only and remove unused startup/configuration dependencies.
-- [ ] 1.2 Create backend packages for auth, users, partners, transactions, applications and analysis. Replace required cross-service user-data calls with local service/repository calls.
-- [ ] 1.3 Make Python accept a validated JSON feature bundle and return a decision. Remove its runtime dependency on PostgreSQL, User Data HTTP, MinIO and Kafka. Replace DB policy loading with a versioned local configuration; retain useful pure rule functions.
-- [ ] 1.4 Add `rocket-credit-deployment/docker-compose.diploma.yml` for backend, analysis and one PostgreSQL database with a new named volume. Serve built React files from Java; support Vite's API proxy for development. Give analysis only an internal port and simple backend-call authentication via an environment secret.
-- [ ] 1.5 Document one start command, one stop command and health endpoints. Label original Compose as legacy. Keep old databases untouched; new synthetic fixtures need no production-style cross-database migration.
+- [x] 1.1 Record the current state and preserve existing source/volumes. Select the User Data Java foundation for the consolidated backend; copy source only and remove unused startup/configuration dependencies.
+- [x] 1.2 Create backend packages for auth, users, partners, transactions, applications and analysis. Replace required cross-service user-data calls with local service/repository calls.
+- [x] 1.3 Make Python accept a validated JSON feature bundle and return a decision. Remove its runtime dependency on PostgreSQL, User Data HTTP, MinIO and Kafka. Replace DB policy loading with a versioned local configuration; retain useful pure rule functions.
+- [x] 1.4 Add `rocket-credit-deployment/docker-compose.diploma.yml` for backend, analysis and one PostgreSQL database with a new named volume. Serve built React files from Java; support Vite's API proxy for development. Give analysis only an internal port and simple backend-call authentication via an environment secret.
+- [x] 1.5 Document one start command, one stop command and health endpoints. Label original Compose as legacy. Keep old databases untouched; new synthetic fixtures need no production-style cross-database migration.
 
 Done when: all three server containers start without Redis, MinIO or the old services; backend can call the stateless analysis health/scoring endpoints.
+
+Status 2026-09-19: done and verified with `docker-compose.diploma.yml` (see `rocket-credit-deployment/DIPLOMA_RUNTIME.md`). The V1 migration already creates all six tables from the architecture document, so 3.1 is reduced to reviewing constraints. The Python rule modules (`app/rules/`) already follow the 4.3/4.4 split; Step 4 refines and tests them against fixtures.
 
 ### Step 2 — Implement accounts and session authentication
 

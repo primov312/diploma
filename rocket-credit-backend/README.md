@@ -1,0 +1,26 @@
+# rocket-credit-backend
+
+Consolidated Java 21 / Spring Boot 3 backend for the diploma runtime. It replaces the separate
+Gateway and User Data services: one process owns authentication, users, partner catalog, transaction
+history, credit applications and the call to the Python analysis service.
+
+Packages (`com.rocketcredit.backend`):
+
+| Package | Responsibility |
+| --- | --- |
+| `auth` | Spring Security: session cookie, CSRF, password encoder (login/register in Step 2) |
+| `users` | `users`, `demo_financial_profiles` entities and repositories |
+| `partners` | `partners`, `products` catalog |
+| `transactions` | seeded per-user purchase history, ownership-scoped queries |
+| `applications` | `credit_applications`: request + feature snapshot + decision saved atomically |
+| `analysis` | `AnalysisClient` (RestClient, shared-secret header, timeouts) and health indicator |
+| `web` | `/api/health`, SPA fallback for the built React app |
+
+Schema: `src/main/resources/db/migration/V1__initial_schema.sql` (Flyway; JPA runs in `validate` mode).
+
+```bash
+mvn test                       # unit tests (no database needed)
+mvn spring-boot:run            # needs PostgreSQL + analysis; see rocket-credit-deployment/DIPLOMA_RUNTIME.md
+```
+
+Environment: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `ANALYSIS_URL`, `ANALYSIS_SHARED_SECRET`, `COOKIE_SECURE`.
