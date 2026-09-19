@@ -1,0 +1,8 @@
+# Activated with SPRING_PROFILES_ACTIVE=benchmark: runs FeatureBenchmarkRunner and exits.
+server:
+  port: 0
+logging:
+  level:
+    root: WARN
+    com.rocketcredit.backend.benchmark: INFO
+    com.rocketcredit.backend.fixtures: INFO

@@ -125,13 +125,15 @@ Status 2026-09-19: done. `research/training/{generate_data,train,evaluate}.py` +
 
 Locations: backend feature-preparation code and `research/benchmarks/`.
 
-- [ ] 7.1 Extract profile, history and finance preparation behind three independent provider interfaces. Keep a sequential implementation for comparison.
-- [ ] 7.2 Add one shared bounded Java executor and a parallel implementation. Give each worker its own short DB read transaction or immutable materialized inputs. Do not share JPA sessions, lazy entities or mutable score state.
-- [ ] 7.3 Join all required tasks before the single scoring call. Add a deadline, bounded queue, explicit task-failure handling and clean executor shutdown.
-- [ ] 7.4 Assert identical features and decisions for both modes. Exercise simultaneous requests from two users to catch accidental shared state.
-- [ ] 7.5 Benchmark repeated runs on normal local data, then with controlled simulated I/O delays. Record pool size, timings, median/p95, errors and dataset size in CSV. Separate simulated-delay results from ordinary operation; discuss thread overhead and possible lack of speedup.
+- [x] 7.1 Extract profile, history and finance preparation behind three independent provider interfaces. Keep a sequential implementation for comparison.
+- [x] 7.2 Add one shared bounded Java executor and a parallel implementation. Give each worker its own short DB read transaction or immutable materialized inputs. Do not share JPA sessions, lazy entities or mutable score state.
+- [x] 7.3 Join all required tasks before the single scoring call. Add a deadline, bounded queue, explicit task-failure handling and clean executor shutdown.
+- [x] 7.4 Assert identical features and decisions for both modes. Exercise simultaneous requests from two users to catch accidental shared state.
+- [x] 7.5 Benchmark repeated runs on normal local data, then with controlled simulated I/O delays. Record pool size, timings, median/p95, errors and dataset size in CSV. Separate simulated-delay results from ordinary operation; discuss thread overhead and possible lack of speedup.
 
 Done when: the diploma contains an understandable sequential/parallel experiment with measured results and a correctness check, without requiring more services.
+
+Status 2026-09-19: done. `applications/features/` — provider interfaces, `SequentialFeaturePreparation`, `ParallelFeaturePreparation` (shared bounded `ThreadPoolExecutor`, deadline, cancel-on-failure, AbortPolicy), `ConfiguredFeaturePreparation` (`FEATURES_MODE`). Tests: `ParallelFeaturePreparationTest` (failure/timeout/saturation), `FeatureModeEqualityTest` (all personas × partners identical; 40 concurrent preparations for two users). Benchmark: `research/benchmarks/run.sh` (Spring profile `benchmark`), results and discussion in `research/benchmarks/README.md` (≈3× with simulated delay, ≈2.9× on local data, pool-size sweep).
 
 ### Step 8 — Verify, document and present
 

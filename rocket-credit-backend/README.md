@@ -58,3 +58,11 @@ analysis → save request + snapshot + result + versions in one transaction → 
 `ANALYSIS_UNAVAILABLE`, nothing saved. Save failure → 500 `TECHNICAL_ERROR`, nothing shown.
 Outcomes: `APPROVED`, `REJECTED`, `REVIEW` (inconclusive automatic result). `possibleAmount` is a suggestion
 for a new request, never an offer. Verified scenarios: `docs/DEMO_SCENARIOS.md`.
+
+## Feature preparation modes (Step 7)
+
+`FEATURES_MODE=SEQUENTIAL|PARALLEL` (default SEQUENTIAL; Compose sets PARALLEL). Parallel mode runs the three
+providers on one shared bounded executor (`FEATURES_POOL_SIZE`, `FEATURES_QUEUE_CAPACITY`, `FEATURES_DEADLINE`),
+joins them before scoring and turns any task failure, timeout or saturated queue into 503 `FEATURES_UNAVAILABLE`
+(nothing saved). Both modes produce identical features (`FeatureModeEqualityTest`); measurements in
+`research/benchmarks/README.md`. Benchmark: `SPRING_PROFILES_ACTIVE=benchmark` (see `research/benchmarks/run.sh`).

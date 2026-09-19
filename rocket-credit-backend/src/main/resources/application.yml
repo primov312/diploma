@@ -48,6 +48,11 @@ management:
       show-components: always
 
 rocket:
+  features:
+    mode: ${FEATURES_MODE:SEQUENTIAL}        # SEQUENTIAL | PARALLEL (Step 7 experiment)
+    pool-size: ${FEATURES_POOL_SIZE:3}
+    queue-capacity: ${FEATURES_QUEUE_CAPACITY:50}
+    deadline: ${FEATURES_DEADLINE:3s}
   analysis:
     base-url: ${ANALYSIS_URL:http://localhost:8000}
     shared-secret: ${ANALYSIS_SHARED_SECRET:}

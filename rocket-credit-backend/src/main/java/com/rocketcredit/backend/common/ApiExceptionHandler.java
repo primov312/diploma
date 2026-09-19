@@ -1,6 +1,7 @@
 package com.rocketcredit.backend.common;
 
 import com.rocketcredit.backend.analysis.AnalysisUnavailableException;
+import com.rocketcredit.backend.applications.features.FeaturePreparationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -66,6 +67,14 @@ public class ApiExceptionHandler {
         log.error("unhandled error: {}", e.toString());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiError.of("TECHNICAL_ERROR", "Something went wrong on our side. Nothing was saved."));
+    }
+
+    /** A feature task failed or timed out: technical error, not a credit decision. */
+    @ExceptionHandler(FeaturePreparationException.class)
+    ResponseEntity<ApiError> features(FeaturePreparationException e) {
+        log.warn("feature preparation failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiError.of("FEATURES_UNAVAILABLE", "Your data could not be prepared in time. Nothing was saved; please try again."));
     }
 
     @ExceptionHandler(AnalysisUnavailableException.class)

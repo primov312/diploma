@@ -1,12 +1,10 @@
 package com.rocketcredit.backend.applications.features;
 
 import com.rocketcredit.backend.applications.CreditApplicationEntity;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 /** Baseline: profile -> history -> finance, one after another on the request thread. */
 @Component
-@Primary
 public class SequentialFeaturePreparation implements FeaturePreparation {
     private final FeatureProviders.ProfileFeatureProvider profile;
     private final FeatureProviders.HistoryFeatureProvider history;
