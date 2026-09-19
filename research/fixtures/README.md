@@ -9,3 +9,6 @@ Expected behaviour per persona: [`docs/DEMO_SCENARIOS.md`](../../docs/DEMO_SCENA
 
 Synthetic *training* data for the AI experiment (Step 6) is generated separately under
 `research/training/` with a fixed seed; it is not derived from these four personas.
+
+Idempotency is "insert if the fixture ID is missing": editing an existing persona's history requires a
+fresh database (`docker compose ... down -v`) or deleting that persona's rows first.

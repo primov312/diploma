@@ -19,10 +19,10 @@
       "fixtureId": "riley",
       "email": "riley@demo.rocket.local",
       "displayName": "Riley Review",
-      "accountAgeMonths": 4,
+      "accountAgeMonths": 10,
       "finance": { "monthlyIncome": 2500.00, "monthlyExpenses": 1900.00, "monthlyObligations": 300.00, "profileComplete": false, "emailVerified": true },
       "history": [
-        { "partner": "markethub", "count": 2, "everyDays": 45, "amounts": [64.99, 39.00], "refunded": [], "late": [1] },
+        { "partner": "markethub", "count": 6, "everyDays": 40, "amounts": [64.99, 89.00, 129.00], "refunded": [3], "late": [1] },
         { "partner": "threadly",  "count": 1, "everyDays": 30, "amounts": [59.00], "refunded": [0], "late": [] }
       ]
     },

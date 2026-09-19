@@ -81,14 +81,16 @@ Status 2026-09-19: done. Catalog in `V2__seed_partners_and_products.sql`; person
 
 Locations: Python `app/` modules, backend `applications`/`analysis`, API models.
 
-- [ ] 4.1 Define one request: partner ID, requested amount, optional product ID and `useAi`. Use session identity. Validate positive amount/currency; resolve product ownership and price server-side when product ID is present.
-- [ ] 4.2 Prepare profile, partner-history and finance features from stored synthetic data. Keep all preparation sequential initially; capture the observation time and send derived data without identifying fields to Python.
-- [ ] 4.3 Separate profile rules, history rules, affordability and decision combination into testable Python functions. Correct existing zero-capacity behavior and return an explicit `decisionStatus` rather than mapping every negative result to generic denial.
-- [ ] 4.4 Return decision, score, possible amount, reasons, factors and policy version. Use the architecture's simple policy; missing required evidence gives review, insufficient capacity gives rejection. A lower possible amount is a suggestion for a new request, not an accepted purchase.
-- [ ] 4.5 Implement `POST /api/applications`, `GET /api/applications` and `GET /api/applications/{id}`. Save request, feature snapshot, result, AI choice/status and versions atomically in one DB; enforce ownership on reads.
-- [ ] 4.6 Test approval, rejection, review, over-cap amount, zero capacity and invalid inputs. Return a technical error on analysis timeout or failed DB write; do not invent or display a saved decision. Disable repeated submit while pending; duplicate financial execution is irrelevant because this app makes no payment.
+- [x] 4.1 Define one request: partner ID, requested amount, optional product ID and `useAi`. Use session identity. Validate positive amount/currency; resolve product ownership and price server-side when product ID is present.
+- [x] 4.2 Prepare profile, partner-history and finance features from stored synthetic data. Keep all preparation sequential initially; capture the observation time and send derived data without identifying fields to Python.
+- [x] 4.3 Separate profile rules, history rules, affordability and decision combination into testable Python functions. Correct existing zero-capacity behavior and return an explicit `decisionStatus` rather than mapping every negative result to generic denial.
+- [x] 4.4 Return decision, score, possible amount, reasons, factors and policy version. Use the architecture's simple policy; missing required evidence gives review, insufficient capacity gives rejection. A lower possible amount is a suggestion for a new request, not an accepted purchase.
+- [x] 4.5 Implement `POST /api/applications`, `GET /api/applications` and `GET /api/applications/{id}`. Save request, feature snapshot, result, AI choice/status and versions atomically in one DB; enforce ownership on reads.
+- [x] 4.6 Test approval, rejection, review, over-cap amount, zero capacity and invalid inputs. Return a technical error on analysis timeout or failed DB write; do not invent or display a saved decision. Disable repeated submit while pending; duplicate financial execution is irrelevant because this app makes no payment.
 
 Done when: an API request produces an explained, persisted decision that survives application restart and can only be read by its owner.
+
+Status 2026-09-19: done. `applications/` (service, controller, `features/` providers + sequential preparation), Python `app/rules/*` with `tests/test_scenarios.py` pinning the six demo outcomes (policy `rules-v1`, review band 0.40–0.65). Verified live: all six scenarios, `useAi` → `UNAVAILABLE`, restart keeps rows, analysis stopped → 503 and no row. UI-side "disable submit while pending" belongs to Step 5.
 
 ### Step 5 — Connect the customer app and demo store pages
 

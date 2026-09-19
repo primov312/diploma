@@ -2,14 +2,14 @@
   "version": "rules-v1",
   "description": "Illustrative diploma experiment policy. Scores are 0..1. Amounts are USD.",
   "weights": {
-    "history": 0.60,
-    "profile": 0.40,
-    "rules": 0.80,
-    "ai": 0.20
+    "history": 0.6,
+    "profile": 0.4,
+    "rules": 0.8,
+    "ai": 0.2
   },
   "thresholds": {
     "approve": 0.65,
-    "review": 0.45
+    "review": 0.4
   },
   "affordability": {
     "demoMultiplier": 3.0
@@ -20,10 +20,13 @@
   },
   "history": {
     "ordersFullScore": 12,
-    "avgOrderValueRange": [10, 500],
+    "avgOrderValueRange": [
+      10,
+      500
+    ],
     "tenureMonthsFullScore": 24,
     "tooFewOrders": 2,
-    "onTimeLow": 0.70,
+    "onTimeLow": 0.7,
     "refundRateHigh": 0.15
   }
 }

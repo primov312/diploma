@@ -10,7 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.ErrorResponseException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -42,6 +47,25 @@ public class ApiExceptionHandler {
     ResponseEntity<ApiError> badCredentials(AuthenticationException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiError.of("INVALID_CREDENTIALS", "Invalid email or password"));
+    }
+
+    @ExceptionHandler({NoResourceFoundException.class, HttpRequestMethodNotSupportedException.class,
+            MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class,
+            ErrorResponseException.class})
+    ResponseEntity<ApiError> framework(Exception e) {
+        HttpStatus status = e instanceof NoResourceFoundException ? HttpStatus.NOT_FOUND
+                : e instanceof HttpRequestMethodNotSupportedException ? HttpStatus.METHOD_NOT_ALLOWED
+                : e instanceof ErrorResponseException er ? HttpStatus.valueOf(er.getStatusCode().value())
+                : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(ApiError.of(status.name(), status.getReasonPhrase()));
+    }
+
+    /** Anything else (including a failed decision write) is a technical error; no decision is shown. */
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<ApiError> unexpected(Exception e) {
+        log.error("unhandled error: {}", e.toString());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiError.of("TECHNICAL_ERROR", "Something went wrong on our side. Nothing was saved."));
     }
 
     @ExceptionHandler(AnalysisUnavailableException.class)

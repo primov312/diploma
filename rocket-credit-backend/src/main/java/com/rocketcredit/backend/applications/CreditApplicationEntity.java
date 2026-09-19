@@ -80,8 +80,8 @@ public class CreditApplicationEntity {
     @Column(name = "observed_at", nullable = false)
     private OffsetDateTime observedAt;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
     protected CreditApplicationEntity() {}
 

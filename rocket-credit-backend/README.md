@@ -43,3 +43,18 @@ a restart logs everyone out. Private endpoints take the user ID from the session
 that belongs to another user answers 404, the same as a record that does not exist.
 
 Tests: `AuthFlowTest`, `OwnershipTest` (Testcontainers PostgreSQL; needs Docker).
+
+## Applications (Step 4)
+
+| Call | Result |
+| --- | --- |
+| `POST /api/applications` `{partnerSlug, requestedAmount?, productId?, useAi}` | 201 saved decision. With `productId` the stored price is the amount (a differing `requestedAmount` → 400 `AMOUNT_MISMATCH`); without it `requestedAmount` is required (> 0, 2 decimals) |
+| `GET /api/applications` | own applications, newest first (no feature snapshot) |
+| `GET /api/applications/{id}` | own application with `featureSnapshot`; foreign/missing → 404 |
+
+Flow: validate → capture `observedAt` → prepare features (`applications/features`: profile, history, finance
+providers behind interfaces; `SequentialFeaturePreparation` today, parallel in Step 7) → `POST /score` on
+analysis → save request + snapshot + result + versions in one transaction → return. Analysis failure → 503
+`ANALYSIS_UNAVAILABLE`, nothing saved. Save failure → 500 `TECHNICAL_ERROR`, nothing shown.
+Outcomes: `APPROVED`, `REJECTED`, `REVIEW` (inconclusive automatic result). `possibleAmount` is a suggestion
+for a new request, never an offer. Verified scenarios: `docs/DEMO_SCENARIOS.md`.
