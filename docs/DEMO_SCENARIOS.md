@@ -29,7 +29,10 @@ Possible amount = min(partner cap, disposable income × 3.0) (policy `rules-v1`)
 | Drew at Threadly | 150 USD | **REJECTED** (`ZERO_CAPACITY`) | no disposable income; new, unverified account |
 | Casey at StreamBox | 300 USD | **APPROVED** (score 0.74), possible 600 | capacity 600 (= 200 × 3), within the StreamBox cap |
 | Casey at MarketHub | 700 USD | **REJECTED**, possible 600 | above capacity; 600 shown as a suggestion for a new request |
-| Any customer, `useAi` on | any | same decision, `aiStatus = UNAVAILABLE` | no model is loaded until Step 6 |
+| Avery at MarketHub, `useAi` on | 300 USD | **APPROVED** (score 0.81), `aiStatus = APPLIED`, model `logreg-v1`, risk ≈ 0.01 | hybrid = 0.8 × rules + 0.2 × (1 − risk) |
+| Riley at MarketHub, `useAi` on | 250 USD | **REVIEW** (score 0.55) | AI lifts the score but it stays under the 0.65 approval line |
+| Drew at Threadly, `useAi` on | 150 USD | **REJECTED**, `AI_RISK_ELEVATED` (risk ≈ 0.97) | zero capacity still decides; the AI agrees |
+| Any customer, `useAi` on, no model file | any | same decision as rules, `aiStatus = UNAVAILABLE` | fallback recorded explicitly |
 
 `REVIEW` means the automatic result is inconclusive; there is no operator queue. No money moves in any case.
 

@@ -1,0 +1,171 @@
+{
+  "dataset": {
+    "testApplications": 2403,
+    "testCustomers": 1200,
+    "defaultRate": 0.1669,
+    "partnerCapAssumed": "1500.00"
+  },
+  "policyVersion": "rules-v1",
+  "modelVersion": "logreg-v1",
+  "rocAuc": {
+    "rulesScore": 0.707,
+    "hybridScore": 0.8008,
+    "aiRiskAlone": 0.9329
+  },
+  "decisions": {
+    "rules": {
+      "counts": {
+        "APPROVED": 768,
+        "REVIEW": 558,
+        "REJECTED": 1077
+      },
+      "tp": 397,
+      "fp": 1238,
+      "fn": 4,
+      "tn": 764,
+      "precision_default": 0.2428,
+      "recall_default": 0.99,
+      "approval_rate": 0.3196,
+      "default_rate_among_approved": 0.0052
+    },
+    "hybrid": {
+      "counts": {
+        "APPROVED": 971,
+        "REJECTED": 830,
+        "REVIEW": 602
+      },
+      "tp": 396,
+      "fp": 1036,
+      "fn": 5,
+      "tn": 966,
+      "precision_default": 0.2765,
+      "recall_default": 0.9875,
+      "approval_rate": 0.4041,
+      "default_rate_among_approved": 0.0051
+    }
+  },
+  "decisionChanged": 450,
+  "rejectedByAmountOnly": 235,
+  "examples": [
+    {
+      "customerId": "6",
+      "requestedAmount": "252.33",
+      "default": 0,
+      "rules": "REVIEW",
+      "rulesScore": 0.6396,
+      "hybrid": "APPROVED",
+      "hybridScore": 0.7083,
+      "aiRisk": 0.0171,
+      "reasonsHybrid": [
+        "PARTNER_REFUND_RATE_HIGH"
+      ]
+    },
+    {
+      "customerId": "6",
+      "requestedAmount": "365.01",
+      "default": 0,
+      "rules": "REVIEW",
+      "rulesScore": 0.6396,
+      "hybrid": "APPROVED",
+      "hybridScore": 0.7078,
+      "aiRisk": 0.0193,
+      "reasonsHybrid": [
+        "PARTNER_REFUND_RATE_HIGH"
+      ]
+    },
+    {
+      "customerId": "16",
+      "requestedAmount": "533.32",
+      "default": 0,
+      "rules": "REJECTED",
+      "rulesScore": 0.3772,
+      "hybrid": "REVIEW",
+      "hybridScore": 0.4773,
+      "aiRisk": 0.1221,
+      "reasonsHybrid": [
+        "PARTNER_ON_TIME_LOW",
+        "PARTNER_REFUND_RATE_HIGH",
+        "SCORE_INCONCLUSIVE"
+      ]
+    },
+    {
+      "customerId": "16",
+      "requestedAmount": "131.9",
+      "default": 0,
+      "rules": "REJECTED",
+      "rulesScore": 0.3772,
+      "hybrid": "REVIEW",
+      "hybridScore": 0.4825,
+      "aiRisk": 0.096,
+      "reasonsHybrid": [
+        "PARTNER_ON_TIME_LOW",
+        "PARTNER_REFUND_RATE_HIGH",
+        "SCORE_INCONCLUSIVE"
+      ]
+    },
+    {
+      "customerId": "21",
+      "requestedAmount": "722.23",
+      "default": 1,
+      "rules": "REJECTED",
+      "rulesScore": 0.3467,
+      "hybrid": "REVIEW",
+      "hybridScore": 0.4502,
+      "aiRisk": 0.1356,
+      "reasonsHybrid": [
+        "PROFILE_ACCOUNT_NEW",
+        "PARTNER_TOO_FEW_COMPLETED_ORDERS",
+        "PARTNER_ON_TIME_LOW",
+        "SCORE_INCONCLUSIVE"
+      ]
+    },
+    {
+      "customerId": "21",
+      "requestedAmount": "349.57",
+      "default": 0,
+      "rules": "REJECTED",
+      "rulesScore": 0.3467,
+      "hybrid": "REVIEW",
+      "hybridScore": 0.4582,
+      "aiRisk": 0.0956,
+      "reasonsHybrid": [
+        "PROFILE_ACCOUNT_NEW",
+        "PARTNER_TOO_FEW_COMPLETED_ORDERS",
+        "PARTNER_ON_TIME_LOW",
+        "SCORE_INCONCLUSIVE"
+      ]
+    },
+    {
+      "customerId": "21",
+      "requestedAmount": "601.79",
+      "default": 0,
+      "rules": "REJECTED",
+      "rulesScore": 0.3467,
+      "hybrid": "REVIEW",
+      "hybridScore": 0.4531,
+      "aiRisk": 0.1213,
+      "reasonsHybrid": [
+        "PROFILE_ACCOUNT_NEW",
+        "PARTNER_TOO_FEW_COMPLETED_ORDERS",
+        "PARTNER_ON_TIME_LOW",
+        "SCORE_INCONCLUSIVE"
+      ]
+    },
+    {
+      "customerId": "30",
+      "requestedAmount": "334.64",
+      "default": 0,
+      "rules": "REJECTED",
+      "rulesScore": 0.329,
+      "hybrid": "REVIEW",
+      "hybridScore": 0.437,
+      "aiRisk": 0.131,
+      "reasonsHybrid": [
+        "PROFILE_ACCOUNT_NEW",
+        "PROFILE_INCOMPLETE",
+        "PARTNER_REFUND_RATE_HIGH",
+        "SCORE_INCONCLUSIVE"
+      ]
+    }
+  ]
+}

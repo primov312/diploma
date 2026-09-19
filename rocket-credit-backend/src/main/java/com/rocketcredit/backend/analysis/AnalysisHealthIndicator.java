@@ -20,6 +20,7 @@ public class AnalysisHealthIndicator implements HealthIndicator {
             return Health.up()
                     .withDetail("policyVersion", h.policyVersion())
                     .withDetail("modelLoaded", h.modelLoaded())
+                    .withDetail("modelVersion", h.modelVersion() == null ? "none" : h.modelVersion())
                     .build();
         } catch (AnalysisUnavailableException e) {
             return Health.down().withDetail("error", e.getMessage()).build();

@@ -24,8 +24,10 @@ from app.models import (
     ScoreResponse,
 )
 from app.policy import Policy
+from app.ai import AiPrediction
 from app.reasons import (
     AI_FALLBACK_RULES_ONLY,
+    AI_RISK_ELEVATED,
     EVIDENCE_MISSING_FINANCE,
     EVIDENCE_MISSING_HISTORY,
     EVIDENCE_MISSING_PROFILE,
@@ -38,17 +40,10 @@ from app.rules.history import score_history
 from app.rules.profile import score_profile
 
 
-class AiResult:
-    """Placeholder shape for Step 6. `risk` is the predicted synthetic risk in
-    0..1; contributions explain it per feature."""
-
-    def __init__(self, risk: float, model_version: str, contributions: Dict[str, float]):
-        self.risk = risk
-        self.model_version = model_version
-        self.contributions = contributions
+AI_RISK_ELEVATED_THRESHOLD = 0.5
 
 
-def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiResult] = None) -> ScoreResponse:
+def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiPrediction] = None) -> ScoreResponse:
     w = policy.weights
     th = policy.thresholds
     reasons: List[str] = []
@@ -96,9 +91,14 @@ def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiResult] = None) ->
             contributions = ai.contributions
             ai_score = clamp01(1.0 - ai.risk)
             final_score = clamp01(w["rules"] * rules_score + w["ai"] * ai_score)
-            factors["ai"] = FactorResult(
-                score=ai_score, weight=w["ai"], details={"predictedRisk": round(ai.risk, 4), "modelVersion": ai.model_version}
-            )
+            ai_reasons = [AI_RISK_ELEVATED] if ai.risk >= AI_RISK_ELEVATED_THRESHOLD else []
+            reasons += ai_reasons
+            top = sorted(ai.contributions.items(), key=lambda kv: -abs(kv[1]))[:4]
+            details: Dict[str, float | int | bool | str | None] = {
+                "predictedRisk": round(ai.risk, 4), "modelVersion": ai.model_version}
+            for name, value in top:
+                details["contribution." + name] = value
+            factors["ai"] = FactorResult(score=ai_score, weight=w["ai"], reasons=ai_reasons, details=details)
     else:
         final_score = rules_score
 

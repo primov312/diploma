@@ -19,6 +19,7 @@ const REASON_TEXT: Record<string, string> = {
   SCORE_LOW: 'Your overall score is below the approval range.',
   SCORE_INCONCLUSIVE: 'Your overall score is in the range where the automatic check cannot decide.',
   AI_FALLBACK_RULES_ONLY: 'AI analysis was requested but no model was available, so only the rules were used.',
+  AI_RISK_ELEVATED: 'The AI model estimated an elevated risk for this request.',
 };
 
 export const reasonText = (code: string): string => REASON_TEXT[code] ?? code.replaceAll('_', ' ').toLowerCase();

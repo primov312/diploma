@@ -16,6 +16,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 
+from app.ai import Model, load_model, predict
 from app.logging import get_logger, log_decision
 from app.models import ScoreRequest, ScoreResponse
 from app.policy import Policy, load_policy
@@ -36,6 +37,19 @@ def get_policy() -> Policy:
     return load_policy(get_settings().policy_path)
 
 
+@lru_cache
+def get_model() -> Optional[Model]:
+    """Trusted local artifact only; a missing file simply disables AI (rules keep working)."""
+    try:
+        model = load_model(get_settings().model_path)
+    except Exception as e:  # corrupt artifact must not take the rules down
+        logger.error("model artifact could not be loaded: %s", e)
+        return None
+    if model is None:
+        logger.warning("no model artifact at %s; AI requests fall back to rules", get_settings().model_path)
+    return model
+
+
 def require_token(
     x_analysis_token: Optional[str] = Header(default=None),
     cfg: Settings = Depends(get_settings),
@@ -51,12 +65,12 @@ def require_token(
 
 
 @app.get("/health")
-def health(policy: Policy = Depends(get_policy)):
+def health(policy: Policy = Depends(get_policy), model: Optional[Model] = Depends(get_model)):
     return {
         "status": "ok",
         "policyVersion": policy.version,
-        "modelVersion": None,  # populated when Step 6 loads a model artifact
-        "modelLoaded": False,
+        "modelVersion": model.version if model else None,
+        "modelLoaded": model is not None,
     }
 
 
@@ -66,9 +80,15 @@ def read_policy(policy: Policy = Depends(get_policy)):
 
 
 @app.post("/score", response_model=ScoreResponse, dependencies=[Depends(require_token)])
-def score(req: ScoreRequest, policy: Policy = Depends(get_policy)) -> ScoreResponse:
-    # Step 6 will pass a model prediction here when req.useAi is set and a
-    # trusted local artifact is loaded; until then AI is reported UNAVAILABLE.
-    result = combine(req, policy, ai=None)
+def score(req: ScoreRequest, policy: Policy = Depends(get_policy),
+          model: Optional[Model] = Depends(get_model)) -> ScoreResponse:
+    ai = None
+    if req.useAi and model is not None:
+        try:
+            ai = predict(model, req)
+        except Exception as e:  # e.g. a section is missing -> rules only, recorded as UNAVAILABLE
+            logger.warning("ai inference failed, using rules only: %s", e)
+    # when useAi is False the model is never invoked
+    result = combine(req, policy, ai=ai)
     log_decision(logger, request=req, result=result)
     return result

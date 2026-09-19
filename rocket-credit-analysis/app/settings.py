@@ -14,3 +14,4 @@ class Settings(BaseSettings):
     # check (local development only); Compose always sets it.
     shared_secret: str = ""
     policy_path: str = "app/policy.json"
+    model_path: str = "app/model/model-v1.json"

@@ -110,14 +110,16 @@ Status 2026-09-19: implemented (`demo-repository/src/pages/app/*`, `pages/stores
 
 Locations: Python analysis and `research/training/`, `research/results/`.
 
-- [ ] 6.1 Specify the model's target and inputs: normalized history, profile and synthetic financial features. Generate reproducible labeled data with fixed seeds; document the label-generation assumptions.
-- [ ] 6.2 Split by synthetic customer before preprocessing/training. Exclude future transactions, customer identifiers, target labels and fields that directly reveal the target from model inputs.
-- [ ] 6.3 Train one logistic-regression model and compare it with the rules baseline. Save trusted model/preprocessing artifacts, feature schema and version locally; load once at startup. No model registry or separate AI service is needed.
-- [ ] 6.4 Add the AI module to the same Python scoring process. Return risk semantics, version and understandable feature contributions; combine it with rules using documented weights.
-- [ ] 6.5 Wire “Use AI analysis for this request” into the form and saved result. When disabled, do not invoke inference. If the model alone is unavailable, record fallback and use rules; if the whole analysis service fails, use the technical-error behavior from Step 4.
-- [ ] 6.6 Evaluate both modes on identical held-out data and save a confusion matrix, precision/recall, ROC-AUC where meaningful and decision examples. Report improvement only if measured; explain synthetic-data limitations.
+- [x] 6.1 Specify the model's target and inputs: normalized history, profile and synthetic financial features. Generate reproducible labeled data with fixed seeds; document the label-generation assumptions.
+- [x] 6.2 Split by synthetic customer before preprocessing/training. Exclude future transactions, customer identifiers, target labels and fields that directly reveal the target from model inputs.
+- [x] 6.3 Train one logistic-regression model and compare it with the rules baseline. Save trusted model/preprocessing artifacts, feature schema and version locally; load once at startup. No model registry or separate AI service is needed.
+- [x] 6.4 Add the AI module to the same Python scoring process. Return risk semantics, version and understandable feature contributions; combine it with rules using documented weights.
+- [x] 6.5 Wire “Use AI analysis for this request” into the form and saved result. When disabled, do not invoke inference. If the model alone is unavailable, record fallback and use rules; if the whole analysis service fails, use the technical-error behavior from Step 4.
+- [x] 6.6 Evaluate both modes on identical held-out data and save a confusion matrix, precision/recall, ROC-AUC where meaningful and decision examples. Report improvement only if measured; explain synthetic-data limitations.
 
 Done when: training/evaluation is reproducible, the UI can use rules or hybrid analysis, and saved results identify the exact model/policy and whether AI ran.
+
+Status 2026-09-19: done. `research/training/{generate_data,train,evaluate}.py` + `run_all.sh` (seed 42, split by customer, numpy-only logistic regression); artifact `rocket-credit-analysis/app/model/model-v1.json` (`logreg-v1`) served by `app/ai.py`; results in `research/results/evaluation.md` (rules AUC 0.71 → hybrid 0.80; approval rate 32 % → 40 % at the same 0.5 % default rate among approved; 450/2403 decisions changed). Live check: `useAi` → `APPLIED`, model version saved; missing artifact → `UNAVAILABLE`.
 
 ### Step 7 — Add the multithreading experiment
 

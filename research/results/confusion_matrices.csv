@@ -1,0 +1,3 @@
+mode,tp,fp,fn,tn,precision_default,recall_default,approval_rate,default_rate_among_approved
+rules,397,1238,4,764,0.2428,0.99,0.3196,0.0052
+hybrid,396,1036,5,966,0.2765,0.9875,0.4041,0.0051
