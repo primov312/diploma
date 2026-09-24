@@ -20,7 +20,7 @@ class Policy:
     version: str
     weights: Dict[str, float]
     thresholds: Dict[str, float]
-    affordability: Dict[str, float]
+    affordability: Dict[str, Any]
     profile: Dict[str, Any]
     history: Dict[str, Any]
 
@@ -44,9 +44,11 @@ def _validate(raw: Dict[str, Any]) -> Policy:
     thresholds = {k: float(v) for k, v in raw["thresholds"].items()}
     if not 0.0 <= thresholds["review"] <= thresholds["approve"] <= 1.0:
         raise ValueError("policy thresholds must satisfy 0 <= review <= approve <= 1")
-    affordability = {k: float(v) for k, v in raw["affordability"].items()}
-    if affordability["demoMultiplier"] <= 0:
+    affordability = dict(raw["affordability"])
+    if "demoMultiplier" in affordability and float(affordability["demoMultiplier"]) <= 0:
         raise ValueError("demoMultiplier must be positive")
+    if raw["version"] == "rules-v2" and affordability.get("formulaVersion") != "affordability-v2":
+        raise ValueError("rules-v2 must use affordability-v2")
     return Policy(
         version=str(raw["version"]),
         weights=weights,

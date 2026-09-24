@@ -15,3 +15,7 @@ class Settings(BaseSettings):
     shared_secret: str = ""
     policy_path: str = "app/policy.json"
     model_path: str = "app/model/model-v1.json"
+    demo_provider_mode: str = "FIXTURE"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+    gemini_timeout: int = 30

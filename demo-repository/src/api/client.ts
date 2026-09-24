@@ -76,3 +76,17 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
+
+export async function apiMultipart<T>(path: string, file: File, fields: Record<string, string>): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json', [CSRF_HEADER]: await ensureCsrfToken() };
+  const form = new FormData();
+  form.append('image', file);
+  Object.entries(fields).forEach(([name, value]) => form.append(name, value));
+  const response = await fetch(path, { method: 'POST', headers, credentials: 'same-origin', body: form });
+  if (!response.ok) {
+    let body: Partial<ApiErrorBody> | undefined;
+    try { body = (await response.json()) as ApiErrorBody; } catch { body = undefined; }
+    throw new ApiError(response.status, body);
+  }
+  return (await response.json()) as T;
+}

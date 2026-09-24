@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { applicationsApi, meApi, transactionsApi } from '../api/rocket';
 import { useAuth } from '../auth/AuthContext';
-import { Card, Empty, LinkButton, Loading, Notice, Page, StatusBadge, SyntheticTag } from '../components/app/Ui';
+import { Card, Empty, LinkButton, Loading, Notice, Page, StatusBadge } from '../components/app/Ui';
+import { AffordabilityDashboardCard } from '../components/affordability/AffordabilityDashboardCard';
+import { FinancialInputsForm } from '../components/affordability/FinancialInputsForm';
+import { AddressVerificationPanel } from '../components/affordability/AddressVerificationPanel';
+import { DemoSignalsPanel } from '../components/affordability/DemoSignalsPanel';
 import { errorMessage, useApi } from '../hooks/useApi';
 import { formatCurrency } from '../utils/format';
 
@@ -15,6 +20,7 @@ const AccountDashboard = () => {
   const profile = useApi(() => meApi.profile(), []);
   const transactions = useApi(() => transactionsApi.list(), []);
   const applications = useApi(() => applicationsApi.list(), []);
+  const [financialRefresh, setFinancialRefresh] = useState(0);
 
   const byPartner = transactions.data
     ? Object.values(
@@ -32,7 +38,7 @@ const AccountDashboard = () => {
   return (
     <Page
       title={`Hello, ${user?.displayName ?? ''}`}
-      subtitle="Your account, purchase history from the three demo stores and your credit applications."
+      subtitle="Your affordable amount, editable financial information, purchases and applications."
       actions={
         <>
           <LinkButton to="/apply">Apply for financing</LinkButton>
@@ -41,22 +47,20 @@ const AccountDashboard = () => {
       }
     >
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Synthetic financial profile" className="lg:col-span-1">
+        <AffordabilityDashboardCard refreshKey={financialRefresh} />
+        <div className="lg:col-span-3">
+          <FinancialInputsForm onSaved={() => setFinancialRefresh((value) => value + 1)} />
+        </div>
+        <AddressVerificationPanel onUpdated={() => setFinancialRefresh((value) => value + 1)} />
+        <DemoSignalsPanel />
+        <Card title="Account profile" className="lg:col-span-1">
           {profile.status === 'loading' && <Loading />}
           {profile.status === 'error' && <Notice tone="error">{errorMessage(profile.error)}</Notice>}
-          {profile.status === 'ready' && (
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between"><dt className="text-gray-600">Monthly income</dt><dd className="font-medium">{formatCurrency(profile.data.monthlyIncome)}</dd></div>
-              <div className="flex justify-between"><dt className="text-gray-600">Monthly expenses</dt><dd className="font-medium">{formatCurrency(profile.data.monthlyExpenses)}</dd></div>
-              <div className="flex justify-between"><dt className="text-gray-600">Other obligations</dt><dd className="font-medium">{formatCurrency(profile.data.monthlyObligations)}</dd></div>
-              <div className="flex justify-between"><dt className="text-gray-600">Account age</dt><dd className="font-medium">{profile.data.accountAgeMonths} months</dd></div>
-              <div className="flex justify-between"><dt className="text-gray-600">Profile</dt><dd className="font-medium">{profile.data.profileComplete ? 'complete' : 'incomplete'}, email {profile.data.emailVerified ? 'verified' : 'not verified'}</dd></div>
-              <div className="pt-2">
-                <SyntheticTag>{profile.data.syntheticSource === 'STARTER' ? 'Synthetic starter data for new accounts' : 'Synthetic demo fixture'}</SyntheticTag>
-                <p className="mt-2 text-xs text-gray-500">These figures are invented for the demonstration and cannot be edited in the browser.</p>
-              </div>
-            </dl>
-          )}
+          {profile.status === 'ready' && <dl className="space-y-3 text-sm">
+            <div className="flex justify-between"><dt className="text-gray-600">Account age</dt><dd className="font-medium">{profile.data.accountAgeMonths} months</dd></div>
+            <div className="flex justify-between"><dt className="text-gray-600">Profile</dt><dd className="font-medium">{profile.data.profileComplete ? 'complete' : 'incomplete'}</dd></div>
+            <div className="flex justify-between"><dt className="text-gray-600">Email</dt><dd className="font-medium">{profile.data.emailVerified ? 'verified' : 'not verified'}</dd></div>
+          </dl>}
         </Card>
 
         <Card

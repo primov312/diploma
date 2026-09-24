@@ -18,8 +18,13 @@ public record FeatureBundle(
         OffsetDateTime observedAt,
         Profile profile,
         History history,
-        Finance finance
+        Finance finance,
+        AffordabilityRequest.Inputs affordability
 ) {
+    public FeatureBundle(BigDecimal requestedAmount, String currency, BigDecimal partnerCap, boolean useAi,
+                        OffsetDateTime observedAt, Profile profile, History history, Finance finance) {
+        this(requestedAmount, currency, partnerCap, useAi, observedAt, profile, history, finance, null);
+    }
     public record Profile(int accountAgeMonths, boolean profileComplete, boolean emailVerified) {}
 
     public record History(int partnerOrders12m, BigDecimal partnerAvgOrderValue, double partnerRefundRate,

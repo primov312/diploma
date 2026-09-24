@@ -25,7 +25,7 @@ docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build 
 | Check | Command / URL | Expect |
 | --- | --- | --- |
 | Containers | `docker compose -f docker-compose.diploma.yml --env-file diploma/.env ps` | all `healthy` |
-| Backend + analysis | `curl -s localhost:8080/api/health` | `{"backend":"ok","analysis":"ok","policyVersion":"rules-v1"}` |
+| Backend + analysis | `curl -s localhost:8080/api/health` | `{"backend":"ok","analysis":"ok","policyVersion":"rules-v2"}` |
 | Detailed health | `curl -s localhost:8080/actuator/health` | `status: UP`, components `db` and `analysis` UP |
 | Web app | http://localhost:8080 | React app |
 | Analysis directly | not published; from inside: `docker compose ... exec backend curl -s http://analysis:8000/health` | `{"status":"ok",...}` |
@@ -33,11 +33,27 @@ docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build 
 The analysis service is only reachable on the Compose network and requires the `X-Analysis-Token`
 header (value `ANALYSIS_SHARED_SECRET`) for `/policy` and `/score`; `/health` is open for the container healthcheck.
 
+The diploma Compose file activates `app/policy-v2.json` so estimates and new application decisions share
+`affordability-v2`. Set `ANALYSIS_POLICY_PATH=app/policy.json` only when intentionally rolling both back to
+`rules-v1`. Flyway migrations preserve prior application snapshots and decisions.
+
+Demo analysis defaults to `ANALYSIS_DEMO_PROVIDER_MODE=FIXTURE`. For live model extraction, set
+`ANALYSIS_DEMO_PROVIDER_MODE=AI` and `GEMINI_API_KEY` in the ignored `.env`; the key is passed only to the
+private analysis container. AI mode accepts only repository-owned synthetic address/social/cost evidence.
+Model, timeout, prompt version, source passages, and evidence IDs are included in returned reports. Without
+a key or on provider failure, estimates remain available and reports say `AI_UNAVAILABLE`.
+
+Address image uploads are limited to 5 MB and checked against PNG/JPEG file signatures. Processing copies
+are stored in the private `rocket-credit-diploma-address-evidence` volume and removed after processing; no
+image is served from the static web root. Only the prepared synthetic card is sent to Gemini. Other images
+receive `NEEDS_REVIEW` in this demo build. All district costs and salary comparison values are explicitly
+synthetic USD data, not Hungarian market research.
+
 ## Stop
 
 ```bash
 docker compose -f docker-compose.diploma.yml --env-file diploma/.env down        # keeps the database volume
-docker compose -f docker-compose.diploma.yml --env-file diploma/.env down -v     # also deletes rocket-credit-diploma-dbdata
+docker compose -f docker-compose.diploma.yml --env-file diploma/.env down -v     # deletes both database and address-evidence volumes
 ```
 
 Sessions live in the Java process: restarting `backend` logs everyone out.

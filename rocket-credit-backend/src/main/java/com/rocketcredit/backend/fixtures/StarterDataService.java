@@ -6,6 +6,7 @@ import com.rocketcredit.backend.transactions.TransactionEntity;
 import com.rocketcredit.backend.transactions.TransactionRepository;
 import com.rocketcredit.backend.users.DemoFinancialProfileEntity;
 import com.rocketcredit.backend.users.DemoFinancialProfileRepository;
+import com.rocketcredit.backend.users.FinancialInputsService;
 import com.rocketcredit.backend.users.UserEntity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,18 +32,21 @@ public class StarterDataService {
     private final PartnerRepository partners;
     private final TransactionRepository transactions;
     private final DemoFinancialProfileRepository profiles;
+    private final FinancialInputsService financialInputs;
 
     public StarterDataService(PartnerRepository partners, TransactionRepository transactions,
-                              DemoFinancialProfileRepository profiles) {
+                              DemoFinancialProfileRepository profiles, FinancialInputsService financialInputs) {
         this.partners = partners;
         this.transactions = transactions;
         this.profiles = profiles;
+        this.financialInputs = financialInputs;
     }
 
     @Transactional
     public void createFor(UserEntity user) {
-        profiles.save(new DemoFinancialProfileEntity(user.getId(), INCOME, EXPENSES, OBLIGATIONS,
+        profiles.saveAndFlush(new DemoFinancialProfileEntity(user.getId(), INCOME, EXPENSES, OBLIGATIONS,
                 false, false, DemoFinancialProfileEntity.Source.STARTER));
+        financialInputs.current(user.getId());
 
         LocalDate today = LocalDate.now();
         List<PartnerEntity> all = partners.findAll();

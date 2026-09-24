@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * request -> validate -> prepare features -> score -> save -> read.
@@ -46,10 +47,12 @@ public class ApplicationService {
     private final AnalysisClient analysis;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate tx;
+    private final JdbcTemplate jdbc;
 
     public ApplicationService(PartnerRepository partners, ProductRepository products,
                               CreditApplicationRepository applications, FeaturePreparation features,
-                              AnalysisClient analysis, ObjectMapper objectMapper, TransactionTemplate tx) {
+                              AnalysisClient analysis, ObjectMapper objectMapper, TransactionTemplate tx,
+                              JdbcTemplate jdbc) {
         this.partners = partners;
         this.products = products;
         this.applications = applications;
@@ -57,6 +60,7 @@ public class ApplicationService {
         this.analysis = analysis;
         this.objectMapper = objectMapper;
         this.tx = tx;
+        this.jdbc = jdbc;
     }
 
     public ApplicationDtos.ApplicationDto submit(Long userId, ApplicationDtos.SubmitRequest req) {
@@ -92,6 +96,13 @@ public class ApplicationService {
         final ProductEntity resolvedProduct = product;
         final BigDecimal resolvedAmount = amount;
         CreditApplicationEntity saved = tx.execute(status -> {
+            if (bundle.affordability() != null && bundle.affordability().generation() != null) {
+                Long currentGeneration = jdbc.queryForObject(
+                        "SELECT generation FROM financial_input_state WHERE user_id=? FOR UPDATE", Long.class, userId);
+                if (currentGeneration == null || !currentGeneration.equals(bundle.affordability().generation())) {
+                    throw ApiException.conflict("INPUTS_CHANGED", "Financial information changed during review. Refresh the estimate and submit again.");
+                }
+            }
             var e = new CreditApplicationEntity();
             e.setUserId(userId);
             e.setPartnerId(partner.getId());

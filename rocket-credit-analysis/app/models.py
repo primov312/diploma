@@ -46,6 +46,47 @@ class FinanceFeatures(BaseModel):
     monthlyObligations: Decimal = Field(..., ge=0)
 
 
+class AffordabilityInputs(BaseModel):
+    """Authoritative v2 calculation inputs. Category mode is all-or-nothing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    monthlyNetIncome: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    housingSituation: Literal["RENTING", "OWNER", "FAMILY", "OTHER"]
+    expenseMode: Literal["ITEMIZED", "AGGREGATE"]
+    housingCost: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    groceriesCost: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    utilitiesCost: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    transportCost: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    otherLivingCosts: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    legacyLivingExpenses: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    monthlyObligations: Decimal = Field(..., ge=0, max_digits=12, decimal_places=2)
+    districtRentReference: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    districtGroceryReference: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    referencesEligible: bool = False
+    partnerCap: Decimal = Field(..., ge=0, max_digits=12, decimal_places=2)
+    financialRevision: Optional[int] = Field(None, ge=1)
+    generation: Optional[int] = Field(None, ge=1)
+
+
+class AffordabilityRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    inputs: AffordabilityInputs
+
+
+class AffordabilityResponse(BaseModel):
+    formulaVersion: str
+    policyVersion: str
+    currency: Literal["USD"] = "USD"
+    termMonths: int
+    baseAmount: Optional[Decimal]
+    partnerAmount: Optional[Decimal]
+    monthlyPaymentCapacity: Optional[Decimal]
+    breakdown: Dict[str, Optional[Decimal]]
+    reasons: List[str]
+
+
 class ScoreRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -57,6 +98,9 @@ class ScoreRequest(BaseModel):
     profile: Optional[ProfileFeatures] = None
     history: Optional[HistoryFeatures] = None
     finance: Optional[FinanceFeatures] = None
+    # New callers can opt into the shared v2 contract. Existing callers remain
+    # on the legacy finance fields until Java has migrated its feature bundle.
+    affordability: Optional[AffordabilityInputs] = None
 
 
 class DecisionStatus(str, Enum):
@@ -86,6 +130,7 @@ class ScoreResponse(BaseModel):
     reasons: List[str]
     factors: Dict[str, FactorResult]
     policyVersion: str
+    formulaVersion: Optional[str] = None
     aiRequested: bool
     aiStatus: AiStatus
     modelVersion: Optional[str] = None

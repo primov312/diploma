@@ -23,6 +23,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
 server:
   port: ${SERVER_PORT:8080}
   servlet:
@@ -48,6 +53,8 @@ management:
       show-components: always
 
 rocket:
+  address:
+    evidence-directory: ${ADDRESS_EVIDENCE_DIR:${java.io.tmpdir}/rocket-credit-private}
   features:
     mode: ${FEATURES_MODE:SEQUENTIAL}        # SEQUENTIAL | PARALLEL (Step 7 experiment)
     pool-size: ${FEATURES_POOL_SIZE:3}

@@ -53,18 +53,19 @@ public class ParallelFeaturePreparation implements FeaturePreparation {
         long deadlineNanos = System.nanoTime() + deadline.toNanos();
         Future<FeatureBundle.Profile> p;
         Future<FeatureBundle.History> h;
-        Future<FeatureBundle.Finance> f;
+        Future<FeatureProviders.FinanceFeatures> f;
         try {
             p = executor.submit(() -> profile.profile(ctx));
             h = executor.submit(() -> history.history(ctx));
-            f = executor.submit(() -> finance.finance(ctx));
+            f = executor.submit(() -> finance.financeBundle(ctx));
         } catch (RejectedExecutionException e) {
             throw new FeaturePreparationException("feature executor saturated", e);
         }
         List<Future<?>> all = List.of(p, h, f);
         try {
             return new Sections(await(p, deadlineNanos, "profile"), await(h, deadlineNanos, "history"),
-                    await(f, deadlineNanos, "finance"));
+                    await(f, deadlineNanos, "finance").finance(),
+                    await(f, deadlineNanos, "finance").affordability());
         } catch (FeaturePreparationException e) {
             all.forEach(x -> x.cancel(true));
             throw e;

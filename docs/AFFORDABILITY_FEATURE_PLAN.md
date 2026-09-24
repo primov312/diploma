@@ -133,6 +133,21 @@ Round `monthlyPaymentCapacity` down to cents before multiplying by the term. Rou
 
 The amount represents six equal monthly payments under the demo's zero-interest, zero-fee assumption. It is not a repayment schedule or an offer. Avoid adding selectable terms until both the form and application contract can preserve the selected term.
 
+Reason codes returned by the deterministic estimate and scoring flow:
+
+| Code | Meaning |
+| --- | --- |
+| `INCOME_MISSING` | Net monthly income was not provided. |
+| `EXPENSES_MISSING` | No aggregate expense amount was provided. |
+| `EXPENSES_INCOMPLETE` | One or more itemized expense categories are missing. |
+| `AGGREGATE_EXPENSES` | The compatibility aggregate expense value was used. |
+| `LOCAL_COSTS_NOT_APPLIED` | No eligible verified-address reference was available. |
+| `LOCAL_COST_FLOOR_APPLIED` | The aggregate expense amount was raised to the applicable district floor. |
+| `DISTRICT_RENT_FLOOR_APPLIED` | Itemized rent was raised to the district reference. |
+| `DISTRICT_GROCERY_FLOOR_APPLIED` | Itemized groceries were raised to the district reference. |
+| `ZERO_CAPACITY` | The estimate is zero, so a positive application amount is outside capacity. |
+| `AMOUNT_ABOVE_POSSIBLE` | The requested amount exceeds the partner-capped capacity. |
+
 ### 4.4 Weights and decision rules
 
 - Income, expenses, obligations, reserves, and partner caps use the formula above; they are not averaged into a score.
@@ -401,52 +416,72 @@ Allow missing keys and provider outages to produce explicit unavailable states w
 
 ## 14. Implementation phases and deliverables
 
+### Implementation progress
+
+- [x] Add the strict Python affordability-v2 input/result contract and deterministic formula implementation.
+- [x] Add the version-dispatched `/affordability` endpoint and optional v2 scoring input; `rules-v1` preserves its old formula and `rules-v2` uses `affordability-v2`.
+- [x] Add matching Java analysis DTOs and client call for the calculation endpoint.
+- [x] Add Flyway V3 financial-input revision/state tables and backfill one aggregate revision per existing financial profile.
+- [x] Add authenticated financial-input read/write endpoints with amount/mode validation and stale revision conflicts.
+- [x] Add typed React API methods for reading and saving financial inputs.
+- [x] Add persisted affordability jobs, estimate/history/job APIs, lease recovery, retries, and generation-safe snapshots.
+- [x] Add the financial editor, current estimate breakdown, green monthly graph, accessible table, and partner selector.
+- [x] Send one resolved financial-input revision to dashboard calculations and application scoring; reject application saves if that generation changed.
+- [x] Add Budapest district address revisions, synthetic cost references, bounded PNG/JPEG handling, and deterministic verification of the prepared synthetic card.
+- [x] Add separate Gemini adapters for the prepared synthetic address card, synthetic local-cost source sheet, and synthetic social scenarios; fixture mode remains available.
+- [x] Add persisted optional-analysis permissions, synthetic location/social reports, evidence IDs, and UI panels with signal isolation.
+- [x] Verify Python source compilation, a clean Maven backend compilation, and the frontend production build.
+- [ ] Seed twelve explicitly synthetic monthly history scenarios for selected demo personas.
+- [ ] Run a successful live Gemini request and record its output metadata; this requires `GEMINI_API_KEY` in the deployment environment.
+- [ ] Move optional location/social provider execution to leased background workers; currently those bounded runs complete synchronously while their job/report state is persisted.
+- [ ] Complete the automated test matrix; Python test dependencies are absent in this environment and Docker-backed Java integration tests cannot start here.
+
 ### Phase 1 — Contracts, formula, and baseline fixtures
 
-- [ ] Add typed affordability request/result contracts in Java and Python.
-- [ ] Extract the pure calculation function and implement `affordability-v2` with documented rounding.
-- [ ] Add policy version dispatch; keep the existing `rules-v1` path available for compatibility.
+- [x] Add typed affordability request/result contracts in Java and Python.
+- [x] Extract the pure calculation function and implement `affordability-v2` with documented rounding.
+- [x] Add policy version dispatch; keep the existing `rules-v1` path available for compatibility.
 - [ ] Create the worked-example fixture and boundary cases before UI changes.
-- [ ] Document new reason codes and the unchanged risk-model feature semantics.
+- [x] Document new reason codes and the unchanged risk-model feature semantics.
 
 Exit: the worked example produces `$2,250` base / `$1,500` MarketHub consistently, and the old policy's test cases still pass.
 
 ### Phase 2 — Persistence, editable finances, and reliable recalculation
 
-- [ ] Add Flyway migrations, repositories, revision state, and job worker.
-- [ ] Backfill aggregate inputs and adapt starter data without overwriting user changes.
-- [ ] Implement financial-input, estimate, history, and job-status endpoints.
-- [ ] Implement generation checks, deduplication, restart recovery, and transient retries.
-- [ ] Add a financial editor and basic current-estimate display.
+- [x] Add Flyway migrations, repositories, revision state, and job worker.
+- [x] Backfill aggregate inputs and adapt starter data without overwriting user changes.
+- [x] Implement financial-input, estimate, history, and job-status endpoints.
+- [x] Implement generation checks, deduplication, restart recovery, and transient retries.
+- [x] Add a financial editor and basic current-estimate display.
 
 Exit: editing expenses changes the saved estimate; refresh/restart preserves results; failed or stale work cannot publish a misleading current amount.
 
 ### Phase 3 — Dashboard graph and scoring integration
 
-- [ ] Build green monthly graph, accessible table, breakdown, and partner selector.
+- [x] Build green monthly graph, accessible table, breakdown, and partner selector.
 - [ ] Seed labeled monthly scenarios for demo personas.
-- [ ] Update the finance provider and `/score` to use the shared inputs/formula.
-- [ ] Save generation/formula/reference metadata with application snapshots.
+- [x] Update the finance provider and `/score` to use the shared inputs/formula.
+- [x] Save generation/formula/reference metadata with application snapshots.
 - [ ] Extend reason text and application detail screens for v2 calculations.
 
 Exit: dashboard and a newly saved application agree for identical inputs and partner; historical v1 decisions remain unchanged. This is the first useful delivery slice.
 
 ### Phase 4 — Address evidence and district context
 
-- [ ] Implement address revisions and private bounded image upload.
-- [ ] Add fixture extraction and an AI extraction adapter.
-- [ ] Add deterministic matching and address status transitions.
-- [ ] Seed local-cost references and build the source/evidence panel.
+- [x] Implement address revisions and private bounded image upload.
+- [x] Add fixture extraction and an AI extraction adapter.
+- [x] Add deterministic matching and address status transitions.
+- [x] Seed local-cost references and build the source/evidence panel.
 - [ ] Implement the local-cost extraction/publication process and affected-user recalculation.
 
 Exit: accepted sample evidence selects the correct references; mismatch, uncertainty, edited addresses, and unavailable providers are demonstrated correctly.
 
 ### Phase 5 — Location and social demonstrations
 
-- [ ] Add optional-analysis toggles, fixture scenarios, and report APIs.
-- [ ] Build location aggregates, schematic map, and timeline.
-- [ ] Implement social normalization, deterministic metrics, and real AI adapter.
-- [ ] Add evidence-linked social findings and visible pipeline progress.
+- [x] Add optional-analysis toggles, fixture scenarios, and report APIs.
+- [x] Build location aggregates, schematic map, and timeline.
+- [x] Implement social normalization, deterministic metrics, and real AI adapter.
+- [x] Add evidence-linked social findings and visible pipeline progress.
 - [ ] Resolve/document the intended `social-media-research-skills` source if it is to be used.
 
 Exit: both demonstrations run from the app; actual AI and fixture modes are distinguishable; no report changes affordability or credit outcomes.
@@ -455,8 +490,8 @@ Exit: both demonstrations run from the app; actual AI and fixture modes are dist
 
 - [ ] Run the test matrix below and record deterministic scenario results.
 - [ ] Demonstrate at least one successful real provider run on synthetic evidence.
-- [ ] Update `docs/DEMO_SCENARIOS.md` with separate v1/v2 expectations and a walkthrough.
-- [ ] Update deployment documentation with flags, provider setup, private volume, and fallback behavior.
+- [x] Update `docs/DEMO_SCENARIOS.md` with separate v1/v2 expectations and a walkthrough.
+- [x] Update deployment documentation with flags, provider setup, private volume, and fallback behavior.
 - [ ] Add diploma screenshots and describe formula assumptions, AI limitations, and observed failure handling.
 
 Exit: a fresh local stack supports the walkthrough; offline fixture mode remains reproducible; AI mode works when a provider is configured.
@@ -502,9 +537,9 @@ Switch the dashboard and new application policy back together if rollback is nee
 
 Working defaults are defined above, so implementation can start with the deterministic phases. The following are needed before the corresponding AI integrations are completed:
 
-- [ ] Select a model/provider and supply server-side credentials for actual AI runs.
-- [ ] Identify the intended `social-media-research-skills` repository/package, or proceed with the documented adapter implementation.
-- [ ] Finalize the prepared address documents, district references, and social/location scenarios.
+- [ ] Select a model/provider and supply server-side credentials for actual AI runs: GEMINI API.
+- [ ] Identify the intended `social-media-research-skills` repository/package: https://github.com/ScrapeCreators/social-media-research-skills
+- [ ] Finalize the prepared address documents, district references, and social/location scenarios: We will know consider only Budapest, Hungary, Vag utca 7, you can start with my facebook: Primov Orozbek from Kyrgyzstan.
 - [ ] If real-city research is later required, select the city, currency/basis mapping, sources, and retrieval adapter.
 
 The feature is complete when editable finances and verified demo address context update a persisted, explained amount; the green monthly graph reflects saved history; application capacity uses the same formula; optional location/social processing works visibly without affecting credit; and the walkthrough passes in both clearly labeled offline mode and configured AI mode.

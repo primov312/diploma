@@ -35,6 +35,7 @@ from app.reasons import (
     SCORE_LOW,
 )
 from app.rules.affordability import assess_affordability
+from app.rules.affordability_v2 import calculate_affordability
 from app.rules.common import clamp01
 from app.rules.history import score_history
 from app.rules.profile import score_profile
@@ -49,6 +50,7 @@ def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiPrediction] = None
     reasons: List[str] = []
     factors: Dict[str, FactorResult] = {}
     missing = False
+    formula_version = None
 
     # --- Profile ---------------------------------------------------------
     if req.profile is None:
@@ -103,7 +105,33 @@ def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiPrediction] = None
         final_score = rules_score
 
     # --- Affordability ---------------------------------------------------
-    if req.finance is None:
+    v2_inputs = req.affordability
+    if v2_inputs is None and policy.version == "rules-v2" and req.finance is not None:
+        from app.models import AffordabilityInputs
+        v2_inputs = AffordabilityInputs(
+            monthlyNetIncome=req.finance.monthlyIncome, housingSituation="OTHER",
+            expenseMode="AGGREGATE", legacyLivingExpenses=req.finance.monthlyExpenses,
+            monthlyObligations=req.finance.monthlyObligations, partnerCap=req.partnerCap,
+        )
+    if v2_inputs is not None:
+        estimate = calculate_affordability(v2_inputs, policy.version)
+        formula_version = estimate.formulaVersion
+        reasons.extend(estimate.reasons)
+        factors["affordability"] = FactorResult(score=None, weight=0.0, reasons=estimate.reasons,
+                                               details={k: float(v) if v is not None else None
+                                                        for k, v in estimate.breakdown.items()})
+        if estimate.partnerAmount is None:
+            missing = True
+            possible = Decimal("0.00")
+            within = False
+        else:
+            possible = estimate.partnerAmount
+            within = req.requestedAmount <= possible and possible > 0
+            if possible <= 0:
+                reasons.append("ZERO_CAPACITY")
+            elif req.requestedAmount > possible:
+                reasons.append("AMOUNT_ABOVE_POSSIBLE")
+    elif req.finance is None:
         missing = True
         reasons.append(EVIDENCE_MISSING_FINANCE)
         factors["affordability"] = FactorResult(score=None, weight=0.0, reasons=[EVIDENCE_MISSING_FINANCE])
@@ -138,6 +166,7 @@ def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiPrediction] = None
         reasons=_dedupe(reasons),
         factors=factors,
         policyVersion=policy.version,
+        formulaVersion=formula_version,
         aiRequested=req.useAi,
         aiStatus=ai_status,
         modelVersion=model_version,

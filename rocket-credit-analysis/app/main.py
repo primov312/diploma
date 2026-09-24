@@ -12,15 +12,18 @@ from __future__ import annotations
 
 import hmac
 from functools import lru_cache
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 
 from app.ai import Model, load_model, predict
+from app.demo_analysis import AddressExtraction, AddressImageRequest, LocalCostExtraction, LocalCostRequest, LocationRequest, LocationReport, ScenarioRequest, SocialReport, analyze_location, analyze_social, extract_address_image, extract_local_costs
 from app.logging import get_logger, log_decision
-from app.models import ScoreRequest, ScoreResponse
+from app.models import AffordabilityRequest, AffordabilityResponse, ScoreRequest, ScoreResponse
 from app.policy import Policy, load_policy
 from app.rules.combiner import combine
+from app.rules.affordability_v2 import calculate_affordability
 from app.settings import Settings
 
 app = FastAPI(title="Rocket Credit - Credit Analysis", version="2.0.0")
@@ -65,12 +68,15 @@ def require_token(
 
 
 @app.get("/health")
-def health(policy: Policy = Depends(get_policy), model: Optional[Model] = Depends(get_model)):
+def health(policy: Policy = Depends(get_policy), model: Optional[Model] = Depends(get_model),
+           cfg: Settings = Depends(get_settings)):
     return {
         "status": "ok",
         "policyVersion": policy.version,
         "modelVersion": model.version if model else None,
         "modelLoaded": model is not None,
+        "demoProviderMode": cfg.demo_provider_mode.upper(),
+        "geminiConfigured": bool(cfg.gemini_api_key),
     }
 
 
@@ -82,6 +88,8 @@ def read_policy(policy: Policy = Depends(get_policy)):
 @app.post("/score", response_model=ScoreResponse, dependencies=[Depends(require_token)])
 def score(req: ScoreRequest, policy: Policy = Depends(get_policy),
           model: Optional[Model] = Depends(get_model)) -> ScoreResponse:
+    if req.affordability is not None and policy.version == "rules-v1":
+        req = req.model_copy(update={"affordability": None})
     ai = None
     if req.useAi and model is not None:
         try:
@@ -92,3 +100,57 @@ def score(req: ScoreRequest, policy: Policy = Depends(get_policy),
     result = combine(req, policy, ai=ai)
     log_decision(logger, request=req, result=result)
     return result
+
+
+@app.post("/affordability", response_model=AffordabilityResponse, dependencies=[Depends(require_token)])
+def affordability(req: AffordabilityRequest, policy: Policy = Depends(get_policy)) -> AffordabilityResponse:
+    """Pure version-dispatched estimate. It does not invoke or modify the risk model."""
+    if policy.version == "rules-v2":
+        return calculate_affordability(req.inputs, policy.version)
+    resolved = calculate_affordability(req.inputs, policy.version)
+    if resolved.baseAmount is None:
+        return resolved.model_copy(update={"formulaVersion": "affordability-v1"})
+    income = resolved.breakdown["income"]
+    expenses = resolved.breakdown["effectiveExpenses"]
+    obligations = resolved.breakdown["obligations"]
+    disposable = max(Decimal("0"), income - expenses - obligations)
+    base = (disposable * Decimal(str(policy.affordability["demoMultiplier"]))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    partner = min(base, req.inputs.partnerCap).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return AffordabilityResponse(
+        formulaVersion="affordability-v1", policyVersion=policy.version, termMonths=6,
+        baseAmount=base, partnerAmount=partner,
+        monthlyPaymentCapacity=(base / Decimal("6")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+        breakdown=resolved.breakdown, reasons=resolved.reasons,
+    )
+
+
+@app.post("/demo-analysis/location", response_model=LocationReport, dependencies=[Depends(require_token)])
+def location_analysis(req: LocationRequest) -> LocationReport:
+    try:
+        return analyze_location(req.scenarioId, req.declaredDistrict)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unknown synthetic location scenario") from exc
+
+
+@app.post("/demo-analysis/social", response_model=SocialReport, dependencies=[Depends(require_token)])
+def social_analysis(req: ScenarioRequest, cfg: Settings = Depends(get_settings)) -> SocialReport:
+    try:
+        return analyze_social(req.scenarioId, cfg)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unknown synthetic social scenario") from exc
+
+
+@app.post("/demo-analysis/address", response_model=AddressExtraction, dependencies=[Depends(require_token)])
+def address_analysis(req: AddressImageRequest, cfg: Settings = Depends(get_settings)) -> AddressExtraction:
+    try:
+        return extract_address_image(req.imageData, req.mimeType, cfg)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported address evidence fixture") from exc
+
+
+@app.post("/demo-analysis/local-costs", response_model=LocalCostExtraction, dependencies=[Depends(require_token)])
+def local_cost_analysis(req: LocalCostRequest, cfg: Settings = Depends(get_settings)) -> LocalCostExtraction:
+    try:
+        return extract_local_costs(req.districtId, cfg)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unknown synthetic district") from exc

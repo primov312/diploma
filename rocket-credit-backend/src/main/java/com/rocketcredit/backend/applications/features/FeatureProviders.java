@@ -1,6 +1,8 @@
 package com.rocketcredit.backend.applications.features;
 
+import com.rocketcredit.backend.analysis.AffordabilityRequest;
 import com.rocketcredit.backend.analysis.FeatureBundle;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 /**
@@ -25,5 +27,11 @@ public final class FeatureProviders {
 
     public interface FinanceFeatureProvider {
         FeatureBundle.Finance finance(Context ctx);
+
+        default FinanceFeatures financeBundle(Context ctx) {
+            return new FinanceFeatures(finance(ctx), null);
+        }
     }
+
+    public record FinanceFeatures(FeatureBundle.Finance finance, AffordabilityRequest.Inputs affordability) {}
 }

@@ -40,6 +40,11 @@ services:
       ANALYSIS_PORT: "8000"
       ANALYSIS_WORKERS: ${ANALYSIS_WORKERS:-2}
       ANALYSIS_SHARED_SECRET: ${ANALYSIS_SHARED_SECRET:?set ANALYSIS_SHARED_SECRET in diploma/.env}
+      ANALYSIS_POLICY_PATH: ${ANALYSIS_POLICY_PATH:-app/policy-v2.json}
+      ANALYSIS_DEMO_PROVIDER_MODE: ${ANALYSIS_DEMO_PROVIDER_MODE:-FIXTURE}
+      ANALYSIS_GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ANALYSIS_GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      ANALYSIS_GEMINI_TIMEOUT: ${GEMINI_TIMEOUT:-30}
     expose:
       - "8000"          # reachable from backend only; no host port
     healthcheck:
@@ -66,9 +71,12 @@ services:
       ANALYSIS_URL: http://analysis:8000
       ANALYSIS_SHARED_SECRET: ${ANALYSIS_SHARED_SECRET}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ADDRESS_EVIDENCE_DIR: /var/lib/rocket-credit/address-evidence
       FEATURES_MODE: ${FEATURES_MODE:-PARALLEL}    # SEQUENTIAL | PARALLEL (Step 7 experiment; same results)
     ports:
       - "${BACKEND_HOST_PORT:-8080}:8080"
+    volumes:
+      - diploma_address_evidence:/var/lib/rocket-credit/address-evidence
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health >/dev/null || exit 1"]
       interval: 10s
@@ -79,3 +87,5 @@ services:
 volumes:
   diploma_dbdata:
     name: rocket-credit-diploma-dbdata
+  diploma_address_evidence:
+    name: rocket-credit-diploma-address-evidence

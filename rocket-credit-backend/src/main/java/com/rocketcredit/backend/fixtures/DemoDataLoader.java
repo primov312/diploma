@@ -7,6 +7,7 @@ import com.rocketcredit.backend.transactions.TransactionEntity;
 import com.rocketcredit.backend.transactions.TransactionRepository;
 import com.rocketcredit.backend.users.DemoFinancialProfileEntity;
 import com.rocketcredit.backend.users.DemoFinancialProfileRepository;
+import com.rocketcredit.backend.users.FinancialInputsService;
 import com.rocketcredit.backend.users.UserEntity;
 import com.rocketcredit.backend.users.UserRepository;
 import java.io.IOException;
@@ -43,16 +44,18 @@ public class DemoDataLoader implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository users;
     private final DemoFinancialProfileRepository profiles;
+    private final FinancialInputsService financialInputs;
     private final PartnerRepository partners;
     private final TransactionRepository transactions;
 
     public DemoDataLoader(ObjectMapper objectMapper, PasswordEncoder passwordEncoder, UserRepository users,
-                          DemoFinancialProfileRepository profiles, PartnerRepository partners,
+                          DemoFinancialProfileRepository profiles, FinancialInputsService financialInputs, PartnerRepository partners,
                           TransactionRepository transactions) {
         this.objectMapper = objectMapper;
         this.passwordEncoder = passwordEncoder;
         this.users = users;
         this.profiles = profiles;
+        this.financialInputs = financialInputs;
         this.partners = partners;
         this.transactions = transactions;
     }
@@ -85,9 +88,10 @@ public class DemoDataLoader implements ApplicationRunner {
             }
 
             var f = c.finance();
-            profiles.save(new DemoFinancialProfileEntity(user.getId(), f.monthlyIncome(), f.monthlyExpenses(),
+            profiles.saveAndFlush(new DemoFinancialProfileEntity(user.getId(), f.monthlyIncome(), f.monthlyExpenses(),
                     f.monthlyObligations(), f.profileComplete(), f.emailVerified(),
                     DemoFinancialProfileEntity.Source.FIXTURE));
+            financialInputs.current(user.getId());
 
             for (DemoFixtures.History h : c.history()) {
                 PartnerEntity partner = partnerBySlug.get(h.partner());

@@ -36,6 +36,38 @@ Possible amount = min(partner cap, disposable income × 3.0) (policy `rules-v1`)
 
 `REVIEW` means the automatic result is inconclusive; there is no operator queue. No money moves in any case.
 
+## Affordability dashboard (policy `rules-v2`)
+
+The diploma Compose runtime selects `rules-v2`; use `ANALYSIS_POLICY_PATH=app/policy.json` only for a deliberate
+legacy rollback. New application decisions use the same saved financial revision and affordability formula as
+the dashboard. Existing `rules-v1` rows are not rewritten.
+
+For the seeded aggregate inputs with no verified address references:
+
+| Persona | Inputs (income / expenses / obligations) | Monthly payment capacity | Base amount | MarketHub amount |
+| --- | --- | ---: | ---: | ---: |
+| Avery | 4,500 / 2,500 / 300 | 625 | 3,750 | 1,500 |
+| Riley | 2,500 / 1,900 / 300 | 25 | 150 | 150 |
+| Drew | 1,800 / 1,700 / 150 | 0 | 0 | 0 |
+| Casey | 2,200 / 1,900 / 100 | 0 | 0 | 0 |
+
+Capacity is `min(50% × max(0, income − expenses − obligations − 10% reserve), 30% × income − obligations)`,
+rounded down to cents monthly, then multiplied by six. A score can still return REVIEW or REJECTED when a request
+is within the amount. The existing risk model retains its separate `disposable income × 3` utilization feature.
+
+### Walkthrough
+
+1. Sign in as `riley@demo.rocket.local` with `rocket-demo-123`; the dashboard loads the current estimate and its snapshot history.
+2. Edit monthly finances in Aggregate expenses mode, save, and wait for the generation-backed recalculation to finish.
+3. Switch to Itemized mode to enter all five categories. Saving creates a new immutable revision; an older browser revision receives `409 REVISION_CONFLICT`.
+4. For the prepared address-card match, use the synthetic Riley Review sample address: Budapest District V, postal `1051`, `Minta utca`, building `12`. Upload the prepared card shown in the dashboard. The result is `VERIFIED_DEMO` for the fixture only.
+5. Change the address and observe verification reset. A different image becomes NEEDS_REVIEW; a mismatching or uncertain prepared result is not accepted.
+6. Run local-cost extraction to see the synthetic source passage and provider mode. The preview does not publish a dataset. Only a current `VERIFIED_DEMO` address activates the seeded rent/grocery references.
+7. Enable either optional analysis toggle and run a location or social scenario. Reports show synthetic provenance and evidence IDs. Disabling a toggle increments the permission generation and cancels publication for a run that is still in progress.
+8. Submit an application and compare its `possibleAmount` with the selected partner estimate for the same revision. A concurrent financial edit returns `409 INPUTS_CHANGED`.
+
+The generated address card and all Budapest reference values are invented fixtures. They are not real residence evidence or Hungarian market statistics. Fixture mode works offline. Set `ANALYSIS_DEMO_PROVIDER_MODE=AI` and a server-side `GEMINI_API_KEY` to enable Gemini on the prepared synthetic card, local-cost text, and synthetic social scenarios. Without credentials, the report states `AI_UNAVAILABLE`; a successful live-provider walkthrough has not been recorded yet. Twelve historical demo snapshots are also not seeded yet, so months without saved snapshots appear as gaps.
+
 ## Legacy (superseded)
 
 The earlier five-service checkout used four personas keyed by partner identifiers (`streambox-approved`, …)

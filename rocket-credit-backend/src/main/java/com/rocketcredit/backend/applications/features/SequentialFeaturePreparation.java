@@ -20,7 +20,9 @@ public class SequentialFeaturePreparation implements FeaturePreparation {
 
     @Override
     public Sections prepare(FeatureProviders.Context ctx) {
-        return new Sections(profile.profile(ctx), history.history(ctx), finance.finance(ctx));
+        var preparedFinance = finance.financeBundle(ctx);
+        return new Sections(profile.profile(ctx), history.history(ctx), preparedFinance.finance(),
+                preparedFinance.affordability());
     }
 
     @Override

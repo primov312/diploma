@@ -1,0 +1,16 @@
+{
+  "version": "rules-v2",
+  "description": "Illustrative demo policy using the versioned affordability-v2 formula.",
+  "weights": {"history": 0.6, "profile": 0.4, "rules": 0.8, "ai": 0.2},
+  "thresholds": {"approve": 0.65, "review": 0.4},
+  "affordability": {"formulaVersion": "affordability-v2"},
+  "profile": {"accountAgeMonthsFullScore": 24, "newAccountMonths": 3},
+  "history": {
+    "ordersFullScore": 12,
+    "avgOrderValueRange": [10, 500],
+    "tenureMonthsFullScore": 24,
+    "tooFewOrders": 2,
+    "onTimeLow": 0.7,
+    "refundRateHigh": 0.15
+  }
+}
