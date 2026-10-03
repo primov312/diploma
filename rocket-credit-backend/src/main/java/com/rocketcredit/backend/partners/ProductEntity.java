@@ -18,6 +18,18 @@ public class ProductEntity {
     @Column(nullable = false, length = 160)
     private String name;
 
+    @Column(nullable = false, length = 500)
+    private String description;
+
+    @Column(nullable = false, length = 50)
+    private String category;
+
+    @Column(name = "image_path", nullable = false, length = 180)
+    private String imagePath;
+
+    @Column(name = "image_alt", nullable = false, length = 250)
+    private String imageAlt;
+
     /** Authoritative price; query-string prices from store pages are ignored. */
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
@@ -38,6 +50,10 @@ public class ProductEntity {
     public Long getPartnerId() { return partnerId; }
     public String getFixtureId() { return fixtureId; }
     public String getName() { return name; }
+    public String getDescription() { return description; }
+    public String getCategory() { return category; }
+    public String getImagePath() { return imagePath; }
+    public String getImageAlt() { return imageAlt; }
     public BigDecimal getPrice() { return price; }
     public String getCurrency() { return currency; }
 }

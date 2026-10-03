@@ -4,6 +4,7 @@ import { meApi } from '../../api/rocket';
 import type { Address, AddressSaveRequest } from '../../api/types';
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { Card, Loading, Notice } from '../app/Ui';
+import LocalDropdown from '../common/LocalDropdown';
 import { formatCurrency } from '../../utils/format';
 import sampleAddressCard from '../../assets/sample-address-card-riley.png';
 
@@ -84,9 +85,8 @@ export function AddressVerificationPanel({ onUpdated }: { onUpdated: () => void 
             <p className="mb-4 text-sm text-gray-600">Enter your current Budapest address. Editing any field creates a revision and clears the prior demo verification.</p>
             <form onSubmit={save} className="space-y-4">
               <label className="block text-sm font-medium text-gray-700">District
-                <select value={districtId} onChange={(e) => setDistrictId(e.target.value)} required className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
-                  {districts.map((d) => <option key={d.districtId} value={d.districtId}>{d.displayName}</option>)}
-                </select>
+                <LocalDropdown value={districtId} onValueChange={setDistrictId} required name="district" className="mt-1 w-full"
+                  options={districts.map((d) => ({ value: d.districtId, label: d.displayName }))} />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-medium text-gray-700">Postal code<input required maxLength={20} value={postalCode} onChange={(e) => setPostalCode(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" /></label>

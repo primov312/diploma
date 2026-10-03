@@ -10,6 +10,10 @@ export type Product = {
   id: number;
   fixtureId: string;
   name: string;
+  description: string;
+  category: string;
+  imagePath: string;
+  imageAlt: string;
   price: number;
   currency: string;
 };
@@ -53,6 +57,9 @@ export type FinancialInputs = {
   source: 'STARTER' | 'FIXTURE' | 'USER_DECLARED';
   updatedAt: string;
 };
+
+export type HousingSituation = FinancialInputs['housingSituation'];
+export type ExpenseMode = FinancialInputs['expenseMode'];
 
 export type SaveFinancialInputs = Omit<FinancialInputs, 'revision' | 'source' | 'updatedAt'> & {
   expectedRevision: number;
@@ -121,6 +128,33 @@ export type AddressSaveResult = { address: Address; generation: number; recalcul
 export type AddressVerification = { id: number; addressRevision: number; status: string; scenarioId: string; dataSource: string; checks: string[]; createdAt: string; recalculationJobId: number };
 export type DemoSignalSettings = { locationEnabled: boolean; socialEnabled: boolean; permissionGeneration: number };
 export type DemoSignalReport = Record<string, unknown>;
+
+export type LocationVisitPricing = {
+  districtId: string;
+  category: 'GROCERY' | 'LIBRARY' | 'GYM' | 'CAFE' | 'STARBUCKS';
+  coff: number;
+  baselinePrice: number;
+  estimatedPrice: number;
+  currency: 'HUF';
+  unit: 'BASKET' | 'YEAR' | 'ENTRY' | 'DRINK';
+  description: string;
+  sourceUrl: string;
+  observedAt: string | null;
+  retrievedAt: string;
+  evidence: { channel: string; components?: { id: string; description: string; price: string; sourceUrl: string }[] };
+};
+
+export type LocationReportPricing = {
+  available: boolean;
+  method: string;
+  datasetVersion?: string;
+  housingObservedAt?: string;
+  housingRetrievedAt?: string;
+  districtAverage?: number;
+  sourceUrl?: string;
+  currency?: 'HUF';
+};
+export type SocialConnection = { configured: boolean; connected: boolean; provider: string | null; displayName: string | null; connectedAt: string | null; expiresAt: string | null };
 export type DemoSignalRun = { jobId: number; state: string; report: DemoSignalReport | null };
 
 export type DecisionStatus = 'APPROVED' | 'REJECTED' | 'REVIEW';

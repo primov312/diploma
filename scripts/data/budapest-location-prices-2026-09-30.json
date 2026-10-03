@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "city": "Budapest",
+  "countryCode": "HU",
+  "currency": "HUF",
+  "method": "District mean apartment asking rent / unweighted mean of all 23 district means; benchmark × coff",
+  "housing": {
+    "observedAt": "2026-09-30",
+    "unit": "HUF_PER_M2_MONTH",
+    "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado",
+    "districts": [
+      {
+        "districtId": "budapest-i",
+        "districtNumber": 1,
+        "displayName": "Budapest District I",
+        "rentPerM2": "6470",
+        "listingCount": 405,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-ii",
+        "districtNumber": 2,
+        "displayName": "Budapest District II",
+        "rentPerM2": "6230",
+        "listingCount": 850,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-iii",
+        "districtNumber": 3,
+        "displayName": "Budapest District III",
+        "rentPerM2": "5400",
+        "listingCount": 455,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-iv",
+        "districtNumber": 4,
+        "displayName": "Budapest District IV",
+        "rentPerM2": "4970",
+        "listingCount": 157,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-v",
+        "districtNumber": 5,
+        "displayName": "Budapest District V",
+        "rentPerM2": "7000",
+        "listingCount": 1017,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-vi",
+        "districtNumber": 6,
+        "displayName": "Budapest District VI",
+        "rentPerM2": "6420",
+        "listingCount": 963,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-vii",
+        "districtNumber": 7,
+        "displayName": "Budapest District VII",
+        "rentPerM2": "5890",
+        "listingCount": 624,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-viii",
+        "districtNumber": 8,
+        "displayName": "Budapest District VIII",
+        "rentPerM2": "5660",
+        "listingCount": 654,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-ix",
+        "districtNumber": 9,
+        "displayName": "Budapest District IX",
+        "rentPerM2": "5680",
+        "listingCount": 616,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-x",
+        "districtNumber": 10,
+        "displayName": "Budapest District X",
+        "rentPerM2": "5070",
+        "listingCount": 209,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xi",
+        "districtNumber": 11,
+        "displayName": "Budapest District XI",
+        "rentPerM2": "5740",
+        "listingCount": 909,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xii",
+        "districtNumber": 12,
+        "displayName": "Budapest District XII",
+        "rentPerM2": "5870",
+        "listingCount": 442,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xiii",
+        "districtNumber": 13,
+        "displayName": "Budapest District XIII",
+        "rentPerM2": "5890",
+        "listingCount": 1264,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xiv",
+        "districtNumber": 14,
+        "displayName": "Budapest District XIV",
+        "rentPerM2": "5100",
+        "listingCount": 675,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xv",
+        "districtNumber": 15,
+        "displayName": "Budapest District XV",
+        "rentPerM2": "4660",
+        "listingCount": 80,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xvi",
+        "districtNumber": 16,
+        "displayName": "Budapest District XVI",
+        "rentPerM2": "4460",
+        "listingCount": 84,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xvii",
+        "districtNumber": 17,
+        "displayName": "Budapest District XVII",
+        "rentPerM2": "4890",
+        "listingCount": 54,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xviii",
+        "districtNumber": 18,
+        "displayName": "Budapest District XVIII",
+        "rentPerM2": "4710",
+        "listingCount": 85,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xix",
+        "districtNumber": 19,
+        "displayName": "Budapest District XIX",
+        "rentPerM2": "4870",
+        "listingCount": 74,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xx",
+        "districtNumber": 20,
+        "displayName": "Budapest District XX",
+        "rentPerM2": "4730",
+        "listingCount": 53,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xxi",
+        "districtNumber": 21,
+        "displayName": "Budapest District XXI",
+        "rentPerM2": "4690",
+        "listingCount": 64,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xxii",
+        "districtNumber": 22,
+        "displayName": "Budapest District XXII",
+        "rentPerM2": "4230",
+        "listingCount": 30,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xxiii",
+        "districtNumber": 23,
+        "displayName": "Budapest District XXIII",
+        "rentPerM2": "4220",
+        "listingCount": 10,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      }
+    ],
+    "retrievedAt": "2026-10-03T10:44:44.039368+00:00"
+  },
+  "baselines": [
+    {
+      "category": "GROCERY",
+      "description": "Fixed basket: 1 L milk, 500 g half-brown bread, 10 medium eggs, 1 kg rice, 1 kg Jonagold apples",
+      "unit": "BASKET",
+      "price": "2720",
+      "currency": "HUF",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/210621123",
+      "observedAt": null,
+      "retrievedAt": "2026-10-03T10:41:25.032655+00:00",
+      "evidence": {
+        "channel": "retailer_online_regular_price",
+        "components": [
+          {
+            "id": "milk",
+            "description": "Tesco UHT félzsíros tej 2,8% 1 l",
+            "unit": "LITRE",
+            "quantity": "1",
+            "price": "315",
+            "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/210621123",
+            "retrievedAt": "2026-10-03T10:41:25.032655+00:00"
+          },
+          {
+            "id": "bread",
+            "description": "Szeletelt félbarna kenyér 500 g",
+            "unit": "PACK_500G",
+            "quantity": "1",
+            "price": "549",
+            "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/207803495",
+            "retrievedAt": "2026-10-03T10:41:25.032655+00:00"
+          },
+          {
+            "id": "eggs",
+            "description": "Tesco \"A\" osztályú közepes méretű mélyalmos, friss tojás M 10 db",
+            "unit": "PACK_10",
+            "quantity": "1",
+            "price": "768",
+            "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/220181340",
+            "retrievedAt": "2026-10-03T10:41:25.032655+00:00"
+          },
+          {
+            "id": "rice",
+            "description": "Tesco előgőzölt, hosszú szemű rizs 1 kg",
+            "unit": "KG",
+            "quantity": "1",
+            "price": "579",
+            "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/100501436",
+            "retrievedAt": "2026-10-03T10:41:25.032655+00:00"
+          },
+          {
+            "id": "apples",
+            "description": "Jonagold alma lédig",
+            "unit": "KG",
+            "quantity": "1",
+            "price": "509",
+            "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/2004006222303",
+            "retrievedAt": "2026-10-03T10:41:25.032655+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "category": "LIBRARY",
+      "description": "FSZEK category I/II branch: adult annual borrowing membership, excluding card administration fee",
+      "unit": "YEAR",
+      "price": "5800",
+      "currency": "HUF",
+      "sourceUrl": "https://fszek.hu/Entities/87/Events/konyvtarhasznalat-2026",
+      "observedAt": "2026-01-01",
+      "retrievedAt": "2026-10-03T10:44:44.039368+00:00",
+      "evidence": {
+        "channel": "published_tariff",
+        "size": null
+      }
+    },
+    {
+      "category": "GYM",
+      "description": "Life1 Corvin regular single-entry ticket, excluding first-visit promotion and magnetic card",
+      "unit": "ENTRY",
+      "price": "5999",
+      "currency": "HUF",
+      "sourceUrl": "https://life1.hu/wp-content/uploads/2026/04/L1-Corvin-kezi-arlista-HU.pdf",
+      "observedAt": null,
+      "retrievedAt": "2026-10-03T10:44:44.039368+00:00",
+      "evidence": {
+        "channel": "published_tariff",
+        "size": null
+      }
+    },
+    {
+      "category": "CAFE",
+      "description": "Madal cappuccino, 180 ml",
+      "unit": "DRINK",
+      "price": "1490",
+      "currency": "HUF",
+      "sourceUrl": "https://madalcafe.hu/kmenu/",
+      "observedAt": null,
+      "retrievedAt": "2026-10-03T10:44:44.039368+00:00",
+      "evidence": {
+        "channel": "published_tariff",
+        "size": null
+      }
+    },
+    {
+      "category": "STARBUCKS",
+      "description": "Starbucks Nyugati Caffè Latte starting price on foodora; size unspecified; delivery/service fees excluded",
+      "unit": "DRINK",
+      "price": "1540",
+      "currency": "HUF",
+      "sourceUrl": "https://www.foodora.hu/restaurant/o4sx/starbucks-nyugati",
+      "observedAt": null,
+      "retrievedAt": "2026-10-03T10:44:44.039368+00:00",
+      "evidence": {
+        "channel": "delivery_menu_starting_price",
+        "size": "unspecified"
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { api, apiMultipart } from './client';
-import type { Address, AddressSaveRequest, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, FinancialInputs, FinancialInputsSaveResult, FinancialProfile, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SaveFinancialInputs, SubmitApplication, Transaction } from './types';
+import type { Address, AddressSaveRequest, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, SocialConnection, FinancialInputs, FinancialInputsSaveResult, FinancialProfile, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SaveFinancialInputs, SubmitApplication, Transaction } from './types';
 
 export const partnersApi = {
   list: () => api<Partner[]>('/api/partners'),
@@ -28,6 +28,9 @@ export const meApi = {
     api<DemoSignalSettings>('/api/me/demo-signals/settings', { method: 'PUT', body }),
   runLocation: (scenarioId: string) => api<DemoSignalRun>('/api/me/demo-signals/location-runs', { method: 'POST', body: { scenarioId } }),
   runSocial: (scenarioId: string) => api<DemoSignalRun>('/api/me/demo-signals/social-runs', { method: 'POST', body: { scenarioId } }),
+  socialConnection: () => api<SocialConnection>('/api/me/social-connection'),
+  startFacebookConnect: () => api<{ authorizeUrl: string }>('/api/me/social-connection/facebook/start', { method: 'POST' }),
+  disconnectSocial: () => api<void>('/api/me/social-connection', { method: 'DELETE' }),
   demoSignalReports: (kind: 'LOCATION' | 'SOCIAL') =>
     api<DemoSignalReport[]>(`/api/me/demo-signals/reports?kind=${kind}`),
 };

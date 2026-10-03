@@ -5,7 +5,8 @@ import { applicationsApi, partnersApi } from '../../api/rocket';
 import type { PartnerDetail } from '../../api/types';
 import { Card, Loading, Notice, Page } from '../../components/app/Ui';
 import { errorMessage, useApi } from '../../hooks/useApi';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency, hufToUsd, usdToHuf } from '../../utils/format';
+import LocalDropdown from '../../components/common/LocalDropdown';
 
 /**
  * One form for both entry points:
@@ -51,7 +52,7 @@ const ApplyPage = () => {
     if (submitting) return; // no double submit while a request is pending
     setError(null);
     setFieldErrors({});
-    const parsed = product ? product.price : Number(amount);
+    const parsed = product ? product.price : hufToUsd(Number(amount));
     if (!product && (!amount || !Number.isFinite(parsed) || parsed <= 0)) {
       setFieldErrors({ amount: 'Enter an amount greater than zero.' });
       return;
@@ -88,46 +89,40 @@ const ApplyPage = () => {
             <form className="space-y-5" onSubmit={onSubmit} noValidate>
               <div>
                 <label htmlFor="store" className="block text-sm font-medium text-gray-700">Store</label>
-                <select
+                <LocalDropdown
                   id="store"
-                  className="form-input mt-1 w-full py-2"
+                  className="mt-1 w-full"
                   value={partnerSlug}
-                  onChange={(e) => {
-                    setPartnerSlug(e.target.value);
+                  onValueChange={(value) => {
+                    setPartnerSlug(value);
                     setProductId(null);
                   }}
-                >
-                  {partners.data.map((p) => (
-                    <option key={p.slug} value={p.slug}>{p.displayName} — up to {formatCurrency(p.amountCap)}</option>
-                  ))}
-                </select>
+                  options={partners.data.map((p) => ({ value: p.slug, label: `${p.displayName} — up to ${formatCurrency(p.amountCap)}` }))}
+                />
               </div>
 
               <div>
                 <label htmlFor="product" className="block text-sm font-medium text-gray-700">Product (optional)</label>
-                <select
+                <LocalDropdown
                   id="product"
-                  className="form-input mt-1 w-full py-2"
-                  value={productId ?? ''}
-                  onChange={(e) => setProductId(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">No product — enter an amount</option>
-                  {detail?.products.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</option>
-                  ))}
-                </select>
+                  className="mt-1 w-full"
+                  value={productId == null ? '' : String(productId)}
+                  onValueChange={(value) => setProductId(value ? Number(value) : null)}
+                  placeholder="No product — enter an amount"
+                  options={detail?.products.map((p) => ({ value: String(p.id), label: `${p.name} — ${formatCurrency(p.price)}` })) ?? []}
+                />
               </div>
 
               <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-gray-700">Amount (USD)</label>
+                <label htmlFor="amount" className="block text-sm font-medium text-gray-700">Amount (HUF)</label>
                 <input
                   id="amount"
                   type="number"
                   inputMode="decimal"
-                  min="0.01"
-                  step="0.01"
+                  min="1"
+                  step="1"
                   className="form-input mt-1 w-full py-2 disabled:bg-gray-50"
-                  value={product ? product.price : amount}
+                  value={product ? usdToHuf(product.price) : amount}
                   disabled={Boolean(product)}
                   onChange={(e) => setAmount(e.target.value)}
                   aria-invalid={Boolean(fieldErrors.amount || fieldErrors.requestedAmount)}

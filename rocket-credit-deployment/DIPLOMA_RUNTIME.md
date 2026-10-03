@@ -39,7 +39,7 @@ The diploma Compose file activates `app/policy-v2.json` so estimates and new app
 
 Demo analysis defaults to `ANALYSIS_DEMO_PROVIDER_MODE=FIXTURE`. For live model extraction, set
 `ANALYSIS_DEMO_PROVIDER_MODE=AI` and `GEMINI_API_KEY` in the ignored `.env`; the key is passed only to the
-private analysis container. AI mode accepts only repository-owned synthetic address/social/cost evidence.
+private analysis container. AI mode accepts repository-owned synthetic address/cost evidence. For social analysis it also accepts posts from the account owner's own connected Facebook profile (see `docs/SOCIAL_ACCOUNT_ANALYSIS.md`); those posts are sent to Gemini only when the user runs that analysis in AI mode.
 Model, timeout, prompt version, source passages, and evidence IDs are included in returned reports. Without
 a key or on provider failure, estimates remain available and reports say `AI_UNAVAILABLE`.
 

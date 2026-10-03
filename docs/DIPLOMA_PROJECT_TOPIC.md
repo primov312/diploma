@@ -57,7 +57,7 @@ Outside the required scope:
 - Separate partner backends, merchant authentication and webhooks.
 - External identity-provider deployment, social login or enterprise roles.
 - Queues, distributed transactions, outbox delivery, workflow engines or high-availability infrastructure.
-- Web scraping, social-network accounts and real digital-footprint collection.
+- Bulk scraping, password-based logins and any collection of other people's data. The one exception is the optional social analysis of the account owner's own Facebook profile, connected through Facebook Login ([SOCIAL_ACCOUNT_ANALYSIS.md](SOCIAL_ACCOUNT_ANALYSIS.md)).
 - Operator/merchant portals, offer acceptance and negotiation.
 - Production compliance certification or claims of real credit-risk accuracy.
 

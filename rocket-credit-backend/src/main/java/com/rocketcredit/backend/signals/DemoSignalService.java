@@ -16,13 +16,23 @@ public class DemoSignalService {
     private final AnalysisClient analysis;
     private final ObjectMapper mapper;
     private final TransactionTemplate tx;
+    private final SocialConnectionService connections;
+    private final FacebookClient facebook;
+    private final LocationPricingService locationPricing;
 
-    public DemoSignalService(JdbcTemplate jdbc, AnalysisClient analysis, ObjectMapper mapper, TransactionTemplate tx) {
+    public DemoSignalService(JdbcTemplate jdbc, AnalysisClient analysis, ObjectMapper mapper, TransactionTemplate tx,
+                             SocialConnectionService connections, FacebookClient facebook, LocationPricingService locationPricing) {
         this.jdbc = jdbc;
         this.analysis = analysis;
         this.mapper = mapper;
         this.tx = tx;
+        this.connections = connections;
+        this.facebook = facebook;
+        this.locationPricing = locationPricing;
     }
+
+    /** Scenario ID that selects the owner's connected Facebook account instead of a synthetic fixture. */
+    public static final String LIVE_SCENARIO = "facebook-live";
 
     public DemoSignalDtos.Settings settings(long userId) {
         return tx.execute(status -> {
@@ -47,12 +57,19 @@ public class DemoSignalService {
     }
 
     public DemoSignalDtos.RunAccepted run(long userId, String kind, String scenarioId) {
+        boolean live = "SOCIAL".equals(kind) && LIVE_SCENARIO.equals(scenarioId);
+        var pricingDataset = "LOCATION".equals(kind) ? locationPricing.activeDataset() : null;
         RunJob job = tx.execute(status -> {
             ensure(userId);
             var settings = settingsLocked(userId);
             boolean enabled = "LOCATION".equals(kind) ? settings.locationEnabled() : settings.socialEnabled();
             if (!enabled) throw ApiException.badRequest("OPTIONAL_ANALYSIS_DISABLED", "Enable permission for this analysis before running it.");
-            String key = kind + ":" + scenarioId + ":" + settings.permissionGeneration();
+            if (live && !connections.status(userId).connected()) {
+                throw ApiException.badRequest("SOCIAL_NOT_CONNECTED", "Connect your Facebook account before analyzing it.");
+            }
+            // A live run reads fresh data each time, so it must not be deduplicated like a fixed fixture.
+            String pricingVersion = "LOCATION".equals(kind) ? ":" + (pricingDataset == null ? "no-pricing" : pricingDataset.version()) : "";
+            String key = kind + ":" + scenarioId + ":" + settings.permissionGeneration() + pricingVersion + (live ? ":" + System.nanoTime() : "");
             List<RunJob> existing = jdbc.query("""
                     SELECT id, permission_generation FROM analysis_jobs
                     WHERE user_id=? AND deduplication_key=?
@@ -73,7 +90,8 @@ public class DemoSignalService {
                     JOIN user_address_revisions a ON a.user_id=s.user_id AND a.revision=s.current_revision
                     JOIN demo_districts d ON d.district_id=a.district_id WHERE s.user_id=?
                     """, rs -> rs.next() ? rs.getString(1) : null, userId);
-            JsonNode report = analysis.runDemoAnalysis(kind, scenarioId, declaredDistrict);
+            JsonNode raw = live ? runLive(userId) : analysis.runDemoAnalysis(kind, scenarioId, declaredDistrict);
+            JsonNode report = "LOCATION".equals(kind) ? locationPricing.enrich(raw, pricingDataset) : raw;
             return tx.execute(status -> {
                 var settings = settingsLocked(userId);
                 boolean enabled = "LOCATION".equals(kind) ? settings.locationEnabled() : settings.socialEnabled();
@@ -84,19 +102,34 @@ public class DemoSignalService {
                 jdbc.update("""
                         INSERT INTO demo_signal_reports (user_id, job_id, kind, scenario_id, permission_generation,
                             report, data_source, analysis_mode)
-                        VALUES (?, ?, ?, ?, ?, ?::jsonb, 'SYNTHETIC', ?)
+                        VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?)
                         """, userId, job.id(), kind, scenarioId, job.permissionGeneration(), report.toString(),
-                        report.path("analysisMode").asText("FIXTURE"));
+                        report.path("dataSource").asText("SYNTHETIC"), report.path("analysisMode").asText("FIXTURE"));
                 jdbc.update("UPDATE analysis_jobs SET state='SUCCEEDED', completed_at=now() WHERE id=?", job.id());
                 return new DemoSignalDtos.RunAccepted(job.id(), "SUCCEEDED", report);
             });
+        } catch (FacebookClient.TokenRejectedException e) {
+            fail(job.id(), "SOCIAL_RECONNECT_REQUIRED");
+            throw ApiException.conflict("SOCIAL_RECONNECT_REQUIRED", "Facebook no longer accepts the saved login. Reconnect your account.");
         } catch (ApiException e) {
+            fail(job.id(), e.getCode());
             throw e;
         } catch (Exception e) {
             tx.executeWithoutResult(status -> jdbc.update("UPDATE analysis_jobs SET state='FAILED', failure_code='PROVIDER_UNAVAILABLE', completed_at=now() WHERE id=?", job.id()));
             if (e instanceof AnalysisUnavailableException unavailable) throw unavailable;
             throw new AnalysisUnavailableException("demo analysis failed", e);
         }
+    }
+
+    private JsonNode runLive(long userId) {
+        String token = connections.token(userId)
+                .orElseThrow(() -> ApiException.badRequest("SOCIAL_NOT_CONNECTED", "Connect your Facebook account before analyzing it."));
+        return analysis.runSocialAccountAnalysis(facebook.fetchPosts(token));
+    }
+
+    private void fail(long jobId, String code) {
+        tx.executeWithoutResult(status -> jdbc.update(
+                "UPDATE analysis_jobs SET state='FAILED', failure_code=?, completed_at=now() WHERE id=? AND state='RUNNING'", code, jobId));
     }
 
     public List<JsonNode> reports(long userId, String kind) {

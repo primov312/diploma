@@ -4,6 +4,7 @@ import type { AffordabilityEstimate, AffordabilityHistoryPoint } from '../../api
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { formatCurrency } from '../../utils/format';
 import { Card, Loading, Notice } from '../app/Ui';
+import LocalDropdown from '../common/LocalDropdown';
 
 const monthName = (month: string) => {
   const [year, value] = month.split('-').map(Number);
@@ -44,16 +45,15 @@ export function AffordabilityDashboardCard({ refreshKey }: { refreshKey: number 
   return <Card title="Estimated affordable amount" className="lg:col-span-3">
     {estimate.status === 'loading' && <Loading label="Loading estimate…" />}
     {estimate.status === 'error' && <Notice tone="error">{errorMessage(estimate.error)}</Notice>}
-    {estimate.status === 'ready' && <>
+    {estimate.status === 'ready' && current && <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-4xl font-bold text-gray-900">{displayedValue == null ? 'Unavailable' : formatCurrency(displayedValue)}</p>
           <p className="mt-1 text-sm text-gray-600">{partner === 'BASE' ? 'Before partner caps' : `${partner} partner amount`} · up to 6 monthly payments</p>
         </div>
         <label className="text-sm font-medium text-gray-700">View
-          <select value={partner} onChange={(event) => setPartner(event.target.value)} className="input ml-2 rounded-lg border-gray-300 py-2">
-            <option value="BASE">Base amount</option>{current.partners.map((item) => <option key={item.slug} value={item.slug}>{item.slug}</option>)}
-          </select>
+          <LocalDropdown value={partner} onValueChange={setPartner} className="ml-2 min-w-48"
+            options={[{ value: 'BASE', label: 'Base amount' }, ...current.partners.map((item) => ({ value: item.slug, label: item.slug }))]} />
         </label>
       </div>
       {current.status === 'UPDATING' && <Notice>Updating from revision {current.financialRevision}… {current.stale ? 'The amount below is the last saved estimate.' : ''}</Notice>}

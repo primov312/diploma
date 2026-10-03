@@ -35,13 +35,13 @@ test('register → history → store handoff → decision → logout', async ({ 
 
   // Store page → "Apply with Rocket Credit" carries only partner + product id.
   await page.goto('/stores/threadly');
-  await expect(page.getByRole('heading', { name: /Threadly/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /ZARA/ })).toBeVisible();
   await shot(page, '04-store-threadly');
   const card = page.locator('li', { hasText: 'Linen shirt' });
   await card.getByRole('link', { name: 'Apply with Rocket Credit' }).click();
   await expect(page).toHaveURL(/\/apply\?partner=threadly&product=\d+/);
-  await expect(page.getByLabel('Amount (USD)')).toBeDisabled();
-  await expect(page.getByLabel('Amount (USD)')).toHaveValue('59');
+  await expect(page.getByLabel('Amount (HUF)')).toBeDisabled();
+  await expect(page.getByLabel('Amount (HUF)')).toHaveValue('21240');
   await shot(page, '05-apply-prefilled');
 
   // Submit; the button is disabled while pending; we land on the saved decision.
@@ -57,12 +57,12 @@ test('register → history → store handoff → decision → logout', async ({ 
   await page.reload();
   await expect(page.getByText(/policy rules-v1/)).toBeVisible();
   await page.goto('/applications');
-  await expect(page.getByRole('link', { name: /\$59\.00 at Threadly/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /21\s240\s*Ft at Zara/ })).toBeVisible();
 
   // Direct request with AI from the form.
   await page.goto('/apply');
   await page.getByLabel('Store').selectOption('markethub');
-  await page.getByLabel('Amount (USD)').fill('120');
+  await page.getByLabel('Amount (HUF)').fill('43200');
   await page.getByLabel(/Use AI analysis/).check();
   await page.getByRole('button', { name: 'Submit request' }).click();
   await expect(page).toHaveURL(/\/applications\/\d+/);
@@ -86,8 +86,8 @@ test('demo persona sees seeded three-partner history and a review outcome', asyn
   await expect(page.getByRole('heading', { name: 'Purchase history by store' })).toBeVisible();
   await expect(page.getByText('completed purchases').first()).toBeVisible();
 
-  await page.goto('/apply?partner=markethub&amount=250');
-  await expect(page.getByLabel('Amount (USD)')).toHaveValue('250');
+  await page.goto('/apply?partner=markethub&amount=90000');
+  await expect(page.getByLabel('Amount (HUF)')).toHaveValue('90000');
   await page.getByRole('button', { name: 'Submit request' }).click();
   await expect(page).toHaveURL(/\/applications\/\d+/);
   await expect(page.getByText('Needs review').first()).toBeVisible();

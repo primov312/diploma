@@ -130,7 +130,7 @@ const TIMELINE_EVENTS = [
   },
   {
     title: "Series A Funding",
-    description: "Raised $25M to expand our platform and bring transparent payments to more people.",
+    description: "Raised HUF 9B to expand our platform and bring transparent payments to more people.",
     dateLabel: "August 2022",
   },
   {
@@ -286,7 +286,7 @@ const COMMUNITY_IMPACTS: CommunityImpact[] = [
   },
   {
     title: "Community Support",
-    statistic: "$500K+",
+    statistic: "HUF 180M+",
     description: "Donated to financial wellness nonprofits and community organizations",
     Icon: HeartIcon,
   },
@@ -324,7 +324,7 @@ const AboutUs = () => (
             items={[
               { value: "500K+", label: "Happy Customers" },
               { value: "10K+", label: "Partner Merchants" },
-              { value: "$2B+", label: "Processed Safely" },
+              { value: "HUF 720B+", label: "Processed Safely" },
               { value: "99.9%", label: "Uptime" },
             ]}
           />

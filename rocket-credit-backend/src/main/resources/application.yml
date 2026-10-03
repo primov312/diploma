@@ -66,6 +66,13 @@ rocket:
     connect-timeout: ${ANALYSIS_CONNECT_TIMEOUT:2s}
     read-timeout: ${ANALYSIS_READ_TIMEOUT:5s}
 
+  social:
+    meta-app-id: ${META_APP_ID:}
+    meta-app-secret: ${META_APP_SECRET:}
+    public-base-url: ${PUBLIC_BASE_URL:http://localhost:5173}   # origin the browser uses; must match the redirect URI in the Meta app
+    graph-version: ${META_GRAPH_VERSION:v23.0}
+    token-key: ${SOCIAL_TOKEN_KEY:}
+
 logging:
   level:
     root: INFO

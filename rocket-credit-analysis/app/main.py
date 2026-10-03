@@ -18,7 +18,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 
 from app.ai import Model, load_model, predict
-from app.demo_analysis import AddressExtraction, AddressImageRequest, LocalCostExtraction, LocalCostRequest, LocationRequest, LocationReport, ScenarioRequest, SocialReport, analyze_location, analyze_social, extract_address_image, extract_local_costs
+from app.demo_analysis import AddressExtraction, AddressImageRequest, LocalCostExtraction, LocalCostRequest, LocationRequest, LocationReport, ScenarioRequest, SocialAccountRequest, SocialReport, analyze_location, analyze_posts, analyze_social, extract_address_image, extract_local_costs
 from app.logging import get_logger, log_decision
 from app.models import AffordabilityRequest, AffordabilityResponse, ScoreRequest, ScoreResponse
 from app.policy import Policy, load_policy
@@ -138,6 +138,12 @@ def social_analysis(req: ScenarioRequest, cfg: Settings = Depends(get_settings))
         return analyze_social(req.scenarioId, cfg)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unknown synthetic social scenario") from exc
+
+
+@app.post("/demo-analysis/social-account", response_model=SocialReport, dependencies=[Depends(require_token)])
+def social_account_analysis(req: SocialAccountRequest, cfg: Settings = Depends(get_settings)) -> SocialReport:
+    """Analyze posts the backend fetched from the owner's connected account. Nothing is stored here."""
+    return analyze_posts("facebook-live", [post.model_dump() for post in req.posts], cfg, "OWNER_ACCOUNT")
 
 
 @app.post("/demo-analysis/address", response_model=AddressExtraction, dependencies=[Depends(require_token)])

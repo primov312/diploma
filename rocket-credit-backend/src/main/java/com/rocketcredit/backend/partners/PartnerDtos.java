@@ -12,9 +12,11 @@ public final class PartnerDtos {
         }
     }
 
-    public record Product(Long id, String fixtureId, String name, BigDecimal price, String currency) {
+    public record Product(Long id, String fixtureId, String name, String description, String category,
+                          String imagePath, String imageAlt, BigDecimal price, String currency) {
         static Product from(ProductEntity p) {
-            return new Product(p.getId(), p.getFixtureId(), p.getName(), p.getPrice(), p.getCurrency());
+            return new Product(p.getId(), p.getFixtureId(), p.getName(), p.getDescription(), p.getCategory(),
+                    p.getImagePath(), p.getImageAlt(), p.getPrice(), p.getCurrency());
         }
     }
 

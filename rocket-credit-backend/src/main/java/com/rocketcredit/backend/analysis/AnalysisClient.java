@@ -97,6 +97,19 @@ public class AnalysisClient {
         }
     }
 
+    /** Social analysis of posts fetched from the owner's connected account; the analysis service stores nothing. */
+    public JsonNode runSocialAccountAnalysis(java.util.List<? extends JsonNode> posts) {
+        try {
+            JsonNode response = longHttp.post().uri("/demo-analysis/social-account").contentType(MediaType.APPLICATION_JSON)
+                    .body(java.util.Map.of("posts", posts)).retrieve().body(JsonNode.class);
+            if (response == null) throw new AnalysisUnavailableException("analysis social-account returned an empty body");
+            return response;
+        } catch (ResourceAccessException | RestClientResponseException e) {
+            log.warn("analysis social-account failed: {}", describe(e));
+            throw new AnalysisUnavailableException("analysis social-account failed: " + describe(e), e);
+        }
+    }
+
     public JsonNode extractDemoAddress(String imageData, String mimeType) {
         try {
             JsonNode response = longHttp.post().uri("/demo-analysis/address")

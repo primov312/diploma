@@ -3,6 +3,7 @@ import { partnersApi, transactionsApi } from '../../api/rocket';
 import { Card, Empty, Loading, Notice, Page, SyntheticTag } from '../../components/app/Ui';
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { formatCurrency } from '../../utils/format';
+import LocalDropdown from '../../components/common/LocalDropdown';
 
 const HistoryPage = () => {
   const [partner, setPartner] = useState<string>('');
@@ -14,17 +15,14 @@ const HistoryPage = () => {
       <Card>
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <label htmlFor="partner" className="text-sm font-medium text-gray-700">Store</label>
-          <select
+          <LocalDropdown
             id="partner"
             value={partner}
-            onChange={(e) => setPartner(e.target.value)}
-            className="form-input py-2"
-          >
-            <option value="">All stores</option>
-            {partners.data?.map((p) => (
-              <option key={p.slug} value={p.slug}>{p.displayName}</option>
-            ))}
-          </select>
+            className="w-48"
+            onValueChange={setPartner}
+            placeholder="All stores"
+            options={partners.data?.map((p) => ({ value: p.slug, label: p.displayName })) ?? []}
+          />
           <SyntheticTag />
         </div>
 

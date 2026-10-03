@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ApiError } from '../../api/client';
+import { hufToUsd, usdToHuf } from '../../utils/format';
 import { meApi } from '../../api/rocket';
 import type { ExpenseMode, FinancialInputs, HousingSituation, SaveFinancialInputs } from '../../api/types';
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { Card, Loading, Notice } from '../app/Ui';
+import LocalDropdown from '../common/LocalDropdown';
 
 type AmountKey = 'monthlyNetIncome' | 'housingCost' | 'groceriesCost' | 'utilitiesCost' | 'transportCost' | 'otherLivingCosts' | 'legacyLivingExpenses' | 'monthlyObligations';
 const amountFields: { key: AmountKey; label: string }[] = [
@@ -16,8 +18,8 @@ const amountFields: { key: AmountKey; label: string }[] = [
   { key: 'legacyLivingExpenses', label: 'Aggregate living expenses' },
   { key: 'monthlyObligations', label: 'Existing monthly debt payments' },
 ];
-const money = (value: number | null) => value == null ? '' : value.toFixed(2);
-const parse = (value: string): number | null => value.trim() === '' ? null : Number(value);
+const money = (value: number | null) => value == null ? '' : usdToHuf(value).toFixed(2);
+const parse = (value: string): number | null => value.trim() === '' ? null : hufToUsd(Number(value));
 
 export function FinancialInputsForm({ onSaved }: { onSaved: () => void }) {
   const loaded = useApi(() => meApi.financialInputs(), []);
@@ -51,7 +53,7 @@ export function FinancialInputsForm({ onSaved }: { onSaved: () => void }) {
     <label key={key} className="block text-sm font-medium text-gray-700">
       {label}{required && <span aria-hidden="true"> *</span>}
       <div className="mt-1 flex rounded-lg border border-gray-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary-100">
-        <span className="px-3 py-2 text-gray-500">$</span>
+        <span className="px-3 py-2 text-gray-500">Ft</span>
         <input type="number" min="0" step="0.01" inputMode="decimal" value={values[key]}
           onChange={(event) => setAmount(key, event.target.value)} required={required}
           className="w-full rounded-r-lg border-0 bg-transparent px-2 py-2 focus:outline-none focus:ring-0" />
@@ -97,22 +99,19 @@ export function FinancialInputsForm({ onSaved }: { onSaved: () => void }) {
     {loaded.status === 'loading' && <Loading label="Loading saved inputs…" />}
     {loaded.status === 'error' && <Notice tone="error">{errorMessage(loaded.error)}</Notice>}
     {loaded.status === 'ready' && <form onSubmit={submit} className="space-y-5">
-      <p className="text-sm text-gray-600">Amounts are monthly USD. Income is declared information and is not independently verified.</p>
+      <p className="text-sm text-gray-600">Amounts are monthly HUF. Income is declared information and is not independently verified.</p>
       <div className="grid gap-4 sm:grid-cols-2">
         {field('monthlyNetIncome', 'Net income', false)}
         {field('monthlyObligations', 'Existing debt payments', true)}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm font-medium text-gray-700">Housing situation
-          <select value={housing} onChange={(e) => setHousing(e.target.value as HousingSituation)} className="input mt-1 w-full">
-            <option value="RENTING">Renting</option><option value="OWNER">Owner</option>
-            <option value="FAMILY">Living with family</option><option value="OTHER">Other</option>
-          </select>
+          <LocalDropdown value={housing} onValueChange={(value) => setHousing(value as HousingSituation)} className="mt-1 w-full"
+            options={[{ value: 'RENTING', label: 'Renting' }, { value: 'OWNER', label: 'Owner' }, { value: 'FAMILY', label: 'Living with family' }, { value: 'OTHER', label: 'Other' }]} />
         </label>
         <label className="text-sm font-medium text-gray-700">Expense mode
-          <select value={mode} onChange={(e) => setMode(e.target.value as ExpenseMode)} className="input mt-1 w-full">
-            <option value="AGGREGATE">Aggregate expenses</option><option value="ITEMIZED">Itemized expenses</option>
-          </select>
+          <LocalDropdown value={mode} onValueChange={(value) => setMode(value as ExpenseMode)} className="mt-1 w-full"
+            options={[{ value: 'AGGREGATE', label: 'Aggregate expenses' }, { value: 'ITEMIZED', label: 'Itemized expenses' }]} />
         </label>
       </div>
       {mode === 'AGGREGATE' ? <div className="max-w-sm">{field('legacyLivingExpenses', 'Aggregate monthly living expenses', true)}</div> :

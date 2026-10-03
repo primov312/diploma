@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 
 import { cn } from "../utils/cn";
-import { formatCurrency } from "../utils/format";
+import { formatHuf } from "../utils/format";
+import LocalDropdown from "./common/LocalDropdown";
 
 const PAYMENT_PLANS = [
   {
@@ -56,7 +57,7 @@ const createBreakdown = (
   purchaseAmount: number,
 ): PaymentBreakdown => {
   if (plan.installments <= 0) {
-    const formattedZero = formatCurrency(0);
+    const formattedZero = formatHuf(0);
     return {
       todayDue: 0,
       recurringPayment: 0,
@@ -76,7 +77,7 @@ const createBreakdown = (
   const interestAmount = Math.max(totalWithInterest - sanitizedAmount, 0);
   const interestDescription =
     plan.interestRate > 0
-      ? `${Math.round(plan.interestRate * 100)}% interest applied (${formatCurrency(interestAmount)})`
+      ? `${Math.round(plan.interestRate * 100)}% interest applied (${formatHuf(interestAmount)})`
       : "No interest, no fees";
 
   return {
@@ -85,9 +86,9 @@ const createBreakdown = (
     recurringCount,
     totalWithInterest,
     interestDescription,
-    formattedTodayDue: formatCurrency(installment),
-    formattedRecurringPayment: formatCurrency(installment),
-    formattedTotal: formatCurrency(totalWithInterest),
+    formattedTodayDue: formatHuf(installment),
+    formattedRecurringPayment: formatHuf(installment),
+    formattedTotal: formatHuf(totalWithInterest),
   };
 };
 
@@ -96,7 +97,7 @@ type PaymentCalculatorProps = {
 };
 
 const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
-  const [amountInput, setAmountInput] = useState("500");
+  const [amountInput, setAmountInput] = useState("180000");
   const [selectedPlanId, setSelectedPlanId] = useState<PaymentPlanId>(PAYMENT_PLANS[0].id);
 
   const plan = PAYMENT_PLAN_BY_ID[selectedPlanId] ?? PAYMENT_PLANS[0];
@@ -120,11 +121,11 @@ const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
             Purchase Amount
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-3 text-gray-500">$</span>
+            <span className="absolute left-3 top-3 text-gray-500">Ft</span>
             <input
               type="number"
-              className="form-input w-full pl-8"
-              placeholder="500"
+              className="form-input w-full pl-10"
+              placeholder="180000"
               value={amountInput}
               onChange={(event) => setAmountInput(event.target.value)}
               min="0"
@@ -135,21 +136,12 @@ const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
           <label className="mb-2 block text-sm font-medium text-gray-700">
             Payment Plan
           </label>
-          <select
-            className="form-input w-full"
+          <LocalDropdown
+            className="w-full"
             value={selectedPlanId}
-            onChange={(event) =>
-              setSelectedPlanId(
-                event.target.value as (typeof PAYMENT_PLANS)[number]["id"],
-              )
-            }
-          >
-            {PAYMENT_PLANS.map(({ id, label }) => (
-              <option key={id} value={id}>
-                {label}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => setSelectedPlanId(value as (typeof PAYMENT_PLANS)[number]["id"])}
+            options={PAYMENT_PLANS.map(({ id, label }) => ({ value: id, label }))}
+          />
         </div>
         <div className="mt-6 rounded-lg bg-gradient-secondary p-4">
           <div className="mb-2 flex items-center justify-between">

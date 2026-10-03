@@ -3,7 +3,7 @@ import { ApiError } from '../../api/client';
 import { applicationsApi } from '../../api/rocket';
 import { Card, LinkButton, Loading, Notice, Page, StatusBadge } from '../../components/app/Ui';
 import { errorMessage, useApi } from '../../hooks/useApi';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency, usdToHuf } from '../../utils/format';
 import { AI_STATUS_TEXT, FACTOR_LABEL, STATUS_TEXT, reasonText } from '../../utils/reasons';
 
 const ApplicationDetailPage = () => {
@@ -54,7 +54,7 @@ const ApplicationDetailPage = () => {
             <div className="mt-4">
               <Notice tone="info">
                 A lower amount looks possible. This is a suggestion, not an offer:{' '}
-                <Link to={`/apply?partner=${a.partnerSlug}&amount=${a.possibleAmount}`} className="font-medium text-primary">
+                <Link to={`/apply?partner=${a.partnerSlug}&amount=${usdToHuf(a.possibleAmount)}`} className="font-medium text-primary">
                   submit a new request for {formatCurrency(a.possibleAmount)}
                 </Link>
                 .

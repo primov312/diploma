@@ -1,7 +1,16 @@
+import { useState } from "react";
 import SectionHeader from "../components/common/SectionHeader";
 import StatGrid from "../components/common/StatGrid";
+import LocalDropdown from "../components/common/LocalDropdown";
 
-const ForBusinesses = () => (
+const industryOptions = ["Fashion & Apparel", "Electronics", "Home & Garden", "Beauty & Wellness", "Sports & Fitness", "Other"];
+
+const ForBusinesses = () => {
+  const [roiIndustry, setRoiIndustry] = useState(industryOptions[0]);
+  const [businessIndustry, setBusinessIndustry] = useState("");
+  const [monthlyRevenue, setMonthlyRevenue] = useState("");
+
+  return (
   <div className="bg-gradient-hero">
     <section className="relative overflow-hidden py-20 lg:py-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -104,13 +113,13 @@ const ForBusinesses = () => (
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-3 text-gray-500">
-                      $
+                      Ft
                     </span>
                     <input
                       type="number"
-                      className="form-input pl-8 w-full"
-                      placeholder="50,000"
-                      value="50000"
+                      className="form-input pl-10 w-full"
+                      placeholder="18,000,000"
+                      value="18000000"
                     />
                   </div>
                 </div>
@@ -121,13 +130,13 @@ const ForBusinesses = () => (
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-3 text-gray-500">
-                      $
+                      Ft
                     </span>
                     <input
                       type="number"
-                      className="form-input pl-8 w-full"
-                      placeholder="150"
-                      value="150"
+                      className="form-input pl-10 w-full"
+                      placeholder="54,000"
+                      value="54000"
                     />
                   </div>
                 </div>
@@ -136,13 +145,8 @@ const ForBusinesses = () => (
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Industry Type
                   </label>
-                  <select className="form-input w-full">
-                    <option>Fashion & Apparel</option>
-                    <option>Electronics</option>
-                    <option>Home & Garden</option>
-                    <option>Beauty & Wellness</option>
-                    <option>Sports & Fitness</option>
-                  </select>
+                  <LocalDropdown value={roiIndustry} onValueChange={setRoiIndustry} className="w-full"
+                    options={industryOptions.slice(0, 5).map((label) => ({ value: label, label }))} />
                 </div>
 
                 {/* ROI Results */}
@@ -156,7 +160,7 @@ const ForBusinesses = () => (
                         Additional Revenue
                       </span>
                       <span className="font-semibold text-primary">
-                        +$17,500
+                        +6,300,000 Ft
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -177,7 +181,7 @@ const ForBusinesses = () => (
                           Annual ROI
                         </span>
                         <span className="font-bold text-primary text-lg">
-                          +$210,000
+                          +75,600,000 Ft
                         </span>
                       </div>
                     </div>
@@ -253,25 +257,12 @@ const ForBusinesses = () => (
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <select className="form-input w-full" required>
-                  <option value="">Industry</option>
-                  <option>Fashion & Apparel</option>
-                  <option>Electronics</option>
-                  <option>Home & Garden</option>
-                  <option>Beauty & Wellness</option>
-                  <option>Sports & Fitness</option>
-                  <option>Other</option>
-                </select>
+                <LocalDropdown value={businessIndustry} onValueChange={setBusinessIndustry} placeholder="Industry" required name="industry" className="w-full"
+                  options={industryOptions.map((label) => ({ value: label, label }))} />
               </div>
               <div>
-                <select className="form-input w-full" required>
-                  <option value="">Monthly Revenue</option>
-                  <option>Under $10K</option>
-                  <option>$10K - $50K</option>
-                  <option>$50K - $100K</option>
-                  <option>$100K - $500K</option>
-                  <option>$500K+</option>
-                </select>
+                <LocalDropdown value={monthlyRevenue} onValueChange={setMonthlyRevenue} placeholder="Monthly Revenue" required name="monthlyRevenue" className="w-full"
+                  options={["Under HUF 3.6M", "HUF 3.6M - 18M", "HUF 18M - 36M", "HUF 36M - 180M", "HUF 180M+"].map((label) => ({ value: label, label }))} />
               </div>
             </div>
 
@@ -294,6 +285,7 @@ const ForBusinesses = () => (
       </div>
     </section>
   </div>
-);
+  );
+};
 
 export default ForBusinesses;

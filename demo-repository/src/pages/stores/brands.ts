@@ -1,4 +1,4 @@
-/** Branding for the three demo stores. Catalog data comes from the backend; only the look lives here. */
+/** Display treatments for the private academic demo. Internal partner slugs remain stable. */
 export type Brand = {
   slug: string;
   name: string;
@@ -7,42 +7,42 @@ export type Brand = {
   accent: string;       // Tailwind bg class for the hero
   text: string;         // text colour on the hero
   button: string;       // button classes
-  emoji: string;
+  wordmark: string;
   category: string;
 };
 
 export const BRANDS: Record<string, Brand> = {
   streambox: {
     slug: 'streambox',
-    name: 'StreamBox',
-    tagline: 'Films, series and live sport. One subscription.',
-    blurb: 'A streaming service. Annual plans are the typical financing case: pay the year over time.',
-    accent: 'bg-gradient-to-br from-indigo-700 to-violet-600',
+    name: 'Netflix',
+    tagline: 'Illustrative films, series and viewing plans.',
+    blurb: 'A fictional catalog of titles and viewing packages for the diploma demonstration. Titles and prices are not real Netflix offers.',
+    accent: 'bg-gradient-to-br from-red-700 to-neutral-950',
     text: 'text-white',
-    button: 'bg-white text-indigo-700 hover:bg-indigo-50',
-    emoji: '🎬',
+    button: 'bg-red-700 text-white hover:bg-red-800',
+    wordmark: 'NETFLIX',
     category: 'Entertainment',
   },
   markethub: {
     slug: 'markethub',
-    name: 'MarketHub',
-    tagline: 'Electronics and home. Delivered tomorrow.',
-    blurb: 'An electronics marketplace with the highest ticket sizes of the three demo stores.',
-    accent: 'bg-gradient-to-br from-amber-400 to-orange-500',
-    text: 'text-gray-900',
-    button: 'bg-gray-900 text-white hover:bg-gray-800',
-    emoji: '🛒',
+    name: 'Amazon',
+    tagline: 'Illustrative electronics, home and travel goods.',
+    blurb: 'Demo-only product entries and prices inspired by a broad online marketplace. These are not official Amazon listings.',
+    accent: 'bg-gradient-to-br from-slate-900 to-slate-700',
+    text: 'text-white',
+    button: 'bg-slate-900 text-white hover:bg-slate-800',
+    wordmark: 'amazon',
     category: 'Electronics & home',
   },
   threadly: {
     slug: 'threadly',
-    name: 'Threadly',
-    tagline: 'Everyday clothing, made to last.',
-    blurb: 'A clothing store. Mid-size baskets and a seasonal rhythm.',
-    accent: 'bg-gradient-to-br from-emerald-600 to-teal-500',
-    text: 'text-white',
-    button: 'bg-white text-emerald-700 hover:bg-emerald-50',
-    emoji: '👕',
+    name: 'Zara',
+    tagline: 'Illustrative clothing and accessories.',
+    blurb: 'A demo fashion catalog with fictional prices and illustrative photos. These are not official Zara listings.',
+    accent: 'bg-gradient-to-br from-stone-200 to-stone-400',
+    text: 'text-stone-950',
+    button: 'bg-stone-950 text-white hover:bg-stone-800',
+    wordmark: 'ZARA',
     category: 'Fashion',
   },
 };

@@ -163,7 +163,7 @@ Store all request/result fields atomically. Do not return a successful saved dec
 | Four service databases / additional workflow DB | Use one new diploma database; do not overwrite old databases. |
 | Keycloak, partner backend, footprint service | Do not add them. |
 | Kafka, outbox, webhook delivery, saga recovery | Outside the simplified scope. |
-| Dedicated bank connector / scraper | Replace with synthetic fixtures; no external integration. |
+| Dedicated bank connector / scraper | Replace with synthetic fixtures; no external integration. The only live source is the owner's own Facebook account via OAuth, see [SOCIAL_ACCOUNT_ANALYSIS.md](SOCIAL_ACCOUNT_ANALYSIS.md). |
 | Operator and merchant portals | Outside scope. |
 | Multiple branded frontend deployments | Three store pages in the existing React app. |
 

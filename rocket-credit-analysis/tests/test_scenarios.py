@@ -113,3 +113,4 @@ def test_ai_flag_does_not_change_rules_decision_without_model(policy):
     with_ai = combine(request(AVERY, AVERY_MARKETHUB, "markethub", "300.00", use_ai=True), policy)
     assert plain.decisionStatus == with_ai.decisionStatus and plain.score == with_ai.score
     assert with_ai.aiStatus.value == "UNAVAILABLE"
+

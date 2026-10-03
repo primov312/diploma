@@ -29,7 +29,12 @@ class DemoDataTest extends AbstractIntegrationTest {
     @Test
     void catalogAndPersonasAreSeeded() {
         assertThat(partners.findAll()).extracting("slug").contains("streambox", "markethub", "threadly");
-        assertThat(products.count()).isGreaterThanOrEqualTo(15);
+        assertThat(products.count()).isGreaterThanOrEqualTo(90);
+        for (var partner : partners.findAll()) {
+            assertThat(products.findByPartnerIdOrderByName(partner.getId())).hasSize(30)
+                    .allMatch(p -> p.getDescription() != null && !p.getDescription().isBlank())
+                    .allMatch(p -> p.getImagePath().startsWith("/catalog/") && p.getImagePath().endsWith(".jpg"));
+        }
         for (String who : new String[] {"avery", "riley", "drew", "casey"}) {
             var u = users.findByEmail(who + "@demo.rocket.local").orElseThrow();
             assertThat(profiles.findById(u.getId())).isPresent();
@@ -119,8 +124,10 @@ class DemoDataTest extends AbstractIntegrationTest {
 
         mvc.perform(get("/api/partners/threadly"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.displayName").value("Threadly"))
-                .andExpect(jsonPath("$.products.length()").value(5))
+                .andExpect(jsonPath("$.displayName").value("Zara"))
+                .andExpect(jsonPath("$.products.length()").value(30))
+                .andExpect(jsonPath("$.products[?(@.fixtureId == 'threadly-wool-coat')].description").isNotEmpty())
+                .andExpect(jsonPath("$.products[?(@.fixtureId == 'threadly-wool-coat')].imagePath").value("/catalog/threadly-wool-coat.jpg"))
                 .andExpect(jsonPath("$.products[?(@.fixtureId == 'threadly-wool-coat')].price").value(189.00));
 
         mvc.perform(get("/api/partners/nope")).andExpect(status().isNotFound());

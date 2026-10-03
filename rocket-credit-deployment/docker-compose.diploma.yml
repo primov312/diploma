@@ -72,6 +72,10 @@ services:
       ANALYSIS_SHARED_SECRET: ${ANALYSIS_SHARED_SECRET}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ADDRESS_EVIDENCE_DIR: /var/lib/rocket-credit/address-evidence
+      META_APP_ID: ${META_APP_ID:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      SOCIAL_TOKEN_KEY: ${SOCIAL_TOKEN_KEY:-}
       FEATURES_MODE: ${FEATURES_MODE:-PARALLEL}    # SEQUENTIAL | PARALLEL (Step 7 experiment; same results)
     ports:
       - "${BACKEND_HOST_PORT:-8080}:8080"

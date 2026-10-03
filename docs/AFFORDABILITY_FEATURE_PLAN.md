@@ -538,7 +538,7 @@ Switch the dashboard and new application policy back together if rollback is nee
 Working defaults are defined above, so implementation can start with the deterministic phases. The following are needed before the corresponding AI integrations are completed:
 
 - [ ] Select a model/provider and supply server-side credentials for actual AI runs: GEMINI API.
-- [ ] Identify the intended `social-media-research-skills` repository/package: https://github.com/ScrapeCreators/social-media-research-skills
+- [x] `social-media-research-skills` is not used. Social analysis of the owner's own Facebook account uses Facebook Login and the Graph API instead; see [SOCIAL_ACCOUNT_ANALYSIS.md](SOCIAL_ACCOUNT_ANALYSIS.md).
 - [ ] Finalize the prepared address documents, district references, and social/location scenarios: We will know consider only Budapest, Hungary, Vag utca 7, you can start with my facebook: Primov Orozbek from Kyrgyzstan.
 - [ ] If real-city research is later required, select the city, currency/basis mapping, sources, and retrieval adapter.
 

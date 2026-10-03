@@ -9,7 +9,7 @@ import { BRANDS } from './brands';
 const StoresIndexPage = () => {
   const partners = useApi(() => partnersApi.list(), []);
   return (
-    <Page title="Demo stores" subtitle="Three partner stores inside this app. Each product can be financed through Rocket Credit.">
+    <Page title="Demo stores" subtitle="Three illustrative catalogs for a private academic demonstration. Brand names do not imply affiliation.">
       {partners.status === 'loading' && <Loading />}
       {partners.status === 'error' && <Notice tone="error">{errorMessage(partners.error)}</Notice>}
       {partners.status === 'ready' && (
@@ -19,7 +19,7 @@ const StoresIndexPage = () => {
             return (
               <li key={p.slug}>
                 <Link to={`/stores/${p.slug}`} className={cn('block rounded-2xl p-6 shadow-card transition-smooth hover:shadow-hover', brand?.accent ?? 'bg-white', brand?.text ?? 'text-gray-800')}>
-                  <div className="text-4xl" aria-hidden="true">{brand?.emoji}</div>
+                  <div className="text-2xl font-black tracking-tight" aria-hidden="true">{brand?.wordmark}</div>
                   <h2 className="mt-3 text-2xl font-bold">{p.displayName}</h2>
                   <p className="mt-1 opacity-90">{brand?.tagline}</p>
                   <p className="mt-4 text-sm opacity-80">Financing up to {formatCurrency(p.amountCap)}</p>
