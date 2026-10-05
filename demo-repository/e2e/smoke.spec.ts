@@ -22,14 +22,15 @@ test('register → history → store handoff → decision → logout', async ({ 
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page).toHaveURL(/account-dashboard/);
   await expect(page.getByRole('heading', { name: /Hello, E2E Tester/ })).toBeVisible();
-  await expect(page.getByText('Synthetic starter data for new accounts')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Estimated affordable amount' })).toBeVisible();
   await shot(page, '02-dashboard-new-account');
 
   // Purchase history (starter data, one purchase per store) with the partner filter.
   await page.goto('/history');
   await expect(page.getByRole('table')).toBeVisible();
   await expect(page.getByRole('row')).toHaveCount(1 + 3); // header + three starter purchases
-  await page.getByLabel('Store').selectOption('threadly');
+  await page.getByLabel('Store').click();
+  await page.getByRole('option', { name: 'Zara', exact: true }).click();
   await expect(page.getByRole('row')).toHaveCount(1 + 1);
   await shot(page, '03-history');
 
@@ -48,24 +49,28 @@ test('register → history → store handoff → decision → logout', async ({ 
   const submit = page.getByRole('button', { name: 'Submit request' });
   await submit.click();
   await expect(page).toHaveURL(/\/applications\/\d+/);
-  await expect(page.getByText(/policy rules-v1/)).toBeVisible();
+  await page.getByText('Decision details', { exact: true }).click();
+  await expect(page.getByText(/policy rules-/)).toBeVisible();
   await expect(page.getByText(/Approved|Not approved|Needs review/).first()).toBeVisible();
   await shot(page, '06-decision');
   const decisionUrl = page.url();
 
   // The decision is persisted: reload and list.
   await page.reload();
-  await expect(page.getByText(/policy rules-v1/)).toBeVisible();
+  await page.getByText('Decision details', { exact: true }).click();
+  await expect(page.getByText(/policy rules-/)).toBeVisible();
   await page.goto('/applications');
   await expect(page.getByRole('link', { name: /21\s240\s*Ft at Zara/ })).toBeVisible();
 
   // Direct request with AI from the form.
   await page.goto('/apply');
-  await page.getByLabel('Store').selectOption('markethub');
+  await page.getByLabel('Store').click();
+  await page.getByRole('option', { name: /Amazon/ }).click();
   await page.getByLabel('Amount (HUF)').fill('43200');
   await page.getByLabel(/Use AI analysis/).check();
   await page.getByRole('button', { name: 'Submit request' }).click();
   await expect(page).toHaveURL(/\/applications\/\d+/);
+  await page.getByText('Decision details', { exact: true }).click();
   await expect(page.getByText(/model logreg-v1/)).toBeVisible();
   await shot(page, '07-decision-with-ai');
 
@@ -83,6 +88,7 @@ test('demo persona sees seeded three-partner history and a review outcome', asyn
   await page.getByLabel('Password').fill('rocket-demo-123');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/account-dashboard/);
+  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Purchases' }).click();
   await expect(page.getByRole('heading', { name: 'Purchase history by store' })).toBeVisible();
   await expect(page.getByText('completed purchases').first()).toBeVisible();
 
@@ -91,7 +97,7 @@ test('demo persona sees seeded three-partner history and a review outcome', asyn
   await page.getByRole('button', { name: 'Submit request' }).click();
   await expect(page).toHaveURL(/\/applications\/\d+/);
   await expect(page.getByText('Needs review').first()).toBeVisible();
-  await expect(page.getByRole('listitem').filter({ hasText: 'PROFILE_INCOMPLETE' })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Your profile is not complete.' }).first()).toBeVisible();
   await shot(page, '09-riley-review');
 });
 

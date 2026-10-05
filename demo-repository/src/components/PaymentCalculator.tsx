@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { LinkButton, SyntheticTag } from "./app/Ui";
+import { Icon } from "./common/Icon";
 
 import { cn } from "../utils/cn";
 import { formatHuf } from "../utils/format";
@@ -111,19 +113,21 @@ const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
   } = useMemo(() => createBreakdown(plan, purchaseAmount), [plan, purchaseAmount]);
 
   return (
-    <div className={cn("rounded-2xl bg-white p-6 shadow-hover lg:p-8", className)}>
-      <h3 className="mb-6 text-center text-xl font-semibold text-gray-800">
-        Payment Calculator
+    <div className={cn("rounded-lg bg-white p-6", className)}>
+      <h3 className="mb-2 flex items-center gap-2 text-xl font-semibold text-gray-800">
+        <Icon name="wallet" />Payment example
       </h3>
+      <div className="mb-5"><SyntheticTag>Illustrative calculation</SyntheticTag></div>
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Purchase Amount
+          <label htmlFor="purchase-amount" className="mb-2 block text-sm font-medium text-gray-700">
+            Purchase amount
           </label>
           <div className="relative">
             <span className="absolute left-3 top-3 text-gray-500">Ft</span>
             <input
               type="number"
+              id="purchase-amount"
               className="form-input w-full pl-10"
               placeholder="180000"
               value={amountInput}
@@ -137,13 +141,14 @@ const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
             Payment Plan
           </label>
           <LocalDropdown
+            aria-label="Payment plan"
             className="w-full"
             value={selectedPlanId}
             onValueChange={(value) => setSelectedPlanId(value as (typeof PAYMENT_PLANS)[number]["id"])}
             options={PAYMENT_PLANS.map(({ id, label }) => ({ value: id, label }))}
           />
         </div>
-        <div className="mt-6 rounded-lg bg-gradient-secondary p-4">
+        <div className="mt-6 rounded-lg border border-gray-200 bg-secondary-50 p-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm text-gray-600">Today</span>
             <span className="font-semibold text-gray-800">{formattedTodayDue}</span>
@@ -169,9 +174,8 @@ const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
             <p className="mt-1 text-xs text-gray-500">{interestDescription}</p>
           </div>
         </div>
-        <button type="button" className="btn-gradient mt-4 w-full">
-          Get Pre-Approved
-        </button>
+        <LinkButton to="/apply" className="mt-4 w-full">Start application</LinkButton>
+        <p className="text-xs text-gray-500">Example amounts and terms only. Your saved decision is calculated separately.</p>
       </div>
     </div>
   );

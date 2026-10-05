@@ -46,7 +46,7 @@ export type FinancialInputs = {
   revision: number;
   monthlyNetIncome: number | null;
   housingSituation: 'RENTING' | 'OWNER' | 'FAMILY' | 'OTHER';
-  expenseMode: 'AGGREGATE' | 'ITEMIZED';
+  expenseMode: 'AGGREGATE' | 'ITEMIZED' | 'AUTOMATIC';
   housingCost: number | null;
   groceriesCost: number | null;
   utilitiesCost: number | null;
@@ -54,16 +54,14 @@ export type FinancialInputs = {
   otherLivingCosts: number | null;
   legacyLivingExpenses: number | null;
   monthlyObligations: number;
-  source: 'STARTER' | 'FIXTURE' | 'USER_DECLARED';
+  source: 'STARTER' | 'FIXTURE' | 'USER_DECLARED' | 'AUTOMATIC';
   updatedAt: string;
 };
 
 export type HousingSituation = FinancialInputs['housingSituation'];
 export type ExpenseMode = FinancialInputs['expenseMode'];
 
-export type SaveFinancialInputs = Omit<FinancialInputs, 'revision' | 'source' | 'updatedAt'> & {
-  expectedRevision: number;
-};
+export type SaveFinancialInputs = { expectedRevision: number; housingSituation: HousingSituation; expenseMode: 'AUTOMATIC' };
 
 export type FinancialInputsSaveResult = {
   inputs: FinancialInputs;
@@ -87,6 +85,7 @@ export type AffordabilityEstimate = {
   partners: AffordabilityPartner[];
   reasons: string[];
   stale: boolean;
+  localCostContext?: MonthlyLivingCosts | null;
 };
 export type AffordabilityHistoryPoint = {
   month: string;
@@ -126,6 +125,20 @@ export type LocalCostExtraction = {
 export type AddressSaveRequest = { expectedRevision: number; countryCode: string; city: string; districtId: string; postalCode: string; street: string; building: string; unit: string | null };
 export type AddressSaveResult = { address: Address; generation: number; recalculationJobId: number };
 export type AddressVerification = { id: number; addressRevision: number; status: string; scenarioId: string; dataSource: string; checks: string[]; createdAt: string; recalculationJobId: number };
+export type PostalCodeDistrict = { postalCode: string; districtId: string; displayName: string; city: string; countryCode: string; sourceUrl: string; retrievedAt: string; datasetVersion: string };
+export type MonthlyCostProfile = { revision: number; datasetVersion: string; apartmentSize: number; rentSharers: number; groceryQuantities: Record<string, number | string>; otherSpending: number; source: 'DEMO_DEFAULT' | 'USER_DECLARED' };
+export type MonthlyGroceryProduct = { id: string; label: string; description: string; unit: 'KG' | 'LITRE' | 'ITEM'; packageQuantity: string; packagePrice: string; unitPrice: string; sourceUrl: string; retrievedAt: string; observedAt: string | null };
+export type ActivityForecast = { available: boolean; dataSource: string; forecastDays: number; baselineDatasetVersion?: string; reportDatasetVersion?: string; reportId?: number; method: string; reason: string; observationDays: number; pricedVisits: number; historySufficient: boolean; baselineMonthly: number; monthlyAmount: number; items: { category: string; baselineMonthly: number; historyMonthly?: number; monthlyAmount: number; defaultMonthlyVisits?: number; historyVisitCount: number; sourceUrl: string; unit: string; unitPrice: number; retrievedAt: string; method: string }[] };
+export type MonthlyLivingCosts = {
+  methodVersion?: string; activityForecast?: ActivityForecast; suppliedExpenseFloorHuf?: number;
+  available: boolean; unavailableReason?: string; eligible: boolean; currency: 'HUF'; hufPerUsd: number;
+  profile?: MonthlyCostProfile; groceries?: MonthlyGroceryProduct[]; district?: PostalCodeDistrict;
+  housing?: { observedAt: string; retrievedAt: string; sourceUrl: string };
+  datasetVersion?: string; housingDatasetVersion?: string; coff?: number; rentPerM2?: number;
+  monthlyRent?: number; monthlyGroceries?: number; monthlyOther?: number; monthlyTotal?: number;
+  rentApplies?: boolean; housingSituation?: string; addressRevision?: number; verificationStatus?: string; recalculationJobId?: number;
+};
+export type MonthlyCostDraft = { apartmentSize: string; rentSharers: number; groceryQuantities?: Record<string, string>; otherSpending?: string; postalCode?: string; expectedRevision?: number; refreshDataset?: boolean };
 export type DemoSignalSettings = { locationEnabled: boolean; socialEnabled: boolean; permissionGeneration: number };
 export type DemoSignalReport = Record<string, unknown>;
 

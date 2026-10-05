@@ -1,151 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { Icon, type IconName } from './common/Icon';
 
-type NavLinkItem = {
-  to: string;
-  label: string;
-};
-
-const NAV_LINKS: NavLinkItem[] = [
-  { to: '/stores', label: 'Demo Stores' },
-  { to: '/how-it-works', label: 'How It Works' },
-  { to: '/about-us', label: 'About Us' },
+const publicLinks: {to:string;label:string;icon:IconName}[] = [
+  {to:'/stores',label:'Stores',icon:'store'},
+  {to:'/how-it-works',label:'How it works',icon:'info'},
+  {to:'/for-businesses',label:'For businesses',icon:'building'},
 ];
-
-const ACCOUNT_LINKS: NavLinkItem[] = [
-  { to: '/account-dashboard', label: 'Dashboard' },
-  { to: '/history', label: 'History' },
-  { to: '/applications', label: 'Applications' },
+const accountLinks: {to:string;label:string;icon:IconName}[] = [
+  {to:'/account-dashboard',label:'Dashboard',icon:'chart'},
+  {to:'/history',label:'History',icon:'clock'},
+  {to:'/applications',label:'Applications',icon:'file'},
 ];
-
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading, logout } = useAuth();
-  const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/', { replace: true });
-  };
-
-  const accountControls = (block: boolean) =>
-    loading ? null : user ? (
-      <>
-        {ACCOUNT_LINKS.map(({ to, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `${block ? 'block' : 'hidden lg:inline-flex'} text-sm font-medium transition-smooth ${
-                isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
-              }`
-            }
-          >
-            {label}
-          </NavLink>
-        ))}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className={`btn-secondary px-4 py-2 text-sm ${block ? 'block w-full' : ''}`}
-          title={`Signed in as ${user.email}`}
-        >
-          Sign out
-        </button>
-      </>
-    ) : (
-      <>
-        <NavLink
-          to="/login"
-          className={({ isActive }) =>
-            `${block ? 'block' : 'hidden sm:inline-flex'} text-sm font-medium transition-smooth ${
-              isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'
-            }`
-          }
-        >
-          Sign In
-        </NavLink>
-        <Link to="/register" className={`btn-gradient px-4 py-2 text-sm ${block ? 'block text-center' : ''}`}>
-          Get Started
-        </Link>
-      </>
-    );
-
+  const {user, loading, logout} = useAuth();
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const [open,setOpen] = useState(false);
+  useEffect(() => {setOpen(false);},[location.pathname,location.search]);
   useEffect(() => {
-    setIsMobileOpen(false);
-  }, [location.pathname]);
-
-  return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 shadow-soft backdrop-blur-sm">
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
-            <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold text-gray-800">Rocket Credit</span>
-        </Link>
-
-        <div className="hidden items-center space-x-8 md:flex">
-          {NAV_LINKS.map(({ to, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `font-medium transition-smooth ${isActive ? 'text-primary' : 'text-gray-600 hover:text-primary'}`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
-        </div>
-
-        <div className="flex items-center space-x-4">
-          {accountControls(false)}
-          <button
-            type="button"
-            className="rounded-lg p-2 transition-smooth hover:bg-gray-100 md:hidden"
-            onClick={() => setIsMobileOpen((prev) => !prev)}
-            aria-label="Toggle navigation menu"
-            aria-expanded={isMobileOpen}
-          >
-            <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d={isMobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
-              />
-            </svg>
-          </button>
-        </div>
-      </nav>
-
-      {isMobileOpen && (
-        <div className="border-t border-gray-100 bg-white px-4 pb-6 pt-4 shadow-soft md:hidden">
-          <div className="space-y-4">
-            {NAV_LINKS.map(({ to, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `block font-medium transition-smooth ${
-                    isActive ? 'text-primary' : 'text-gray-700 hover:text-primary'
-                  }`
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
-            <div className="space-y-3 pt-3">{accountControls(true)}</div>
-          </div>
-        </div>
-      )}
-    </header>
-  );
+    const close = (event:KeyboardEvent) => {if(event.key === 'Escape' && open) {setOpen(false);menuButton.current?.focus();}};
+    document.addEventListener('keydown',close);
+    return () => document.removeEventListener('keydown',close);
+  },[open]);
+  const links = [...publicLinks,...(!loading && user ? accountLinks : [])];
+  const items = <>
+    {links.map(item => <NavLink key={item.to} to={item.to} className={({isActive}) => 'flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition-colors ' + (isActive ? 'bg-white/15 text-white' : 'text-primary-100 hover:bg-white/10 hover:text-white')}><Icon name={item.icon} />{item.label}</NavLink>)}
+    {!loading && (user ? <button type="button" className="flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold text-white hover:bg-white/10" onClick={async () => {await logout();navigate('/',{replace:true});}}><Icon name="logout" />Sign out</button> : <>
+      <NavLink to="/login" className="flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold text-white hover:bg-white/10"><Icon name="user" />Sign in</NavLink>
+      <Link to="/register" className="btn-secondary text-sm">Create account<Icon name="arrow" /></Link>
+    </>)}
+  </>;
+  return <header className="sticky top-0 z-50 border-b border-primary-700 bg-primary text-white">
+    <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded focus:bg-white focus:p-3 focus:text-primary">Skip to content</a>
+    <nav aria-label="Main navigation" className="flex min-h-16 items-center justify-between gap-4 px-4 py-2 md:px-6">
+      <Link to="/" className="flex min-h-11 shrink-0 items-center gap-3"><Icon name="layers" className="h-7 w-7" /><span className="text-xl font-bold tracking-tight">Rocket Credit</span><span className="rounded border border-primary-400 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-100">Demo</span></Link>
+      <div className="hidden items-center gap-1 xl:flex">{items}</div>
+      <button ref={menuButton} type="button" className="flex min-h-11 min-w-11 items-center justify-center rounded-md hover:bg-white/10 xl:hidden" aria-label="Toggle navigation menu" aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen(!open)}><Icon name={open ? 'close':'menu'} /></button>
+    </nav>
+    {open && <nav id="mobile-navigation" aria-label="Mobile navigation" className="grid max-h-[calc(100dvh-5rem)] gap-1 overflow-y-auto border-t border-primary-700 px-4 pb-4 pt-2 xl:hidden">{items}</nav>}
+  </header>;
 };
-
 export default Header;

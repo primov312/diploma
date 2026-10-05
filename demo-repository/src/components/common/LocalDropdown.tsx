@@ -126,7 +126,7 @@ export default function LocalDropdown({
         aria-expanded={open}
         onClick={() => open ? setOpen(false) : showMenu()}
         onKeyDown={onButtonKeyDown}
-        className="flex min-h-[42px] w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-800 shadow-sm transition-colors hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
+        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md border border-gray-400 bg-white px-3 py-2 text-left text-sm text-gray-800 transition-colors hover:border-gray-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
       >
         <span className={selected ? '' : 'text-gray-500'}>{selected?.label ?? placeholder}</span>
         <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}>
@@ -134,7 +134,7 @@ export default function LocalDropdown({
         </svg>
       </button>
       {open && (
-        <div className="absolute z-50 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-gray-100 bg-white p-1.5 shadow-xl ring-1 ring-black/5" role="listbox" aria-label={ariaLabel}>
+        <div className="absolute z-50 mt-2 max-h-64 w-full overflow-auto rounded-md border border-gray-100 bg-white p-1.5 shadow-sm" role="listbox" aria-label={ariaLabel}>
           {menuOptions.map((option, index) => {
             const isSelected = option.value === value;
             return (
@@ -148,7 +148,7 @@ export default function LocalDropdown({
                 onClick={() => selectOption(option)}
                 onKeyDown={onOptionKeyDown}
                 onMouseEnter={() => setActiveIndex(index)}
-                className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${isSelected ? 'bg-primary-50 font-medium text-primary-700' : 'text-gray-700 hover:bg-gray-50'} focus:bg-primary-50 focus:outline-none`}
+                className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-sm transition-colors ${isSelected ? 'bg-primary-50 font-medium text-primary-700' : 'text-gray-700 hover:bg-gray-50'} focus:bg-primary-50 focus:outline-none`}
               >
                 <span>{option.label}</span>
                 {isSelected && <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-primary"><path d="m4.5 10 3.5 3.5 7.5-7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>}

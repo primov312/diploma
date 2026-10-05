@@ -1,4 +1,5 @@
 import { api, apiMultipart } from './client';
+import type { MonthlyCostDraft, MonthlyLivingCosts, PostalCodeDistrict } from './types';
 import type { Address, AddressSaveRequest, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, SocialConnection, FinancialInputs, FinancialInputsSaveResult, FinancialProfile, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SaveFinancialInputs, SubmitApplication, Transaction } from './types';
 
 export const partnersApi = {
@@ -17,6 +18,10 @@ export const meApi = {
   recalculate: () => api<RecalculationAccepted>('/api/me/affordability/recalculate', { method: 'POST' }),
   analysisJob: (id: number) => api<AnalysisJob>(`/api/me/analysis-jobs/${id}`),
   address: () => api<Address>('/api/me/address'),
+  postalCodeDistrict: (postalCode: string) => api<PostalCodeDistrict>(`/api/address/postal-code?postalCode=${encodeURIComponent(postalCode)}`),
+  monthlyLivingCosts: () => api<MonthlyLivingCosts>('/api/me/monthly-living-costs'),
+  previewMonthlyLivingCosts: (body: MonthlyCostDraft) => api<MonthlyLivingCosts>('/api/me/monthly-living-costs/preview', { method: 'POST', body }),
+  saveMonthlyLivingCosts: (body: MonthlyCostDraft) => api<MonthlyLivingCosts>('/api/me/monthly-living-costs', { method: 'PUT', body }),
   saveAddress: (body: AddressSaveRequest) => api<AddressSaveResult>('/api/me/address', { method: 'PUT', body }),
   districts: () => api<DistrictCost[]>('/api/local-costs'),
   researchLocalCosts: (districtId: string) =>

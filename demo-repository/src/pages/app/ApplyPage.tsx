@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { applicationsApi, partnersApi } from '../../api/rocket';
 import type { PartnerDetail } from '../../api/types';
-import { Card, Loading, Notice, Page } from '../../components/app/Ui';
+import { Card, Loading, Notice, Page, SyntheticTag } from '../../components/app/Ui';
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { formatCurrency, hufToUsd, usdToHuf } from '../../utils/format';
 import LocalDropdown from '../../components/common/LocalDropdown';
@@ -80,9 +80,9 @@ const ApplyPage = () => {
   };
 
   return (
-    <Page title="Apply for financing" subtitle="Choose a store and an amount. The decision is explained and saved to your account; no money is moved.">
+    <Page title="Apply for financing" subtitle="Choose a store and amount. Review your saved demo decision after submitting.">
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card title="Your request" icon="file" className="lg:col-span-2">
           {partners.status === 'loading' && <Loading />}
           {partners.status === 'error' && <Notice tone="error">{errorMessage(partners.error)}</Notice>}
           {partners.status === 'ready' && (
@@ -141,27 +141,24 @@ const ApplyPage = () => {
                 <span className="text-sm">
                   <span className="font-medium text-gray-800">Use AI analysis for this request</span>
                   <br />
-                  <span className="text-gray-600">Adds a trained model’s risk estimate to the rules. If no model is available, the rules alone decide and the result says so.</span>
+                  <span className="text-gray-600">Adds a model risk estimate when available. Otherwise the decision uses rules.</span>
                 </span>
               </label>
 
               {error && <Notice tone="error">{error}</Notice>}
 
-              <button type="submit" className="btn-gradient w-full py-3 disabled:opacity-60" disabled={submitting} aria-busy={submitting}>
+              <button type="submit" className="btn-primary w-full py-3 disabled:opacity-60" disabled={submitting} aria-busy={submitting}>
                 {submitting ? 'Checking…' : 'Submit request'}
               </button>
             </form>
           )}
         </Card>
 
-        <Card title="What happens" className="text-sm text-gray-600">
-          <ol className="list-decimal space-y-2 pl-5">
-            <li>Your request is checked against the store’s limit.</li>
-            <li>Your profile, purchase history with this store and synthetic financial profile are turned into features.</li>
-            <li>The analysis service applies transparent rules (and the AI model if enabled) and explains the result.</li>
-            <li>The request, the features and the decision are saved together. You can revisit it any time.</li>
-          </ol>
-          <p className="mt-4 text-xs text-gray-500">Outcomes are approved, not approved or needs review. “Needs review” means the automatic check was inconclusive. This is a demonstration: no payment or transfer happens.</p>
+        <Card icon="info" title="What happens" className="text-sm text-gray-600">
+          <SyntheticTag>Demo application</SyntheticTag>
+          <ol className="mt-4 list-decimal space-y-3 pl-5"><li>Check the store limit and your account information.</li><li>Review the decision and its reasons.</li><li>Reopen the saved request in Applications.</li></ol>
+          <p className="mt-4">No real lending or payments. Outcomes are approved, not approved or needs review.</p>
+          <details className="mt-5"><summary>How the request is assessed</summary><p>Your profile, purchase history and synthetic financial information are evaluated by rules and the AI model when selected and available. The request and decision are saved together. Needs review indicates an inconclusive automatic check.</p></details>
         </Card>
       </div>
     </Page>

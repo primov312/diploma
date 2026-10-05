@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { applicationsApi } from '../../api/rocket';
-import { Card, LinkButton, Loading, Notice, Page, StatusBadge } from '../../components/app/Ui';
+import { Card, LinkButton, Loading, Notice, Page, StatusBadge, SyntheticTag } from '../../components/app/Ui';
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { formatCurrency, usdToHuf } from '../../utils/format';
 import { AI_STATUS_TEXT, FACTOR_LABEL, STATUS_TEXT, reasonText } from '../../utils/reasons';
@@ -35,16 +35,16 @@ const ApplicationDetailPage = () => {
         <Card className="lg:col-span-2">
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={a.decisionStatus} />
-            <span className="text-sm text-gray-600">score {a.score.toFixed(2)} · policy {a.policyVersion}{a.modelVersion ? ` · model ${a.modelVersion}` : ''}</span>
+            <SyntheticTag>Demo decision</SyntheticTag>
           </div>
           <p className="mt-4 text-gray-700">{status.summary}</p>
 
           <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-gray-100 p-4">
+            <div className="rounded-md border border-gray-100 p-4">
               <dt className="text-sm text-gray-600">Requested</dt>
               <dd className="text-2xl font-bold text-gray-800">{formatCurrency(a.requestedAmount)}</dd>
             </div>
-            <div className="rounded-xl border border-gray-100 p-4">
+            <div className="rounded-md border border-gray-100 p-4">
               <dt className="text-sm text-gray-600">Possible amount at this store</dt>
               <dd className="text-2xl font-bold text-gray-800">{formatCurrency(a.possibleAmount)}</dd>
             </div>
@@ -68,31 +68,32 @@ const ApplicationDetailPage = () => {
           ) : (
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
               {a.reasons.map((code) => (
-                <li key={code}>{reasonText(code)} <span className="text-xs text-gray-400">({code})</span></li>
+                <li key={code}>{reasonText(code)} </li>
               ))}
             </ul>
           )}
-          <p className="mt-4 text-xs text-gray-500">{AI_STATUS_TEXT[a.aiStatus]}</p>
+          <p className="mt-4 text-sm text-gray-600">{AI_STATUS_TEXT[a.aiStatus]}</p>
+          <details className="mt-5"><summary>Decision details</summary><p>score {a.score.toFixed(2)} · policy {a.policyVersion}{a.modelVersion ? ` · model ${a.modelVersion}` : ''}</p><p className="mt-2">Features prepared {a.preparationMode.toLowerCase()} at {new Date(a.observedAt).toLocaleString()}.</p><p className="mt-2">{a.reasons.join(' · ')}</p></details>
         </Card>
 
-        <Card title="Factors">
+        <Card title="Factors" icon="chart">
           <ul className="space-y-4 text-sm">
             {Object.entries(a.factors).map(([key, f]) => (
               <li key={key}>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium text-gray-800">{FACTOR_LABEL[key] ?? key}</span>
                   <span className="text-gray-600">{f.score === null ? (key === 'affordability' ? 'check' : 'no evidence') : `${(f.score * 100).toFixed(0)} / 100`}{f.weight > 0 ? ` · weight ${Math.round(f.weight * 100)}%` : ''}</span>
                 </div>
                 {f.score !== null && (
                   <div className="mt-1 h-2 rounded-full bg-gray-100" aria-hidden="true">
-                    <div className="h-2 rounded-full bg-gradient-primary" style={{ width: `${Math.round(f.score * 100)}%` }} />
+                    <div className="h-2 rounded-full bg-accent" style={{ width: `${Math.round(f.score * 100)}%` }} />
                   </div>
                 )}
                 {f.reasons.length > 0 && <div className="mt-1 text-xs text-gray-500">{f.reasons.map(reasonText).join(' ')}</div>}
               </li>
             ))}
           </ul>
-          <p className="mt-6 text-xs text-gray-500">Features prepared {a.preparationMode.toLowerCase()} at {new Date(a.observedAt).toLocaleTimeString()}. No money is moved by any outcome.</p>
+          <p className="mt-6 text-xs text-gray-500">Demo result. No lending, payments or transfers.</p>
         </Card>
       </div>
     </Page>

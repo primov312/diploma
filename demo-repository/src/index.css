@@ -1,138 +1,34 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap');
-
+@font-face {
+  font-family:"Source Sans 3";
+  font-style:normal;
+  font-weight:200 900;
+  font-display:swap;
+  src:url('/fonts/source-sans-3-variable.woff2') format('woff2');
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --color-primary: #FF69B4;
-    --color-primary-50: #FDF2F8;
-    --color-primary-100: #FCE7F3;
-    --color-primary-200: #FBCFE8;
-    --color-primary-300: #F9A8D4;
-    --color-primary-400: #F472B6;
-    --color-primary-500: #FF69B4;
-    --color-primary-600: #EC4899;
-    --color-primary-700: #BE185D;
-    --color-primary-800: #9D174D;
-    --color-primary-900: #831843;
-    --color-secondary: #E6E6FA;
-    --color-secondary-50: #F8FAFC;
-    --color-secondary-100: #F1F5F9;
-    --color-secondary-200: #E2E8F0;
-    --color-secondary-300: #CBD5E1;
-    --color-secondary-400: #94A3B8;
-    --color-secondary-500: #E6E6FA;
-    --color-secondary-600: #64748B;
-    --color-secondary-700: #475569;
-    --color-secondary-800: #334155;
-    --color-secondary-900: #1E293B;
-    --color-accent: #40E0D0;
-    --color-accent-50: #F0FDFA;
-    --color-accent-100: #CCFBF1;
-    --color-accent-200: #99F6E4;
-    --color-accent-300: #5EEAD4;
-    --color-accent-400: #2DD4BF;
-    --color-accent-500: #40E0D0;
-    --color-accent-600: #0D9488;
-    --color-accent-700: #0F766E;
-    --color-accent-800: #115E59;
-    --color-accent-900: #134E4A;
-    --color-success: #48BB78;
-    --color-success-50: #F0FDF4;
-    --color-success-100: #DCFCE7;
-    --color-success-500: #48BB78;
-    --color-success-600: #22C55E;
-    --color-success-700: #16A34A;
-    --color-warning: #ED8936;
-    --color-warning-50: #FFFBEB;
-    --color-warning-100: #FEF3C7;
-    --color-warning-500: #ED8936;
-    --color-warning-600: #F59E0B;
-    --color-warning-700: #D97706;
-    --color-error: #F56565;
-    --color-error-50: #FEF2F2;
-    --color-error-100: #FEE2E2;
-    --color-error-500: #F56565;
-    --color-error-600: #EF4444;
-    --color-error-700: #DC2626;
-    --color-border: #E2E8F0;
-    --color-border-light: #F1F5F9;
-    --color-background: #FAFAFA;
-    --color-surface: #FFFFFF;
-    --color-text-primary: #2D3748;
-    --color-text-secondary: #718096;
-    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
-    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-    --shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.1);
-  }
-
-  html {
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
-
-  body {
-    @apply bg-secondary-50 text-secondary-900 antialiased;
-  }
+  :root { --color-primary:#13243B; --color-accent:#355D85; --color-background:#F1F4F8; --color-surface:#FAFBFD; --color-text-primary:#1D2B3F; --color-text-secondary:#526278; --color-border:#D4DDE7; }
+  body { @apply bg-secondary-50 text-gray-800 antialiased; font-variant-numeric:tabular-nums; }
+  button, input, select, textarea { font:inherit; }
+  button, a, input, select, summary { -webkit-tap-highlight-color:transparent; }
+  :focus-visible { outline:3px solid #577DA3; outline-offset:3px; }
+  summary { cursor:pointer; font-weight:600; }
+  details { @apply border-t border-gray-200 pt-3 text-sm text-gray-600; }
+  details > summary { @apply text-gray-800; }
+  details[open] > summary { @apply mb-3; }
+  button:disabled { cursor:not-allowed; opacity:.6; }
 }
-
 @layer components {
-  .btn-primary {
-    @apply rounded-lg bg-primary text-white font-semibold py-3 px-6 shadow-card transition-smooth;
-    box-shadow: var(--shadow-card);
-  }
-
-  .btn-primary:hover {
-    @apply opacity-90;
-    box-shadow: var(--shadow-hover);
-  }
-
-  .btn-secondary {
-    @apply rounded-lg border border-gray-200 bg-white text-gray-800 font-semibold py-3 px-6 shadow-card transition-smooth;
-    box-shadow: var(--shadow-card);
-  }
-
-  .btn-secondary:hover {
-    @apply bg-gray-50;
-    box-shadow: var(--shadow-hover);
-  }
-
-  .btn-gradient {
-    @apply rounded-lg text-white font-semibold py-3 px-6 transition-smooth shadow-card;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-    box-shadow: var(--shadow-card);
-  }
-
-  .btn-gradient:hover {
-    @apply opacity-90;
-    box-shadow: var(--shadow-hover);
-  }
-
-  .form-input {
-    @apply rounded-lg border border-gray-200 px-4 py-3 text-gray-800 placeholder-gray-500 transition-smooth focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none;
-  }
+  .btn-primary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 font-semibold text-white transition-colors hover:bg-primary-700; }
+  .btn-secondary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-5 py-2.5 font-semibold text-gray-800 transition-colors hover:bg-gray-100; }
+  .form-input { @apply min-h-11 rounded-md border border-gray-400 bg-white px-3 py-2 text-gray-800 placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20; }
+  .page-shell { @apply w-full px-4 py-6 md:px-6; }
+  .eyebrow { @apply text-xs font-semibold uppercase tracking-widest; }
 }
-
 @layer utilities {
-  .transition-smooth {
-    transition: all 300ms ease-out;
-  }
-
-  .transition-quick {
-    transition: all 200ms ease-out;
-  }
-
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
-  }
-
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-
-  .shadow-hover {
-    box-shadow: var(--shadow-hover);
-  }
+  .transition-smooth, .transition-quick { transition:background-color 150ms ease-out,color 150ms ease-out,border-color 150ms ease-out; }
 }
+@media (prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }

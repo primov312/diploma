@@ -11,7 +11,7 @@ const HistoryPage = () => {
   const list = useApi(() => transactionsApi.list(partner || undefined), [partner]);
 
   return (
-    <Page title="Purchase history" subtitle="Seeded purchases at the three demo stores. This is history, not credit.">
+    <Page title="Purchase history" subtitle="Your synthetic purchase history across demo stores.">
       <Card>
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <label htmlFor="partner" className="text-sm font-medium text-gray-700">Store</label>
@@ -30,8 +30,8 @@ const HistoryPage = () => {
         {list.status === 'error' && <Notice tone="error">{errorMessage(list.error)}</Notice>}
         {list.status === 'ready' && list.data.length === 0 && <Empty>No purchases for this selection.</Empty>}
         {list.status === 'ready' && list.data.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto" role="region" aria-label="Purchase history table" tabIndex={0}>
+            <table className="w-full text-sm"><caption className="sr-only">Synthetic purchases by store</caption>
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-gray-500">
                   <th className="py-2 pr-4">Date</th>

@@ -1,124 +1,48 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ApiError } from '../../api/client';
-import { hufToUsd, usdToHuf } from '../../utils/format';
 import { meApi } from '../../api/rocket';
-import type { ExpenseMode, FinancialInputs, HousingSituation, SaveFinancialInputs } from '../../api/types';
+import type { HousingSituation } from '../../api/types';
+import { formatCurrency } from '../../utils/format';
 import { errorMessage, useApi } from '../../hooks/useApi';
-import { Card, Loading, Notice } from '../app/Ui';
+import { Card, Loading, Notice, SyntheticTag } from '../app/Ui';
 import LocalDropdown from '../common/LocalDropdown';
-
-type AmountKey = 'monthlyNetIncome' | 'housingCost' | 'groceriesCost' | 'utilitiesCost' | 'transportCost' | 'otherLivingCosts' | 'legacyLivingExpenses' | 'monthlyObligations';
-const amountFields: { key: AmountKey; label: string }[] = [
-  { key: 'monthlyNetIncome', label: 'Monthly net income' },
-  { key: 'housingCost', label: 'Housing' },
-  { key: 'groceriesCost', label: 'Groceries' },
-  { key: 'utilitiesCost', label: 'Utilities' },
-  { key: 'transportCost', label: 'Transport' },
-  { key: 'otherLivingCosts', label: 'Other living costs' },
-  { key: 'legacyLivingExpenses', label: 'Aggregate living expenses' },
-  { key: 'monthlyObligations', label: 'Existing monthly debt payments' },
-];
-const money = (value: number | null) => value == null ? '' : usdToHuf(value).toFixed(2);
-const parse = (value: string): number | null => value.trim() === '' ? null : hufToUsd(Number(value));
 
 export function FinancialInputsForm({ onSaved }: { onSaved: () => void }) {
   const loaded = useApi(() => meApi.financialInputs(), []);
-  const [revision, setRevision] = useState(1);
-  const [values, setValues] = useState<Record<AmountKey, string>>({
-    monthlyNetIncome: '', housingCost: '', groceriesCost: '', utilitiesCost: '', transportCost: '',
-    otherLivingCosts: '', legacyLivingExpenses: '', monthlyObligations: '',
-  });
   const [housing, setHousing] = useState<HousingSituation>('OTHER');
-  const [mode, setMode] = useState<ExpenseMode>('AGGREGATE');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-
-  useEffect(() => {
-    if (loaded.status !== 'ready') return;
-    const i: FinancialInputs = loaded.data;
-    setRevision(i.revision);
-    setMode(i.expenseMode);
-    setHousing(i.housingSituation);
-    setValues({
-      monthlyNetIncome: money(i.monthlyNetIncome), housingCost: money(i.housingCost),
-      groceriesCost: money(i.groceriesCost), utilitiesCost: money(i.utilitiesCost),
-      transportCost: money(i.transportCost), otherLivingCosts: money(i.otherLivingCosts),
-      legacyLivingExpenses: money(i.legacyLivingExpenses), monthlyObligations: money(i.monthlyObligations),
-    });
-  }, [loaded.status, loaded.status === 'ready' ? loaded.data.revision : null]);
-
-  const setAmount = (key: AmountKey, value: string) => setValues((current) => ({ ...current, [key]: value }));
-  const field = (key: AmountKey, label: string, required: boolean) => (
-    <label key={key} className="block text-sm font-medium text-gray-700">
-      {label}{required && <span aria-hidden="true"> *</span>}
-      <div className="mt-1 flex rounded-lg border border-gray-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary-100">
-        <span className="px-3 py-2 text-gray-500">Ft</span>
-        <input type="number" min="0" step="0.01" inputMode="decimal" value={values[key]}
-          onChange={(event) => setAmount(key, event.target.value)} required={required}
-          className="w-full rounded-r-lg border-0 bg-transparent px-2 py-2 focus:outline-none focus:ring-0" />
-      </div>
-    </label>
-  );
-
+  useEffect(() => { if (loaded.status === 'ready') setHousing(loaded.data.housingSituation); }, [loaded.status, loaded.data?.revision]);
   const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(''); setNotice(''); setSaving(true);
-    const decimal = Object.fromEntries(amountFields.map(({ key }) => [key, parse(values[key])])) as Record<AmountKey, number | null>;
-    const invalidAmount = amountFields.some(({ key }) => {
-      const raw = values[key].trim();
-      return raw !== '' && (!/^\d{1,10}(\.\d{1,2})?$/.test(raw) || Number(raw) > 9999999999.99);
-    });
-    if (invalidAmount) {
-      setError('Enter non-negative amounts with up to two decimal places.'); setSaving(false); return;
-    }
-    const body: SaveFinancialInputs = {
-      expectedRevision: revision, monthlyNetIncome: decimal.monthlyNetIncome,
-      housingSituation: housing, expenseMode: mode,
-      housingCost: mode === 'ITEMIZED' ? decimal.housingCost : null,
-      groceriesCost: mode === 'ITEMIZED' ? decimal.groceriesCost : null,
-      utilitiesCost: mode === 'ITEMIZED' ? decimal.utilitiesCost : null,
-      transportCost: mode === 'ITEMIZED' ? decimal.transportCost : null,
-      otherLivingCosts: mode === 'ITEMIZED' ? decimal.otherLivingCosts : null,
-      legacyLivingExpenses: mode === 'AGGREGATE' ? decimal.legacyLivingExpenses : null,
-      monthlyObligations: decimal.monthlyObligations ?? 0,
-    };
+    event.preventDefault(); if (loaded.status !== 'ready') return;
+    setSaving(true); setError(''); setNotice('');
     try {
-      const result = await meApi.saveFinancialInputs(body);
-      setRevision(result.inputs.revision);
-      setNotice('Saved. Your estimate is recalculating.');
-      onSaved();
-    } catch (cause) {
-      setError(cause instanceof ApiError && cause.code === 'REVISION_CONFLICT'
-        ? 'These inputs changed in another session. Reload the latest values before saving again.'
-        : errorMessage(cause instanceof Error ? cause : new Error(String(cause))));
-    } finally { setSaving(false); }
+      await meApi.saveFinancialInputs({ expectedRevision: loaded.data.revision, housingSituation: housing, expenseMode: 'AUTOMATIC' });
+      setNotice('Housing situation saved. Automatic costs are recalculating.'); loaded.reload(); onSaved();
+    } catch (cause) { setError(errorMessage(cause instanceof Error ? cause : new Error(String(cause)))); }
+    finally { setSaving(false); }
   };
-
-  return <Card title="Financial information">
-    {loaded.status === 'loading' && <Loading label="Loading saved inputs…" />}
+  return <Card title="Financial information" icon="wallet">
+    {loaded.status === 'loading' && <Loading label="Loading financial information…" />}
     {loaded.status === 'error' && <Notice tone="error">{errorMessage(loaded.error)}</Notice>}
-    {loaded.status === 'ready' && <form onSubmit={submit} className="space-y-5">
-      <p className="text-sm text-gray-600">Amounts are monthly HUF. Income is declared information and is not independently verified.</p>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {field('monthlyNetIncome', 'Net income', false)}
-        {field('monthlyObligations', 'Existing debt payments', true)}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-sm font-medium text-gray-700">Housing situation
-          <LocalDropdown value={housing} onValueChange={(value) => setHousing(value as HousingSituation)} className="mt-1 w-full"
+    {loaded.status === 'ready' && <form onSubmit={submit} className="grid gap-6 xl:grid-cols-[minmax(16rem,0.65fr)_minmax(0,1.35fr)]">
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">Save your housing situation to update automatic living costs.</p>
+        <div><label htmlFor="housing-situation" className="block text-sm font-medium text-gray-700">Housing situation</label>
+          <LocalDropdown id="housing-situation" value={housing} onValueChange={value => setHousing(value as HousingSituation)} className="mt-1 w-full"
             options={[{ value: 'RENTING', label: 'Renting' }, { value: 'OWNER', label: 'Owner' }, { value: 'FAMILY', label: 'Living with family' }, { value: 'OTHER', label: 'Other' }]} />
-        </label>
-        <label className="text-sm font-medium text-gray-700">Expense mode
-          <LocalDropdown value={mode} onValueChange={(value) => setMode(value as ExpenseMode)} className="mt-1 w-full"
-            options={[{ value: 'AGGREGATE', label: 'Aggregate expenses' }, { value: 'ITEMIZED', label: 'Itemized expenses' }]} />
-        </label>
+        </div>
+        {error && <Notice tone="error">{error}</Notice>}{notice && <Notice>{notice}</Notice>}
+        <button type="submit" disabled={saving} className="btn-primary text-sm">{saving ? 'Saving…' : 'Save housing situation'}</button>
       </div>
-      {mode === 'AGGREGATE' ? <div className="max-w-sm">{field('legacyLivingExpenses', 'Aggregate monthly living expenses', true)}</div> :
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{amountFields.slice(1, 6).map(({ key, label }) => field(key, label, true))}</div>}
-      <p className="text-xs text-gray-500">Source for these saved values: <strong>{loaded.data.source}</strong>. Saving edits labels the new revision USER_DECLARED.</p>
-      {error && <Notice tone="error">{error}</Notice>}{notice && <Notice>{notice}</Notice>}
-      <button type="submit" disabled={saving} className="btn-gradient px-5 py-2 text-sm disabled:opacity-60">{saving ? 'Saving…' : 'Save financial information'}</button>
+      <div className="space-y-4">
+        <SyntheticTag />
+        <dl className="grid gap-4 sm:grid-cols-2">
+          <div className="border-t border-gray-200 pt-3"><dt className="text-sm text-gray-600">Monthly net income</dt><dd className="mt-1 text-2xl font-semibold">{loaded.data.monthlyNetIncome == null ? 'Unavailable' : formatCurrency(loaded.data.monthlyNetIncome)}</dd></div>
+          <div className="border-t border-gray-200 pt-3"><dt className="text-sm text-gray-600">Existing monthly debt payments</dt><dd className="mt-1 text-2xl font-semibold">{formatCurrency(loaded.data.monthlyObligations)}</dd></div>
+        </dl>
+        <details><summary>How living expenses are calculated</summary><p>Income and debt come from the supplied demo profile. Living costs use researched prices and synthetic location history in Address &amp; costs. The supplied expense baseline remains a minimum. Verify your address to apply researched references; until then, the estimate uses that baseline.</p></details>
+      </div>
     </form>}
   </Card>;
 }

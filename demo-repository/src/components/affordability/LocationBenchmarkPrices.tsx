@@ -15,11 +15,11 @@ function visitPricing(value: unknown): LocationVisitPricing | null {
 export function LocationPricingSummary({ value }: { value: unknown }) {
   if (!value || typeof value !== 'object') return <p className="text-xs text-gray-500">Run location analysis again to attach benchmark prices to this saved report.</p>;
   const pricing = value as LocationReportPricing;
-  return <div className="rounded-lg border border-teal-100 bg-teal-50/50 p-3 text-sm">
-    <h4 className="font-semibold text-teal-950">Estimated benchmark prices</h4>
+  return <div className="rounded-lg border border-primary-100 bg-primary-50/50 p-3 text-sm">
+    <h4 className="font-semibold text-primary-900">Estimated benchmark prices</h4>
     <p className="mt-1 text-xs text-gray-600">Synthetic visits with researched HUF references. Each benchmark is scaled by the district housing coefficient.</p>
     {!pricing.available ? <p className="mt-2 text-xs text-gray-600">Price references are not available for this report. Import a dataset and run analysis again.</p> : <details className="mt-2 text-xs text-gray-600">
-      <summary className="cursor-pointer font-medium text-teal-900">Housing reference · {displayDate(pricing.housingObservedAt)}</summary>
+      <summary className="cursor-pointer font-medium text-primary-900">Housing reference · {displayDate(pricing.housingObservedAt)}</summary>
       <dl className="mt-2 space-y-1 break-words">
         <div><dt className="inline font-medium">Dataset: </dt><dd className="inline">{pricing.datasetVersion}</dd></div>
         <div><dt className="inline font-medium">Average district rent: </dt><dd className="inline">{typeof pricing.districtAverage === 'number' ? huf.format(pricing.districtAverage) : '—'} / m² / month</dd></div>
@@ -38,7 +38,7 @@ export function LocationVisitBenchmark({ value, status }: { value: unknown; stat
   }
   return <div className="mt-1 text-xs" data-testid="location-visit-price">
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <strong className="text-teal-900">≈ {huf.format(price.estimatedPrice)} / {units[price.unit]}</strong>
+      <strong className="text-primary-900">≈ {huf.format(price.estimatedPrice)} / {units[price.unit]}</strong>
       <span className="text-gray-500">District coefficient {price.coff.toFixed(2)}×</span>
     </div>
     {price.unit === 'YEAR' && <p className="mt-1 text-gray-500">Annual membership benchmark</p>}

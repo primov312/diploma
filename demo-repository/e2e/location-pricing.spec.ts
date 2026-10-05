@@ -7,10 +7,9 @@ test.beforeAll(async ({ request }) => {
   }, { timeout: 30_000 }).toBe(200);
 });
 
-async function enableLocation(page: Page) {
-  // The controlled checkbox adopts the saved server value after the permission request completes.
-  await page.getByLabel('Allow location demo').click();
-  await expect(page.getByLabel('Allow location demo')).toBeChecked();
+async function openActivity(page: Page) {
+  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
+  await expect(page.getByRole('button', { name: 'Run location analysis' })).toBeEnabled();
 }
 
 async function register(page: Page) {
@@ -27,7 +26,9 @@ test('live imported benchmarks cover five categories, persist, and leave finance
   page.on('pageerror', error => errors.push(error.message));
   await register(page);
   const before = await (await page.request.get('/api/me/financial-inputs')).json();
-  await enableLocation(page);
+  await openActivity(page);
+  await page.getByRole('button', { name: 'Location scenario' }).click();
+  await page.getByRole('option', { name: 'budapest priced-week', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Run location analysis' })).toBeEnabled();
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/api/me/demo-signals/location-runs') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Run location analysis' }).click();
@@ -60,7 +61,7 @@ test('live imported benchmarks cover five categories, persist, and leave finance
 
 test('regular scenario keeps parks unpriced', async ({ page }) => {
   await register(page);
-  await enableLocation(page);
+  await openActivity(page);
   await page.getByRole('button', { name: 'Location scenario' }).click();
   await page.getByRole('option', { name: 'regular week', exact: true }).click();
   await page.getByRole('button', { name: 'Run location analysis' }).click();
@@ -73,6 +74,7 @@ test('older saved reports and unavailable datasets remain readable', async ({ pa
     distinctDistricts: 1, mostVisitedDistrict: 'Budapest XI', visits: [{ id: 'old-visit', district: 'Budapest XI', place: 'Cafe', arrival: '2026-09-06T12:00:00Z' }] };
   await page.route('**/api/me/demo-signals/reports?kind=LOCATION', route => route.fulfill({ json: [report] }));
   await register(page);
+  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
   await expect(page.getByText('Run location analysis again to attach benchmark prices to this saved report.')).toBeVisible();
   await expect(page.getByText('Cafe · Budapest XI', { exact: true })).toBeVisible();
   report.pricing = { available: false, method: 'Test reference method' };
