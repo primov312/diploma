@@ -49,6 +49,10 @@ def _validate(raw: Dict[str, Any]) -> Policy:
         raise ValueError("demoMultiplier must be positive")
     if raw["version"] == "rules-v2" and affordability.get("formulaVersion") != "affordability-v2":
         raise ValueError("rules-v2 must use affordability-v2")
+    if raw["version"] == "rules-v4" and affordability.get("formulaVersion") != "affordability-v4":
+        raise ValueError("rules-v4 must use affordability-v4")
+    if raw["version"] == "rules-v3" and affordability.get("formulaVersion") != "affordability-v3":
+        raise ValueError("rules-v3 must use affordability-v3")
     return Policy(
         version=str(raw["version"]),
         weights=weights,

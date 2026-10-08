@@ -1,4 +1,4 @@
-"""Pure affordability-v2 calculation shared by estimate and decision flows."""
+"""Shared versioned affordability calculation shared by estimate and decision flows."""
 from __future__ import annotations
 
 from decimal import Decimal, ROUND_DOWN
@@ -11,16 +11,33 @@ ZERO = Decimal("0")
 
 def calculate_affordability(inputs: AffordabilityInputs, policy_version: str) -> AffordabilityResponse:
     reasons: list[str] = []
+    v3 = policy_version in ("rules-v3", "rules-v4")
+    formula_version = "affordability-v4" if policy_version == "rules-v4" else "affordability-v3" if v3 else "affordability-v2"
     if inputs.monthlyNetIncome is None:
         return _unavailable(policy_version, "INCOME_MISSING")
 
-    if inputs.expenseMode == "ITEMIZED":
+    if inputs.expenseMode == "AUTOMATIC":
+        if policy_version != "rules-v4":
+            return _unavailable(policy_version, "AUTOMATIC_POLICY_REQUIRED")
+        expenses = inputs.legacyLivingExpenses
+        if inputs.referencesEligible and inputs.districtGroceryReference is not None and inputs.districtOtherReference is not None and (
+                inputs.housingSituation != "RENTING" or inputs.districtRentReference is not None):
+            reference = (inputs.districtRentReference if inputs.housingSituation == "RENTING" else ZERO) \
+                + inputs.districtGroceryReference + inputs.districtOtherReference
+            expenses = reference if expenses is None else max(expenses, reference)
+            reasons.append("AUTOMATIC_LIVING_COSTS_APPLIED")
+        elif expenses is not None:
+            reasons.append("SUPPLIED_DEMO_EXPENSE_BASELINE")
+        if expenses is None:
+            return _unavailable(policy_version, "AUTOMATIC_COSTS_UNAVAILABLE")
+    elif inputs.expenseMode == "ITEMIZED":
         categories = (inputs.housingCost, inputs.groceriesCost, inputs.utilitiesCost,
                       inputs.transportCost, inputs.otherLivingCosts)
         if any(value is None for value in categories):
             return _unavailable(policy_version, "EXPENSES_INCOMPLETE")
         rent = inputs.housingCost or ZERO
         groceries = inputs.groceriesCost or ZERO
+        other = inputs.otherLivingCosts or ZERO
         if inputs.referencesEligible:
             if inputs.housingSituation == "RENTING" and inputs.districtRentReference is not None:
                 if inputs.districtRentReference > rent:
@@ -30,13 +47,18 @@ def calculate_affordability(inputs: AffordabilityInputs, policy_version: str) ->
                 if inputs.districtGroceryReference > groceries:
                     groceries = inputs.districtGroceryReference
                     reasons.append("DISTRICT_GROCERY_FLOOR_APPLIED")
-        expenses = rent + groceries + (inputs.utilitiesCost or ZERO) + (inputs.transportCost or ZERO) + (inputs.otherLivingCosts or ZERO)
+            if v3 and inputs.districtOtherReference is not None and inputs.districtOtherReference > other:
+                other = inputs.districtOtherReference
+                reasons.append("DISTRICT_OTHER_FLOOR_APPLIED")
+        expenses = rent + groceries + (inputs.utilitiesCost or ZERO) + (inputs.transportCost or ZERO) + other
     else:
         if inputs.legacyLivingExpenses is None:
             return _unavailable(policy_version, "EXPENSES_MISSING")
         expenses = inputs.legacyLivingExpenses
         if inputs.referencesEligible:
             local_floor = (inputs.districtRentReference or ZERO if inputs.housingSituation == "RENTING" else ZERO) + (inputs.districtGroceryReference or ZERO)
+            if v3:
+                local_floor += inputs.districtOtherReference or ZERO
             if local_floor > expenses:
                 expenses = local_floor
                 reasons.append("LOCAL_COST_FLOOR_APPLIED")
@@ -61,15 +83,16 @@ def calculate_affordability(inputs: AffordabilityInputs, policy_version: str) ->
         "paymentFromDebtLimit": by_debt_limit.quantize(CENT, rounding=ROUND_DOWN),
     }
     return AffordabilityResponse(
-        formulaVersion="affordability-v2", policyVersion=policy_version, termMonths=6,
+        formulaVersion=formula_version, policyVersion=policy_version, termMonths=6,
         baseAmount=base, partnerAmount=partner, monthlyPaymentCapacity=monthly,
         breakdown=breakdown, reasons=list(dict.fromkeys(reasons)),
     )
 
 
 def _unavailable(policy_version: str, reason: str) -> AffordabilityResponse:
+    formula_version = "affordability-v4" if policy_version == "rules-v4" else "affordability-v3" if policy_version == "rules-v3" else "affordability-v2"
     return AffordabilityResponse(
-        formulaVersion="affordability-v2", policyVersion=policy_version, termMonths=6,
+        formulaVersion=formula_version, policyVersion=policy_version, termMonths=6,
         baseAmount=None, partnerAmount=None, monthlyPaymentCapacity=None,
         breakdown={}, reasons=[reason],
     )

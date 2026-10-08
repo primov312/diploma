@@ -28,7 +28,7 @@ public interface FeaturePreparation {
                     affordability.housingCost(), affordability.groceriesCost(), affordability.utilitiesCost(),
                     affordability.transportCost(), affordability.otherLivingCosts(), affordability.legacyLivingExpenses(),
                     affordability.monthlyObligations(), affordability.districtRentReference(),
-                    affordability.districtGroceryReference(), affordability.referencesEligible(), partnerCap,
+                    affordability.districtGroceryReference(), affordability.districtOtherReference(), affordability.referencesEligible(), partnerCap,
                     affordability.financialRevision(), affordability.generation());
         }
         return new FeatureBundle(requestedAmount, "USD", partnerCap, useAi, ctx.observedAt(),

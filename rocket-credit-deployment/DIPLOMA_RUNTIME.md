@@ -25,7 +25,7 @@ docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build 
 | Check | Command / URL | Expect |
 | --- | --- | --- |
 | Containers | `docker compose -f docker-compose.diploma.yml --env-file diploma/.env ps` | all `healthy` |
-| Backend + analysis | `curl -s localhost:8080/api/health` | `{"backend":"ok","analysis":"ok","policyVersion":"rules-v2"}` |
+| Backend + analysis | `curl -s localhost:8080/api/health` | `{"backend":"ok","analysis":"ok","policyVersion":"rules-v4"}` |
 | Detailed health | `curl -s localhost:8080/actuator/health` | `status: UP`, components `db` and `analysis` UP |
 | Web app | http://localhost:8080 | React app |
 | Analysis directly | not published; from inside: `docker compose ... exec backend curl -s http://analysis:8000/health` | `{"status":"ok",...}` |
@@ -33,9 +33,11 @@ docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build 
 The analysis service is only reachable on the Compose network and requires the `X-Analysis-Token`
 header (value `ANALYSIS_SHARED_SECRET`) for `/policy` and `/score`; `/health` is open for the container healthcheck.
 
-The diploma Compose file activates `app/policy-v2.json` so estimates and new application decisions share
-`affordability-v2`. Set `ANALYSIS_POLICY_PATH=app/policy.json` only when intentionally rolling both back to
-`rules-v1`. Flyway migrations preserve prior application snapshots and decisions.
+The diploma Compose file activates `app/policy-v4.json` so estimates and new application decisions share
+`affordability-v4`, including automatic verified-address budgets and location spending forecasts. Set any existing
+`ANALYSIS_POLICY_PATH` override in `diploma/.env` to the same path. Legacy `app/policy-v3.json`, `app/policy-v2.json` and
+`app/policy.json` remain available for deliberate policy rollback. Flyway migrations preserve prior
+application snapshots and decisions. See [monthly pricing setup](../docs/LOCATION_PRICING.md#monthly-living-costs-and-postal-code-lookup) for the manual V11 dataset import and V12 automatic-budget rollout.
 
 Demo analysis defaults to `ANALYSIS_DEMO_PROVIDER_MODE=FIXTURE`. For live model extraction, set
 `ANALYSIS_DEMO_PROVIDER_MODE=AI` and `GEMINI_API_KEY` in the ignored `.env`; the key is passed only to the
@@ -46,8 +48,17 @@ a key or on provider failure, estimates remain available and reports say `AI_UNA
 Address image uploads are limited to 5 MB and checked against PNG/JPEG file signatures. Processing copies
 are stored in the private `rocket-credit-diploma-address-evidence` volume and removed after processing; no
 image is served from the static web root. Only the prepared synthetic card is sent to Gemini. Other images
-receive `NEEDS_REVIEW` in this demo build. All district costs and salary comparison values are explicitly
-synthetic USD data, not Hungarian market research.
+receive `NEEDS_REVIEW` in this demo build. Monthly district rent and grocery references use the researched
+HUF snapshot described in `docs/LOCATION_PRICING.md`. Legacy salary comparison references remain synthetic
+USD data.
+
+The runtime image creates the evidence directory for backend UID 10001 with mode 700. For an existing
+volume created by an older image, repair its ownership once after starting the backend:
+
+```bash
+docker compose -f docker-compose.diploma.yml --env-file diploma/.env exec --user root backend \
+  sh -c 'chown backend:backend /var/lib/rocket-credit/address-evidence && chmod 700 /var/lib/rocket-credit/address-evidence'
+```
 
 ## Stop
 

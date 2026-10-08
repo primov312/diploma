@@ -105,7 +105,7 @@ def score(req: ScoreRequest, policy: Policy = Depends(get_policy),
 @app.post("/affordability", response_model=AffordabilityResponse, dependencies=[Depends(require_token)])
 def affordability(req: AffordabilityRequest, policy: Policy = Depends(get_policy)) -> AffordabilityResponse:
     """Pure version-dispatched estimate. It does not invoke or modify the risk model."""
-    if policy.version == "rules-v2":
+    if policy.version in ("rules-v2", "rules-v3", "rules-v4"):
         return calculate_affordability(req.inputs, policy.version)
     resolved = calculate_affordability(req.inputs, policy.version)
     if resolved.baseAmount is None:

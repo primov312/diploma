@@ -27,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AddressService {
     private final JdbcTemplate jdbc;
+    private final MonthlyCostResolver monthlyCosts;
+    private final com.rocketcredit.backend.affordability.AffordabilityJobs jobs;
     private final ObjectMapper mapper;
     private final FinancialInputsService financialInputs;
     private final AnalysisClient analysis;
@@ -36,8 +38,10 @@ public class AddressService {
     public AddressService(JdbcTemplate jdbc, ObjectMapper mapper, FinancialInputsService financialInputs,
                           AnalysisClient analysis,
                           @Value("${rocket.address.evidence-directory:${java.io.tmpdir}/rocket-credit-private}") Path evidenceDirectory,
-                          TransactionTemplate transactions) {
+                          TransactionTemplate transactions, MonthlyCostResolver monthlyCosts, com.rocketcredit.backend.affordability.AffordabilityJobs jobs) {
         this.jdbc = jdbc;
+        this.monthlyCosts = monthlyCosts;
+        this.jobs = jobs;
         this.mapper = mapper;
         this.financialInputs = financialInputs;
         this.analysis = analysis;
@@ -72,7 +76,7 @@ public class AddressService {
                 LEFT JOIN LATERAL (
                     SELECT status, created_at FROM address_verifications
                     WHERE user_id=r.user_id AND address_revision=r.revision
-                    ORDER BY created_at DESC LIMIT 1
+                    ORDER BY created_at DESC, id DESC LIMIT 1
                 ) v ON TRUE WHERE s.user_id=?
                 """, (rs, row) -> new AddressDtos.Current(true, rs.getInt("revision"),
                 rs.getString("country_code"), rs.getString("city"), rs.getString("district_id"),
@@ -92,17 +96,20 @@ public class AddressService {
         if (currentRevision != request.expectedRevision()) {
             throw ApiException.conflict("REVISION_CONFLICT", "Address changed in another session. Reload before saving.");
         }
-        var district = jdbc.query("SELECT city, country_code FROM demo_districts WHERE district_id=?",
-                rs -> rs.next() ? new String[]{rs.getString(1), rs.getString(2)} : null, request.districtId());
-        if (district == null || !district[0].equals(request.city()) || !district[1].equalsIgnoreCase(request.countryCode())) {
-            throw ApiException.badRequest("UNSUPPORTED_DISTRICT", "Choose a district from the supported Budapest catalog.");
+        var resolved = monthlyCosts.postalCode(request.postalCode().trim());
+        String districtId = resolved.path("districtId").asText();
+        if (request.districtId() != null && !request.districtId().isBlank() && !districtId.equals(request.districtId())) {
+            throw ApiException.badRequest("POSTAL_DISTRICT_MISMATCH", "District must match the submitted postal code.");
+        }
+        if (!"Budapest".equalsIgnoreCase(request.city()) || !"HU".equalsIgnoreCase(request.countryCode())) {
+            throw ApiException.badRequest("UNSUPPORTED_CITY", "Only Budapest, Hungary is supported.");
         }
         int revision = currentRevision + 1;
         jdbc.update("""
                 INSERT INTO user_address_revisions (user_id, revision, country_code, city, district_id,
                     postal_code, street, building, unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, userId, revision, request.countryCode().toUpperCase(), request.city(), request.districtId(),
-                request.postalCode(), request.street().trim(), request.building().trim(), blankToNull(request.unit()));
+                """, userId, revision, "HU", "Budapest", districtId,
+                request.postalCode().trim(), request.street().trim(), request.building().trim(), blankToNull(request.unit()));
         jdbc.update("""
                 INSERT INTO user_address_state (user_id, current_revision) VALUES (?, ?)
                 ON CONFLICT (user_id) DO UPDATE SET current_revision=EXCLUDED.current_revision,
@@ -152,6 +159,7 @@ public class AddressService {
 
     private AddressDtos.Verification recordUploadVerificationLocked(long userId, int revision, String fileId,
                                                                      String digest, JsonNode extraction) {
+        jdbc.queryForObject("SELECT generation FROM financial_input_state WHERE user_id=? FOR UPDATE", Long.class, userId);
         var addresses = jdbc.query("""
                 SELECT r.* FROM user_address_state s JOIN user_address_revisions r
                   ON r.user_id=s.user_id AND r.revision=s.current_revision WHERE s.user_id=? FOR UPDATE OF s
@@ -171,7 +179,7 @@ public class AddressService {
         boolean matches = complete && name.equalsIgnoreCase(extraction.path("addressee").asText())
                 && address.countryCode().equalsIgnoreCase(extraction.path("countryCode").asText())
                 && address.city().equalsIgnoreCase(extraction.path("city").asText())
-                && districtName.equalsIgnoreCase(extraction.path("districtName").asText())
+                && districtName.replaceFirst("(?i)^Budapest\\s+", "").equalsIgnoreCase(extraction.path("districtName").asText().replaceFirst("(?i)^Budapest\\s+", ""))
                 && address.postalCode().equalsIgnoreCase(extraction.path("postalCode").asText())
                 && address.street().equalsIgnoreCase(extraction.path("street").asText())
                 && address.building().equalsIgnoreCase(extraction.path("building").asText())
@@ -192,10 +200,8 @@ public class AddressService {
                 VALUES (?, ?, ?, ?, ?::jsonb, ?::jsonb, ?) RETURNING id
         """, Long.class, userId, revision, outcome, scenario, toJson(checks), evidenceJson, dataSource);
         long jobId = 0;
-        if (matches) {
-            long generation = scheduleRecalculation(userId, revision);
-            jobId = jdbc.queryForObject("SELECT id FROM affordability_jobs WHERE user_id=? AND generation=?", Long.class, userId, generation);
-        }
+        long generation = scheduleRecalculation(userId, revision);
+        jobId = jdbc.queryForObject("SELECT id FROM affordability_jobs WHERE user_id=? AND generation=?", Long.class, userId, generation);
         return new AddressDtos.Verification(verificationId, revision, outcome, scenario, dataSource, checks, OffsetDateTime.now(), jobId);
     }
 
@@ -216,10 +222,7 @@ public class AddressService {
                 Long.class, userId);
         if (generation == null) throw ApiException.notFound("Financial inputs");
         Integer financeRevision = jdbc.queryForObject("SELECT current_revision FROM financial_input_state WHERE user_id=?", Integer.class, userId);
-        jdbc.update("""
-                INSERT INTO affordability_jobs (user_id, generation, financial_revision)
-                VALUES (?, ?, ?) ON CONFLICT (user_id, generation) DO NOTHING
-                """, userId, generation, financeRevision);
+        jobs.enqueue(userId, generation, financeRevision);
         return generation;
     }
 

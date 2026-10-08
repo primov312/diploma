@@ -25,11 +25,13 @@ public class AffordabilityQueryService {
     private static final TypeReference<List<AffordabilityDtos.PartnerAmount>> PARTNERS = new TypeReference<>() {};
     private static final TypeReference<List<String>> REASONS = new TypeReference<>() {};
     private final JdbcTemplate jdbc;
+    private final AffordabilityJobs jobs;
     private final ObjectMapper mapper;
     private final FinancialInputsService inputs;
 
-    public AffordabilityQueryService(JdbcTemplate jdbc, ObjectMapper mapper, FinancialInputsService inputs) {
+    public AffordabilityQueryService(JdbcTemplate jdbc, ObjectMapper mapper, FinancialInputsService inputs, AffordabilityJobs jobs) {
         this.jdbc = jdbc;
+        this.jobs = jobs;
         this.mapper = mapper;
         this.inputs = inputs;
     }
@@ -41,14 +43,14 @@ public class AffordabilityQueryService {
         Integer revision = (Integer) state.get("current_revision");
         var snapshots = jdbc.query("""
                 SELECT calculated_at, generation, financial_revision, formula_version, policy_version,
-                       base_amount, monthly_payment_capacity, breakdown::text, partners::text, reasons::text
+                       base_amount, monthly_payment_capacity, breakdown::text, partners::text, reasons::text, local_cost_context::text
                 FROM affordability_snapshots WHERE user_id=? ORDER BY calculated_at DESC, id DESC LIMIT 1
                 """, AffordabilityQueryService::snapshot, userId);
         Snapshot snapshot = snapshots.isEmpty() ? null : snapshots.getFirst();
         String jobState = jdbc.query("SELECT state FROM affordability_jobs WHERE user_id=? AND generation=?",
                 rs -> rs.next() ? rs.getString(1) : null, userId, generation);
         boolean fresh = snapshot != null && snapshot.generation() == generation;
-        String status = fresh ? "READY" : switch (jobState == null ? "" : jobState) {
+        String status = fresh ? snapshot.baseAmount() == null ? "UNAVAILABLE" : "READY" : switch (jobState == null ? "" : jobState) {
             case "QUEUED", "RUNNING" -> "UPDATING";
             case "FAILED" -> "ERROR";
             default -> "UNAVAILABLE";
@@ -61,7 +63,7 @@ public class AffordabilityQueryService {
                 snapshot == null ? Map.of() : read(snapshot.breakdown(), BREAKDOWN),
                 snapshot == null ? List.of() : read(snapshot.partners(), PARTNERS),
                 snapshot == null ? List.of() : read(snapshot.reasons(), REASONS),
-                snapshot != null && !fresh);
+                snapshot != null && !fresh, snapshot == null || snapshot.localCostContext() == null ? null : readContext(snapshot.localCostContext()));
     }
 
     @Transactional(readOnly = true)
@@ -101,10 +103,7 @@ public class AffordabilityQueryService {
         List<Long> existing = jdbc.query("SELECT id FROM affordability_jobs WHERE user_id=? AND generation=?",
                 (rs, row) -> rs.getLong(1), userId, generation);
         if (!existing.isEmpty()) return existing.getFirst();
-        return jdbc.queryForObject("""
-                INSERT INTO affordability_jobs (user_id, generation, financial_revision)
-                VALUES (?, ?, ?) RETURNING id
-                """, Long.class, userId, generation, revision);
+        return jobs.enqueue(userId, generation, revision);
     }
 
     @Transactional(readOnly = true)
@@ -124,6 +123,11 @@ public class AffordabilityQueryService {
         return found.getFirst();
     }
 
+    private com.fasterxml.jackson.databind.JsonNode readContext(String json) {
+        try { return mapper.readTree(json); }
+        catch (IOException e) { throw new IllegalStateException("Invalid stored local cost context", e); }
+    }
+
     private <T> T read(String json, TypeReference<T> type) {
         try { return mapper.readValue(json, type); }
         catch (IOException e) { throw new IllegalStateException("Stored affordability snapshot is invalid", e); }
@@ -139,10 +143,10 @@ public class AffordabilityQueryService {
         return new Snapshot(rs.getObject("calculated_at", OffsetDateTime.class), rs.getLong("generation"),
                 rs.getInt("financial_revision"), rs.getString("formula_version"), rs.getString("policy_version"),
                 rs.getBigDecimal("base_amount"), rs.getBigDecimal("monthly_payment_capacity"),
-                rs.getString("breakdown"), rs.getString("partners"), rs.getString("reasons"));
+                rs.getString("breakdown"), rs.getString("partners"), rs.getString("reasons"), rs.getString("local_cost_context"));
     }
 
     private record Snapshot(OffsetDateTime calculatedAt, long generation, int financialRevision,
                             String formulaVersion, String policyVersion, BigDecimal baseAmount,
-                            BigDecimal monthlyPaymentCapacity, String breakdown, String partners, String reasons) {}
+                            BigDecimal monthlyPaymentCapacity, String breakdown, String partners, String reasons, String localCostContext) {}
 }

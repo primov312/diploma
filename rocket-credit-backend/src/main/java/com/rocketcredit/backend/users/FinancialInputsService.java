@@ -6,8 +6,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,10 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FinancialInputsService {
     private final JdbcTemplate jdbc;
+    private final com.rocketcredit.backend.affordability.AffordabilityJobs jobs;
     private final DemoFinancialProfileRepository profiles;
 
-    public FinancialInputsService(JdbcTemplate jdbc, DemoFinancialProfileRepository profiles) {
+    public FinancialInputsService(JdbcTemplate jdbc, DemoFinancialProfileRepository profiles, com.rocketcredit.backend.affordability.AffordabilityJobs jobs) {
         this.jdbc = jdbc;
+        this.jobs = jobs;
         this.profiles = profiles;
     }
 
@@ -49,32 +49,23 @@ public class FinancialInputsService {
         }
 
         validate(request);
+        var trusted = profiles.findById(userId).orElseThrow(() -> ApiException.notFound("Financial profile"));
         int revision = current + 1;
-        String source = "USER_DECLARED";
+        String source = "AUTOMATIC";
         jdbc.update("""
                 INSERT INTO financial_input_revisions (
                     user_id, revision, monthly_net_income, housing_situation, expense_mode,
                     housing_cost, groceries_cost, utilities_cost, transport_cost,
                     other_living_costs, legacy_living_expenses, monthly_obligations, source
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, userId, revision, request.monthlyNetIncome(), request.housingSituation().name(),
+                """, userId, revision, trusted.getMonthlyIncome(), request.housingSituation().name(),
                 request.expenseMode().name(), request.housingCost(), request.groceriesCost(),
                 request.utilitiesCost(), request.transportCost(), request.otherLivingCosts(),
-                request.legacyLivingExpenses(), request.monthlyObligations(), source);
+                trusted.getMonthlyExpenses(), trusted.getMonthlyObligations(), source);
         long nextGeneration = generation + 1;
         jdbc.update("UPDATE financial_input_state SET current_revision = ?, generation = ? WHERE user_id = ?",
                 revision, nextGeneration, userId);
-        var key = new GeneratedKeyHolder();
-        jdbc.update((PreparedStatementCreator) connection -> {
-            var statement = connection.prepareStatement(
-                    "INSERT INTO affordability_jobs (user_id, generation, financial_revision) VALUES (?, ?, ?)",
-                    new String[]{"id"});
-            statement.setLong(1, userId);
-            statement.setLong(2, nextGeneration);
-            statement.setInt(3, revision);
-            return statement;
-        }, key);
-        long jobId = key.getKey().longValue();
+        long jobId = jobs.enqueue(userId, nextGeneration, revision);
         return new FinancialInputsSaveResult(current(userId), nextGeneration, jobId);
     }
 
@@ -84,51 +75,25 @@ public class FinancialInputsService {
                 INSERT INTO financial_input_revisions
                     (user_id, revision, monthly_net_income, housing_situation, expense_mode,
                      legacy_living_expenses, monthly_obligations, source)
-                VALUES (?, 1, ?, 'OTHER', 'AGGREGATE', ?, ?, ?)
+                VALUES (?, 1, ?, 'OTHER', 'AUTOMATIC', ?, ?, 'AUTOMATIC')
                 ON CONFLICT (user_id, revision) DO NOTHING
-                """, userId, profile.getMonthlyIncome(), profile.getMonthlyExpenses(),
-                profile.getMonthlyObligations(), profile.getSyntheticSource().name());
+                """, userId, profile.getMonthlyIncome(), profile.getMonthlyExpenses(), profile.getMonthlyObligations());
         jdbc.update("""
                 INSERT INTO financial_input_state (user_id, current_revision) VALUES (?, 1)
                 ON CONFLICT (user_id) DO NOTHING
                 """, userId);
-        jdbc.update("""
-                INSERT INTO affordability_jobs (user_id, generation, financial_revision)
-                SELECT user_id, generation, current_revision FROM financial_input_state WHERE user_id=?
-                ON CONFLICT (user_id, generation) DO NOTHING
-                """, userId);
+        var state = jdbc.queryForMap("SELECT generation,current_revision FROM financial_input_state WHERE user_id=?", userId);
+        jobs.enqueue(userId, ((Number) state.get("generation")).longValue(), ((Number) state.get("current_revision")).intValue());
     }
 
     private static void validate(SaveFinancialInputsRequest r) {
-        if (r.monthlyNetIncome() != null && r.monthlyNetIncome().signum() < 0 ||
-                r.monthlyObligations().signum() < 0) {
-            throw ApiException.badRequest("INVALID_AMOUNT", "Financial amounts must be zero or greater");
+        if (r.expenseMode() != SaveFinancialInputsRequest.ExpenseMode.AUTOMATIC) {
+            throw ApiException.badRequest("AUTOMATIC_COSTS_REQUIRED", "Living expenses are calculated automatically.");
         }
-        if (r.expenseMode() == SaveFinancialInputsRequest.ExpenseMode.AGGREGATE) {
-            if (r.legacyLivingExpenses() == null || any(r.housingCost(), r.groceriesCost(), r.utilitiesCost(),
-                    r.transportCost(), r.otherLivingCosts())) {
-                throw ApiException.badRequest("INVALID_EXPENSES", "Aggregate mode requires only legacyLivingExpenses");
-            }
-        } else if (r.legacyLivingExpenses() != null || anyNull(r.housingCost(), r.groceriesCost(),
-                r.utilitiesCost(), r.transportCost(), r.otherLivingCosts())) {
-            throw ApiException.badRequest("INVALID_EXPENSES", "Itemized mode requires all five expense categories and no aggregate total");
+        for (BigDecimal amount : new BigDecimal[]{r.monthlyNetIncome(), r.monthlyObligations(), r.housingCost(),
+                r.groceriesCost(), r.utilitiesCost(), r.transportCost(), r.otherLivingCosts(), r.legacyLivingExpenses()}) {
+            if (amount != null) throw ApiException.badRequest("MANAGED_FINANCIAL_AMOUNT", "Financial amounts are supplied by the demo profile and pricing datasets.");
         }
-        for (BigDecimal amount : new BigDecimal[]{r.housingCost(), r.groceriesCost(), r.utilitiesCost(),
-                r.transportCost(), r.otherLivingCosts(), r.legacyLivingExpenses()}) {
-            if (amount != null && amount.signum() < 0) {
-                throw ApiException.badRequest("INVALID_AMOUNT", "Financial amounts must be zero or greater");
-            }
-        }
-    }
-
-    private static boolean any(BigDecimal... values) {
-        for (BigDecimal value : values) if (value != null) return true;
-        return false;
-    }
-
-    private static boolean anyNull(BigDecimal... values) {
-        for (BigDecimal value : values) if (value == null) return true;
-        return false;
     }
 
     private static FinancialInputsDto map(ResultSet rs, int row) throws SQLException {

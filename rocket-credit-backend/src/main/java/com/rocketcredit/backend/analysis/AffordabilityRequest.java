@@ -17,6 +17,7 @@ public record AffordabilityRequest(Inputs inputs) {
             BigDecimal monthlyObligations,
             BigDecimal districtRentReference,
             BigDecimal districtGroceryReference,
+            BigDecimal districtOtherReference,
             boolean referencesEligible,
             BigDecimal partnerCap,
             Integer financialRevision,

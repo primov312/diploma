@@ -106,7 +106,7 @@ def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiPrediction] = None
 
     # --- Affordability ---------------------------------------------------
     v2_inputs = req.affordability
-    if v2_inputs is None and policy.version == "rules-v2" and req.finance is not None:
+    if v2_inputs is None and policy.version in ("rules-v2", "rules-v3", "rules-v4") and req.finance is not None:
         from app.models import AffordabilityInputs
         v2_inputs = AffordabilityInputs(
             monthlyNetIncome=req.finance.monthlyIncome, housingSituation="OTHER",

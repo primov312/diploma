@@ -53,7 +53,7 @@ class AffordabilityInputs(BaseModel):
 
     monthlyNetIncome: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
     housingSituation: Literal["RENTING", "OWNER", "FAMILY", "OTHER"]
-    expenseMode: Literal["ITEMIZED", "AGGREGATE"]
+    expenseMode: Literal["ITEMIZED", "AGGREGATE", "AUTOMATIC"]
     housingCost: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
     groceriesCost: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
     utilitiesCost: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
@@ -63,6 +63,7 @@ class AffordabilityInputs(BaseModel):
     monthlyObligations: Decimal = Field(..., ge=0, max_digits=12, decimal_places=2)
     districtRentReference: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
     districtGroceryReference: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
+    districtOtherReference: Optional[Decimal] = Field(None, ge=0, max_digits=12, decimal_places=2)
     referencesEligible: bool = False
     partnerCap: Decimal = Field(..., ge=0, max_digits=12, decimal_places=2)
     financialRevision: Optional[int] = Field(None, ge=1)

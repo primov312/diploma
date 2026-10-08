@@ -6,7 +6,7 @@ The result is informational: it has **zero weight** in affordability and credit 
 
 ## Flow
 
-1. Dashboard → *Optional synthetic activity analysis* → enable **Allow social demo** → **Connect Facebook**.
+1. Dashboard → *Optional synthetic activity analysis* → **Connect Facebook**. Location and social demos are always enabled.
 2. Facebook's own login page opens. Signing in there is the ownership proof; this app never sees the password.
 3. Facebook redirects to `/api/me/social-connection/facebook/callback`. The backend checks the one-time `state`,
    exchanges the code for a token, stores the token encrypted (AES-256-GCM), and returns to the dashboard.

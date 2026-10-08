@@ -1,0 +1,1061 @@
+{
+  "schemaVersion": 1,
+  "city": "Budapest",
+  "countryCode": "HU",
+  "currency": "HUF",
+  "housingDatasetVersion": "budapest-rent-2026-09-30-61436f58f428",
+  "housing": {
+    "observedAt": "2026-09-30",
+    "unit": "HUF_PER_M2_MONTH",
+    "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado",
+    "districts": [
+      {
+        "districtId": "budapest-i",
+        "districtNumber": 1,
+        "displayName": "Budapest District I",
+        "rentPerM2": "6470",
+        "listingCount": 405,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-ii",
+        "districtNumber": 2,
+        "displayName": "Budapest District II",
+        "rentPerM2": "6230",
+        "listingCount": 850,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-iii",
+        "districtNumber": 3,
+        "displayName": "Budapest District III",
+        "rentPerM2": "5400",
+        "listingCount": 455,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-iv",
+        "districtNumber": 4,
+        "displayName": "Budapest District IV",
+        "rentPerM2": "4970",
+        "listingCount": 157,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-v",
+        "districtNumber": 5,
+        "displayName": "Budapest District V",
+        "rentPerM2": "7000",
+        "listingCount": 1017,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-vi",
+        "districtNumber": 6,
+        "displayName": "Budapest District VI",
+        "rentPerM2": "6420",
+        "listingCount": 963,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-vii",
+        "districtNumber": 7,
+        "displayName": "Budapest District VII",
+        "rentPerM2": "5890",
+        "listingCount": 624,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-viii",
+        "districtNumber": 8,
+        "displayName": "Budapest District VIII",
+        "rentPerM2": "5660",
+        "listingCount": 654,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-ix",
+        "districtNumber": 9,
+        "displayName": "Budapest District IX",
+        "rentPerM2": "5680",
+        "listingCount": 616,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-x",
+        "districtNumber": 10,
+        "displayName": "Budapest District X",
+        "rentPerM2": "5070",
+        "listingCount": 209,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xi",
+        "districtNumber": 11,
+        "displayName": "Budapest District XI",
+        "rentPerM2": "5740",
+        "listingCount": 909,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xii",
+        "districtNumber": 12,
+        "displayName": "Budapest District XII",
+        "rentPerM2": "5870",
+        "listingCount": 442,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xiii",
+        "districtNumber": 13,
+        "displayName": "Budapest District XIII",
+        "rentPerM2": "5890",
+        "listingCount": 1264,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xiv",
+        "districtNumber": 14,
+        "displayName": "Budapest District XIV",
+        "rentPerM2": "5100",
+        "listingCount": 675,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xv",
+        "districtNumber": 15,
+        "displayName": "Budapest District XV",
+        "rentPerM2": "4660",
+        "listingCount": 80,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xvi",
+        "districtNumber": 16,
+        "displayName": "Budapest District XVI",
+        "rentPerM2": "4460",
+        "listingCount": 84,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xvii",
+        "districtNumber": 17,
+        "displayName": "Budapest District XVII",
+        "rentPerM2": "4890",
+        "listingCount": 54,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xviii",
+        "districtNumber": 18,
+        "displayName": "Budapest District XVIII",
+        "rentPerM2": "4710",
+        "listingCount": 85,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xix",
+        "districtNumber": 19,
+        "displayName": "Budapest District XIX",
+        "rentPerM2": "4870",
+        "listingCount": 74,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xx",
+        "districtNumber": 20,
+        "displayName": "Budapest District XX",
+        "rentPerM2": "4730",
+        "listingCount": 53,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xxi",
+        "districtNumber": 21,
+        "displayName": "Budapest District XXI",
+        "rentPerM2": "4690",
+        "listingCount": 64,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xxii",
+        "districtNumber": 22,
+        "displayName": "Budapest District XXII",
+        "rentPerM2": "4230",
+        "listingCount": 30,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      },
+      {
+        "districtId": "budapest-xxiii",
+        "districtNumber": 23,
+        "displayName": "Budapest District XXIII",
+        "rentPerM2": "4220",
+        "listingCount": 10,
+        "observedAt": "2026-09-30",
+        "sourceUrl": "https://negyzetmeterarak.hu/statisztika?tipus=lakas&ugylet=kiado"
+      }
+    ],
+    "retrievedAt": "2026-10-03T10:44:44.039368+00:00"
+  },
+  "postal": {
+    "sourceUrl": "https://httpmegosztas.posta.hu/PartnerExtra/OUT/ZipCodes.xml",
+    "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+    "mappings": [
+      {
+        "postalCode": "1011",
+        "districtId": "budapest-i"
+      },
+      {
+        "postalCode": "1012",
+        "districtId": "budapest-i"
+      },
+      {
+        "postalCode": "1013",
+        "districtId": "budapest-i"
+      },
+      {
+        "postalCode": "1014",
+        "districtId": "budapest-i"
+      },
+      {
+        "postalCode": "1015",
+        "districtId": "budapest-i"
+      },
+      {
+        "postalCode": "1016",
+        "districtId": "budapest-i"
+      },
+      {
+        "postalCode": "1021",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1022",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1023",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1024",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1025",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1026",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1027",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1028",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1029",
+        "districtId": "budapest-ii"
+      },
+      {
+        "postalCode": "1031",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1032",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1033",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1034",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1035",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1036",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1037",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1038",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1039",
+        "districtId": "budapest-iii"
+      },
+      {
+        "postalCode": "1041",
+        "districtId": "budapest-iv"
+      },
+      {
+        "postalCode": "1042",
+        "districtId": "budapest-iv"
+      },
+      {
+        "postalCode": "1043",
+        "districtId": "budapest-iv"
+      },
+      {
+        "postalCode": "1044",
+        "districtId": "budapest-iv"
+      },
+      {
+        "postalCode": "1045",
+        "districtId": "budapest-iv"
+      },
+      {
+        "postalCode": "1046",
+        "districtId": "budapest-iv"
+      },
+      {
+        "postalCode": "1047",
+        "districtId": "budapest-iv"
+      },
+      {
+        "postalCode": "1048",
+        "districtId": "budapest-iv"
+      },
+      {
+        "postalCode": "1051",
+        "districtId": "budapest-v"
+      },
+      {
+        "postalCode": "1052",
+        "districtId": "budapest-v"
+      },
+      {
+        "postalCode": "1053",
+        "districtId": "budapest-v"
+      },
+      {
+        "postalCode": "1054",
+        "districtId": "budapest-v"
+      },
+      {
+        "postalCode": "1055",
+        "districtId": "budapest-v"
+      },
+      {
+        "postalCode": "1056",
+        "districtId": "budapest-v"
+      },
+      {
+        "postalCode": "1061",
+        "districtId": "budapest-vi"
+      },
+      {
+        "postalCode": "1062",
+        "districtId": "budapest-vi"
+      },
+      {
+        "postalCode": "1063",
+        "districtId": "budapest-vi"
+      },
+      {
+        "postalCode": "1064",
+        "districtId": "budapest-vi"
+      },
+      {
+        "postalCode": "1065",
+        "districtId": "budapest-vi"
+      },
+      {
+        "postalCode": "1066",
+        "districtId": "budapest-vi"
+      },
+      {
+        "postalCode": "1067",
+        "districtId": "budapest-vi"
+      },
+      {
+        "postalCode": "1068",
+        "districtId": "budapest-vi"
+      },
+      {
+        "postalCode": "1071",
+        "districtId": "budapest-vii"
+      },
+      {
+        "postalCode": "1072",
+        "districtId": "budapest-vii"
+      },
+      {
+        "postalCode": "1073",
+        "districtId": "budapest-vii"
+      },
+      {
+        "postalCode": "1074",
+        "districtId": "budapest-vii"
+      },
+      {
+        "postalCode": "1075",
+        "districtId": "budapest-vii"
+      },
+      {
+        "postalCode": "1076",
+        "districtId": "budapest-vii"
+      },
+      {
+        "postalCode": "1077",
+        "districtId": "budapest-vii"
+      },
+      {
+        "postalCode": "1078",
+        "districtId": "budapest-vii"
+      },
+      {
+        "postalCode": "1081",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1082",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1083",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1084",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1085",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1086",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1087",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1088",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1089",
+        "districtId": "budapest-viii"
+      },
+      {
+        "postalCode": "1091",
+        "districtId": "budapest-ix"
+      },
+      {
+        "postalCode": "1092",
+        "districtId": "budapest-ix"
+      },
+      {
+        "postalCode": "1093",
+        "districtId": "budapest-ix"
+      },
+      {
+        "postalCode": "1094",
+        "districtId": "budapest-ix"
+      },
+      {
+        "postalCode": "1095",
+        "districtId": "budapest-ix"
+      },
+      {
+        "postalCode": "1096",
+        "districtId": "budapest-ix"
+      },
+      {
+        "postalCode": "1097",
+        "districtId": "budapest-ix"
+      },
+      {
+        "postalCode": "1098",
+        "districtId": "budapest-ix"
+      },
+      {
+        "postalCode": "1101",
+        "districtId": "budapest-x"
+      },
+      {
+        "postalCode": "1102",
+        "districtId": "budapest-x"
+      },
+      {
+        "postalCode": "1103",
+        "districtId": "budapest-x"
+      },
+      {
+        "postalCode": "1104",
+        "districtId": "budapest-x"
+      },
+      {
+        "postalCode": "1105",
+        "districtId": "budapest-x"
+      },
+      {
+        "postalCode": "1106",
+        "districtId": "budapest-x"
+      },
+      {
+        "postalCode": "1107",
+        "districtId": "budapest-x"
+      },
+      {
+        "postalCode": "1108",
+        "districtId": "budapest-x"
+      },
+      {
+        "postalCode": "1111",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1112",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1113",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1114",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1115",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1116",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1117",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1118",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1119",
+        "districtId": "budapest-xi"
+      },
+      {
+        "postalCode": "1121",
+        "districtId": "budapest-xii"
+      },
+      {
+        "postalCode": "1122",
+        "districtId": "budapest-xii"
+      },
+      {
+        "postalCode": "1123",
+        "districtId": "budapest-xii"
+      },
+      {
+        "postalCode": "1124",
+        "districtId": "budapest-xii"
+      },
+      {
+        "postalCode": "1125",
+        "districtId": "budapest-xii"
+      },
+      {
+        "postalCode": "1126",
+        "districtId": "budapest-xii"
+      },
+      {
+        "postalCode": "1131",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1132",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1133",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1134",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1135",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1136",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1137",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1138",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1139",
+        "districtId": "budapest-xiii"
+      },
+      {
+        "postalCode": "1141",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1142",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1143",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1144",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1145",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1146",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1147",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1148",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1149",
+        "districtId": "budapest-xiv"
+      },
+      {
+        "postalCode": "1151",
+        "districtId": "budapest-xv"
+      },
+      {
+        "postalCode": "1152",
+        "districtId": "budapest-xv"
+      },
+      {
+        "postalCode": "1153",
+        "districtId": "budapest-xv"
+      },
+      {
+        "postalCode": "1154",
+        "districtId": "budapest-xv"
+      },
+      {
+        "postalCode": "1155",
+        "districtId": "budapest-xv"
+      },
+      {
+        "postalCode": "1156",
+        "districtId": "budapest-xv"
+      },
+      {
+        "postalCode": "1157",
+        "districtId": "budapest-xv"
+      },
+      {
+        "postalCode": "1158",
+        "districtId": "budapest-xv"
+      },
+      {
+        "postalCode": "1161",
+        "districtId": "budapest-xvi"
+      },
+      {
+        "postalCode": "1162",
+        "districtId": "budapest-xvi"
+      },
+      {
+        "postalCode": "1163",
+        "districtId": "budapest-xvi"
+      },
+      {
+        "postalCode": "1164",
+        "districtId": "budapest-xvi"
+      },
+      {
+        "postalCode": "1165",
+        "districtId": "budapest-xvi"
+      },
+      {
+        "postalCode": "1171",
+        "districtId": "budapest-xvii"
+      },
+      {
+        "postalCode": "1172",
+        "districtId": "budapest-xvii"
+      },
+      {
+        "postalCode": "1173",
+        "districtId": "budapest-xvii"
+      },
+      {
+        "postalCode": "1174",
+        "districtId": "budapest-xvii"
+      },
+      {
+        "postalCode": "1176",
+        "districtId": "budapest-xvii"
+      },
+      {
+        "postalCode": "1181",
+        "districtId": "budapest-xviii"
+      },
+      {
+        "postalCode": "1182",
+        "districtId": "budapest-xviii"
+      },
+      {
+        "postalCode": "1183",
+        "districtId": "budapest-xviii"
+      },
+      {
+        "postalCode": "1184",
+        "districtId": "budapest-xviii"
+      },
+      {
+        "postalCode": "1185",
+        "districtId": "budapest-xviii"
+      },
+      {
+        "postalCode": "1186",
+        "districtId": "budapest-xviii"
+      },
+      {
+        "postalCode": "1188",
+        "districtId": "budapest-xviii"
+      },
+      {
+        "postalCode": "1191",
+        "districtId": "budapest-xix"
+      },
+      {
+        "postalCode": "1192",
+        "districtId": "budapest-xix"
+      },
+      {
+        "postalCode": "1193",
+        "districtId": "budapest-xix"
+      },
+      {
+        "postalCode": "1194",
+        "districtId": "budapest-xix"
+      },
+      {
+        "postalCode": "1195",
+        "districtId": "budapest-xix"
+      },
+      {
+        "postalCode": "1196",
+        "districtId": "budapest-xix"
+      },
+      {
+        "postalCode": "1201",
+        "districtId": "budapest-xx"
+      },
+      {
+        "postalCode": "1202",
+        "districtId": "budapest-xx"
+      },
+      {
+        "postalCode": "1203",
+        "districtId": "budapest-xx"
+      },
+      {
+        "postalCode": "1204",
+        "districtId": "budapest-xx"
+      },
+      {
+        "postalCode": "1205",
+        "districtId": "budapest-xx"
+      },
+      {
+        "postalCode": "1211",
+        "districtId": "budapest-xxi"
+      },
+      {
+        "postalCode": "1212",
+        "districtId": "budapest-xxi"
+      },
+      {
+        "postalCode": "1213",
+        "districtId": "budapest-xxi"
+      },
+      {
+        "postalCode": "1214",
+        "districtId": "budapest-xxi"
+      },
+      {
+        "postalCode": "1215",
+        "districtId": "budapest-xxi"
+      },
+      {
+        "postalCode": "1221",
+        "districtId": "budapest-xxii"
+      },
+      {
+        "postalCode": "1222",
+        "districtId": "budapest-xxii"
+      },
+      {
+        "postalCode": "1223",
+        "districtId": "budapest-xxii"
+      },
+      {
+        "postalCode": "1224",
+        "districtId": "budapest-xxii"
+      },
+      {
+        "postalCode": "1225",
+        "districtId": "budapest-xxii"
+      },
+      {
+        "postalCode": "1237",
+        "districtId": "budapest-xxiii"
+      },
+      {
+        "postalCode": "1238",
+        "districtId": "budapest-xxiii"
+      },
+      {
+        "postalCode": "1239",
+        "districtId": "budapest-xxiii"
+      }
+    ]
+  },
+  "groceries": [
+    {
+      "id": "milk",
+      "label": "Milk",
+      "description": "Tesco UHT félzsíros tej 2,8% 1 l",
+      "unit": "LITRE",
+      "packageQuantity": "1",
+      "packagePrice": "315",
+      "loose": false,
+      "unitPrice": "315.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/210621123",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "bread",
+      "label": "Bread",
+      "description": "Szeletelt félbarna kenyér 500 g",
+      "unit": "KG",
+      "packageQuantity": ".5",
+      "packagePrice": "549",
+      "loose": false,
+      "unitPrice": "1098.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/207803495",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "eggs",
+      "label": "Eggs",
+      "description": "Tesco \"A\" osztályú közepes méretű mélyalmos, friss tojás M 10 db",
+      "unit": "ITEM",
+      "packageQuantity": "10",
+      "packagePrice": "768",
+      "loose": false,
+      "unitPrice": "76.800000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/220181340",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "rice",
+      "label": "Rice",
+      "description": "Tesco előgőzölt, hosszú szemű rizs 1 kg",
+      "unit": "KG",
+      "packageQuantity": "1",
+      "packagePrice": "579",
+      "loose": false,
+      "unitPrice": "579.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/100501436",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "apples",
+      "label": "Apples",
+      "description": "Jonagold alma lédig",
+      "unit": "KG",
+      "packageQuantity": "1",
+      "packagePrice": "509",
+      "loose": true,
+      "unitPrice": "509.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/2004006222303",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "chicken",
+      "label": "Chicken breast",
+      "description": "Friss csirkemell filé",
+      "unit": "KG",
+      "packageQuantity": "1",
+      "packagePrice": "2030",
+      "loose": true,
+      "unitPrice": "2030.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/203176258",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "potatoes",
+      "label": "Potatoes",
+      "description": "Tesco burgonya főznivaló 2 kg",
+      "unit": "KG",
+      "packageQuantity": "2",
+      "packagePrice": "716",
+      "loose": false,
+      "unitPrice": "358.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/2004020330168",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "pasta",
+      "label": "Pasta",
+      "description": "Tesco spagetti 4 tojásos száraztészta 500 g",
+      "unit": "KG",
+      "packageQuantity": ".5",
+      "packagePrice": "355",
+      "loose": false,
+      "unitPrice": "710.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/2005100501330",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "tomatoes",
+      "label": "Tomatoes",
+      "description": "Fürtös paradicsom",
+      "unit": "KG",
+      "packageQuantity": "1",
+      "packagePrice": "822",
+      "loose": true,
+      "unitPrice": "822.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/203274480",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "onions",
+      "label": "Onions",
+      "description": "Vöröshagyma lédig",
+      "unit": "KG",
+      "packageQuantity": "1",
+      "packagePrice": "209",
+      "loose": true,
+      "unitPrice": "209.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/206481922",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "cheese",
+      "label": "Cheese",
+      "description": "Tesco zsíros, félkemény trappista sajt 700 g",
+      "unit": "KG",
+      "packageQuantity": ".7",
+      "packagePrice": "2035",
+      "loose": false,
+      "unitPrice": "2907.142857",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/2004010616075",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    },
+    {
+      "id": "oil",
+      "label": "Sunflower oil",
+      "description": "Golden Imperial 100% finomított napraforgó étolaj 1 l",
+      "unit": "LITRE",
+      "packageQuantity": "1",
+      "packagePrice": "745",
+      "loose": false,
+      "unitPrice": "745.000000",
+      "sourceUrl": "https://bevasarlas.tesco.hu/shop/hu-HU/products/111272111",
+      "retrievedAt": "2026-10-03T15:34:57.223942+00:00",
+      "observedAt": null,
+      "channel": "retailer_online_regular_price"
+    }
+  ],
+  "defaults": {
+    "apartmentSize": "50",
+    "rentSharers": 1,
+    "otherSpending": "0",
+    "groceryQuantities": {
+      "milk": "8",
+      "bread": "6",
+      "eggs": "30",
+      "rice": "2",
+      "apples": "4",
+      "chicken": "4",
+      "potatoes": "4",
+      "pasta": "2",
+      "tomatoes": "2",
+      "onions": "1",
+      "cheese": "1",
+      "oil": "1"
+    }
+  }
+}

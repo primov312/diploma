@@ -19,9 +19,13 @@ public class DemoSignalService {
     private final SocialConnectionService connections;
     private final FacebookClient facebook;
     private final LocationPricingService locationPricing;
+    private final com.rocketcredit.backend.affordability.AffordabilityJobs affordabilityJobs;
+    private final com.rocketcredit.backend.users.FinancialInputsService finances;
 
     public DemoSignalService(JdbcTemplate jdbc, AnalysisClient analysis, ObjectMapper mapper, TransactionTemplate tx,
-                             SocialConnectionService connections, FacebookClient facebook, LocationPricingService locationPricing) {
+                             SocialConnectionService connections, FacebookClient facebook, LocationPricingService locationPricing,
+                             com.rocketcredit.backend.affordability.AffordabilityJobs affordabilityJobs,
+                             com.rocketcredit.backend.users.FinancialInputsService finances) {
         this.jdbc = jdbc;
         this.analysis = analysis;
         this.mapper = mapper;
@@ -29,6 +33,7 @@ public class DemoSignalService {
         this.connections = connections;
         this.facebook = facebook;
         this.locationPricing = locationPricing;
+        this.affordabilityJobs = affordabilityJobs; this.finances = finances;
     }
 
     /** Scenario ID that selects the owner's connected Facebook account instead of a synthetic fixture. */
@@ -42,18 +47,8 @@ public class DemoSignalService {
     }
 
     public DemoSignalDtos.Settings update(long userId, DemoSignalDtos.UpdateRequest request) {
-        return tx.execute(status -> {
-            ensure(userId);
-            var before = settingsLocked(userId);
-            jdbc.update("""
-                    UPDATE demo_signal_settings SET location_enabled=?, social_enabled=?,
-                      permission_generation=permission_generation + CASE WHEN location_enabled<>? OR social_enabled<>? THEN 1 ELSE 0 END,
-                      updated_at=now() WHERE user_id=?
-                    """, request.locationEnabled(), request.socialEnabled(), request.locationEnabled(), request.socialEnabled(), userId);
-            if (before.locationEnabled() && !request.locationEnabled()) cancel(userId, "LOCATION");
-            if (before.socialEnabled() && !request.socialEnabled()) cancel(userId, "SOCIAL");
-            return settingsLocked(userId);
-        });
+        // Keep the existing endpoint compatible with older clients; both demos are always enabled.
+        return settings(userId);
     }
 
     public DemoSignalDtos.RunAccepted run(long userId, String kind, String scenarioId) {
@@ -62,8 +57,6 @@ public class DemoSignalService {
         RunJob job = tx.execute(status -> {
             ensure(userId);
             var settings = settingsLocked(userId);
-            boolean enabled = "LOCATION".equals(kind) ? settings.locationEnabled() : settings.socialEnabled();
-            if (!enabled) throw ApiException.badRequest("OPTIONAL_ANALYSIS_DISABLED", "Enable permission for this analysis before running it.");
             if (live && !connections.status(userId).connected()) {
                 throw ApiException.badRequest("SOCIAL_NOT_CONNECTED", "Connect your Facebook account before analyzing it.");
             }
@@ -94,8 +87,7 @@ public class DemoSignalService {
             JsonNode report = "LOCATION".equals(kind) ? locationPricing.enrich(raw, pricingDataset) : raw;
             return tx.execute(status -> {
                 var settings = settingsLocked(userId);
-                boolean enabled = "LOCATION".equals(kind) ? settings.locationEnabled() : settings.socialEnabled();
-                if (!enabled || settings.permissionGeneration() != job.permissionGeneration()) {
+                if (settings.permissionGeneration() != job.permissionGeneration()) {
                     jdbc.update("UPDATE analysis_jobs SET state='CANCELLED', completed_at=now() WHERE id=?", job.id());
                     return new DemoSignalDtos.RunAccepted(job.id(), "CANCELLED", null);
                 }
@@ -106,6 +98,7 @@ public class DemoSignalService {
                         """, userId, job.id(), kind, scenarioId, job.permissionGeneration(), report.toString(),
                         report.path("dataSource").asText("SYNTHETIC"), report.path("analysisMode").asText("FIXTURE"));
                 jdbc.update("UPDATE analysis_jobs SET state='SUCCEEDED', completed_at=now() WHERE id=?", job.id());
+                if ("LOCATION".equals(kind)) { finances.current(userId); affordabilityJobs.recalculate(userId); }
                 return new DemoSignalDtos.RunAccepted(job.id(), "SUCCEEDED", report);
             });
         } catch (FacebookClient.TokenRejectedException e) {
@@ -158,11 +151,6 @@ public class DemoSignalService {
     private DemoSignalDtos.Settings settingsLocked(long userId) {
         return jdbc.queryForObject("SELECT location_enabled, social_enabled, permission_generation FROM demo_signal_settings WHERE user_id=? FOR UPDATE",
                 (rs, row) -> new DemoSignalDtos.Settings(rs.getBoolean(1), rs.getBoolean(2), rs.getLong(3)), userId);
-    }
-
-    private void cancel(long userId, String kind) {
-        jdbc.update("UPDATE analysis_jobs SET state='CANCELLED', completed_at=now() WHERE user_id=? AND kind=? AND state IN ('QUEUED','RUNNING')",
-                userId, kind);
     }
 
     private record RunJob(long id, long permissionGeneration, boolean existing) {}

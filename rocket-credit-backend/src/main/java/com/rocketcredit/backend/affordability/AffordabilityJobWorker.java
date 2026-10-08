@@ -30,6 +30,7 @@ public class AffordabilityJobWorker {
     private static final BigDecimal MAX_MONEY = new BigDecimal("9999999999.99");
     private static final TypeReference<Map<String, BigDecimal>> BREAKDOWN = new TypeReference<>() {};
     private final JdbcTemplate jdbc;
+    private final com.rocketcredit.backend.address.MonthlyCostResolver costs;
     private final FinancialInputsService inputs;
     private final PartnerRepository partners;
     private final AnalysisClient analysis;
@@ -38,8 +39,9 @@ public class AffordabilityJobWorker {
 
     public AffordabilityJobWorker(JdbcTemplate jdbc, FinancialInputsService inputs,
                                   PartnerRepository partners, AnalysisClient analysis, ObjectMapper mapper,
-                                  TransactionTemplate transactions) {
+                                  TransactionTemplate transactions, com.rocketcredit.backend.address.MonthlyCostResolver costs) {
         this.jdbc = jdbc;
+        this.costs = costs;
         this.inputs = inputs;
         this.partners = partners;
         this.analysis = analysis;
@@ -88,11 +90,11 @@ public class AffordabilityJobWorker {
         if (job.terminal()) return;
         try {
             FinancialInputsDto input = inputs.current(job.userId());
-            CostReference reference = eligibleReference(job.userId());
+            var reference = costs.references(costs.currentContext(job.userId(), job.generation()));
             AffordabilityRequest.Inputs requestInputs = new AffordabilityRequest.Inputs(
                     input.monthlyNetIncome(), input.housingSituation(), input.expenseMode(), input.housingCost(),
                     input.groceriesCost(), input.utilitiesCost(), input.transportCost(), input.otherLivingCosts(),
-                    input.legacyLivingExpenses(), input.monthlyObligations(), reference.rent(), reference.groceries(),
+                    input.legacyLivingExpenses(), input.monthlyObligations(), reference.rent(), reference.groceries(), reference.other(),
                     reference.eligible(), MAX_MONEY,
                     input.revision(), job.generation());
             var result = analysis.affordability(new AffordabilityRequest(requestInputs));
@@ -136,12 +138,12 @@ public class AffordabilityJobWorker {
         }
         jdbc.update("""
                 INSERT INTO affordability_snapshots (user_id, generation, financial_revision, formula_version,
-                    policy_version, base_amount, monthly_payment_capacity, breakdown, partners, reasons, data_source)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?)
+                    policy_version, base_amount, monthly_payment_capacity, breakdown, partners, reasons, data_source, local_cost_context)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?::jsonb)
                 ON CONFLICT (user_id, generation, formula_version) DO NOTHING
                 """, job.userId(), job.generation(), job.revision(), result.formulaVersion(), result.policyVersion(),
                 result.baseAmount(), result.monthlyPaymentCapacity(), mapper.writeValueAsString(result.breakdown()),
-                mapper.writeValueAsString(partnerAmounts), mapper.writeValueAsString(result.reasons()), inputSource(job.userId()));
+                mapper.writeValueAsString(partnerAmounts), mapper.writeValueAsString(result.reasons()), inputSource(job.userId()), costs.currentContext(job.userId(), job.generation()).toString());
         jdbc.update("UPDATE affordability_jobs SET state='SUCCEEDED', completed_at=now(), lease_until=NULL WHERE id=?", job.id());
     }
 
@@ -153,26 +155,6 @@ public class AffordabilityJobWorker {
                 """, retryable, code, retryable, id));
     }
 
-    private CostReference eligibleReference(long userId) {
-        List<CostReference> found = jdbc.query("""
-                SELECT c.monthly_rent, c.monthly_groceries
-                FROM user_address_state s
-                JOIN user_address_revisions a ON a.user_id=s.user_id AND a.revision=s.current_revision
-                JOIN LATERAL (
-                    SELECT status FROM address_verifications v
-                    WHERE v.user_id=a.user_id AND v.address_revision=a.revision
-                    ORDER BY v.created_at DESC LIMIT 1
-                ) verification ON verification.status='VERIFIED_DEMO'
-                JOIN LATERAL (
-                    SELECT monthly_rent, monthly_groceries FROM local_cost_references
-                    WHERE district_id=a.district_id ORDER BY observed_at DESC LIMIT 1
-                ) c ON TRUE
-                WHERE s.user_id=?
-                """, (rs, row) -> new CostReference(rs.getBigDecimal("monthly_rent"),
-                rs.getBigDecimal("monthly_groceries"), true), userId);
-        return found.isEmpty() ? new CostReference(null, null, false) : found.getFirst();
-    }
-
     private String inputSource(long userId) {
         String source = jdbc.queryForObject("""
                 SELECT r.source FROM financial_input_state s JOIN financial_input_revisions r
@@ -181,7 +163,6 @@ public class AffordabilityJobWorker {
         return "USER_DECLARED".equals(source) ? "USER_DECLARED" : "SYNTHETIC";
     }
 
-    private record CostReference(BigDecimal rent, BigDecimal groceries, boolean eligible) {}
 
     public record JobRow(long id, long userId, long generation, int revision, int attemptCount, String state) {
         JobRow(long id, long userId, long generation, int revision, int attemptCount) {

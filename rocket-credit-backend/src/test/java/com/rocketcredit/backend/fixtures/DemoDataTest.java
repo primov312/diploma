@@ -88,7 +88,7 @@ class DemoDataTest extends AbstractIntegrationTest {
 
         mvc.perform(get("/api/me/profile").session(avery))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.monthlyIncome").value(4500.00))
+                .andExpect(jsonPath("$.monthlyIncome").value(2000.00))
                 .andExpect(jsonPath("$.syntheticSource").value("FIXTURE"))
                 .andExpect(jsonPath("$.accountAgeMonths").value(org.hamcrest.Matchers.greaterThanOrEqualTo(29)));
     }

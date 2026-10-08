@@ -63,7 +63,6 @@ class LocationPricingIntegrationTest extends AbstractIntegrationTest {
         activate(oldVersion);
         String email = uniqueEmail(); register(email, "password-123");
         long userId = jdbc.queryForObject("SELECT id FROM users WHERE email=?", Long.class, email);
-        signals.update(userId, new DemoSignalDtos.UpdateRequest(true, false));
         var raw = mapper.readTree("""
                 {"status":"COMPLETE","dataSource":"SYNTHETIC","scenarioId":"sparse","visits":[
                  {"id":"visit","district":"Budapest XI","place":"Cafe"}]}
@@ -94,7 +93,6 @@ class LocationPricingIntegrationTest extends AbstractIntegrationTest {
         String email = uniqueEmail(); register(email, "password-123");
         long userId = jdbc.queryForObject("SELECT id FROM users WHERE email=?", Long.class, email);
         var before = jdbc.queryForList("SELECT * FROM financial_input_revisions WHERE user_id=?", userId);
-        signals.update(userId, new DemoSignalDtos.UpdateRequest(true, false));
         when(analysis.runDemoAnalysis(eq("LOCATION"), eq("sparse"), nullable(String.class))).thenReturn(mapper.readTree("""
                 {"status":"COMPLETE","dataSource":"SYNTHETIC","visits":[{"district":"Budapest XI","place":"Cafe"}]}
                 """));

@@ -178,6 +178,13 @@ SOCIAL_SCENARIOS: dict[str, dict] = {
 }
 
 LOCATION_SCENARIOS: dict[str, list[dict]] = {
+    "budapest-priced-month": [
+        {"id": "month-grocery", "district": "Budapest II", "place": "Grocery store", "arrival": "2026-09-01T17:00:00Z", "departure": "2026-09-01T17:30:00Z"},
+        {"id": "month-library", "district": "Budapest V", "place": "Library", "arrival": "2026-09-09T09:00:00Z", "departure": "2026-09-09T11:00:00Z"},
+        *[{"id": f"month-gym-{day}", "district": "Budapest VIII", "place": "GYM", "arrival": f"2026-09-{day:02d}T18:00:00Z", "departure": f"2026-09-{day:02d}T19:00:00Z"} for day in (3,12,24)],
+        *[{"id": f"month-cafe-{day}", "district": "Budapest XIII", "place": "Café", "arrival": f"2026-09-{day:02d}T12:00:00Z", "departure": f"2026-09-{day:02d}T12:20:00Z"} for day in (5,10,15,20,25,30)],
+        *[{"id": f"month-starbucks-{day}", "district": "Budapest VI", "place": "Starbucks", "arrival": f"2026-09-{day:02d}T15:00:00Z", "departure": f"2026-09-{day:02d}T15:30:00Z"} for day in (8,18)],
+    ],
     "budapest-priced-week": [
         {"id": "priced-01", "district": "Budapest II", "place": "Grocery store", "arrival": "2026-10-01T17:00:00Z", "departure": "2026-10-01T17:30:00Z"},
         {"id": "priced-02", "district": "Budapest V", "place": "Library", "arrival": "2026-10-02T09:00:00Z", "departure": "2026-10-02T11:00:00Z"},

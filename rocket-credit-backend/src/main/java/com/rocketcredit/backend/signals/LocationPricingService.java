@@ -29,12 +29,16 @@ public class LocationPricingService {
     }
 
     /** Capture once before analysis; an import during a run cannot change this snapshot. */
-    public Dataset activeDataset() {
+    public Dataset activeDataset() { return loadDataset(null); }
+
+    public Dataset dataset(String version) { return loadDataset(version); }
+
+    private Dataset loadDataset(String version) {
         var datasets = jdbc.query("""
                 SELECT dataset_version, housing_observed_at, housing_retrieved_at, district_average, source_url
-                FROM location_price_datasets WHERE active
+                FROM location_price_datasets WHERE (CAST(? AS text) IS NULL AND active) OR dataset_version=?
                 """, (rs, row) -> new Dataset(rs.getString("dataset_version"), rs.getString("housing_observed_at"),
-                rs.getString("housing_retrieved_at"), rs.getBigDecimal("district_average"), rs.getString("source_url"), Map.of()));
+                rs.getString("housing_retrieved_at"), rs.getBigDecimal("district_average"), rs.getString("source_url"), Map.of()), version, version);
         if (datasets.isEmpty()) return null;
         Dataset dataset = datasets.getFirst();
         Map<String, Benchmark> prices = new HashMap<>();

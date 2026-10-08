@@ -20,7 +20,10 @@ RUN mvn -q -B -DskipTests package
 # 3) Small runtime image, non-root.
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-RUN useradd --system --uid 10001 backend
+RUN useradd --system --uid 10001 backend \
+    && mkdir -p /var/lib/rocket-credit/address-evidence \
+    && chown backend:backend /var/lib/rocket-credit/address-evidence \
+    && chmod 700 /var/lib/rocket-credit/address-evidence
 COPY --from=build /workspace/target/rocket-credit-backend-*.jar app.jar
 USER backend
 EXPOSE 8080

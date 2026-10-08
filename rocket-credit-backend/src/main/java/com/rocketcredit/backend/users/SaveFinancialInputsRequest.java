@@ -16,8 +16,8 @@ public record SaveFinancialInputsRequest(
         @Digits(integer = 10, fraction = 2) BigDecimal transportCost,
         @Digits(integer = 10, fraction = 2) BigDecimal otherLivingCosts,
         @Digits(integer = 10, fraction = 2) BigDecimal legacyLivingExpenses,
-        @NotNull @Digits(integer = 10, fraction = 2) BigDecimal monthlyObligations
+        @Digits(integer = 10, fraction = 2) BigDecimal monthlyObligations
 ) {
     public enum HousingSituation { RENTING, OWNER, FAMILY, OTHER }
-    public enum ExpenseMode { AGGREGATE, ITEMIZED }
+    public enum ExpenseMode { AGGREGATE, ITEMIZED, AUTOMATIC }
 }

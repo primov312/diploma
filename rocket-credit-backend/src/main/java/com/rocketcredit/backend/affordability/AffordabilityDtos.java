@@ -14,7 +14,7 @@ public final class AffordabilityDtos {
                            String formulaVersion, String policyVersion, String currency, int termMonths,
                            BigDecimal baseAmount, BigDecimal monthlyPaymentCapacity,
                            Map<String, BigDecimal> breakdown, List<PartnerAmount> partners,
-                           List<String> reasons, boolean stale) {}
+                           List<String> reasons, boolean stale, com.fasterxml.jackson.databind.JsonNode localCostContext) {}
     public record HistoryPoint(YearMonth month, OffsetDateTime calculatedAt, BigDecimal amount,
                                Map<String, BigDecimal> partnerAmounts, String formulaVersion,
                                String policyVersion, String dataSource) {}

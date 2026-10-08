@@ -8,7 +8,7 @@
       "email": "avery@demo.rocket.local",
       "displayName": "Avery Approved",
       "accountAgeMonths": 30,
-      "finance": { "monthlyIncome": 4500.00, "monthlyExpenses": 2500.00, "monthlyObligations": 300.00, "profileComplete": true, "emailVerified": true },
+      "finance": { "monthlyIncome": 2000.00, "monthlyExpenses": 1000.00, "monthlyObligations": 50.00, "profileComplete": true, "emailVerified": true },
       "history": [
         { "partner": "streambox", "count": 12, "everyDays": 30, "amounts": [15.99], "refunded": [], "late": [] },
         { "partner": "markethub", "count": 8,  "everyDays": 40, "amounts": [129.00, 89.50, 249.00, 64.99], "refunded": [5], "late": [] },
