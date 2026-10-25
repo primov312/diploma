@@ -7,8 +7,9 @@ import java.util.List;
 /** Shape of src/main/resources/fixtures/demo-customers.json. */
 public record DemoFixtures(LocalDate anchorDate, String password, List<Customer> customers) {
 
+    /** {@code affordabilityHistory}: monthly affordable amounts, oldest first, ending with the previous month. */
     public record Customer(String fixtureId, String email, String displayName, int accountAgeMonths,
-                           Finance finance, List<History> history) {}
+                           Finance finance, List<History> history, List<BigDecimal> affordabilityHistory) {}
 
     public record Finance(BigDecimal monthlyIncome, BigDecimal monthlyExpenses, BigDecimal monthlyObligations,
                           boolean profileComplete, boolean emailVerified) {}

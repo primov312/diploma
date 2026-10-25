@@ -55,8 +55,23 @@ class DemoDataTest extends AbstractIntegrationTest {
 
         assertThat(second.usersCreated()).isZero();
         assertThat(second.transactionsInserted()).isZero();
+        assertThat(second.historyMonthsInserted()).isZero();
         assertThat(users.count()).isEqualTo(usersBefore);
         assertThat(transactions.count()).isEqualTo(txBefore);
+    }
+
+    @Test
+    void demoCustomersHaveTwoYearsOfSyntheticAffordabilityHistory() throws Exception {
+        MockHttpSession avery = login("avery@demo.rocket.local", DEMO_PASSWORD);
+
+        mvc.perform(get("/api/me/affordability/history?months=24").session(avery))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(24))
+                .andExpect(jsonPath("$[?(@.dataSource == 'SYNTHETIC')]", hasSize(23)))
+                .andExpect(jsonPath("$[0].amount").value(1450.0))
+                .andExpect(jsonPath("$[0].formulaVersion").value("demo-history-v1"))
+                .andExpect(jsonPath("$[0].partnerAmounts.streambox").value(600.0))
+                .andExpect(jsonPath("$[22].amount").value(2120.0));
     }
 
     @Test

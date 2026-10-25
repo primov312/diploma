@@ -58,7 +58,7 @@ export function AffordabilityDashboardCard({ refreshKey }: { refreshKey: number 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold text-gray-800">Last months</h3>
         <div className="flex gap-2" aria-label="History range">
-          {[6, 12].map((n) => <button key={n} type="button" onClick={() => setMonths(n)} aria-pressed={months === n}
+          {[6, 12, 24].map((n) => <button key={n} type="button" onClick={() => setMonths(n)} aria-pressed={months === n}
             className={`min-h-11 rounded-full border px-4 text-sm font-medium ${months === n ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white text-gray-700'}`}>{n} months</button>)}
         </div>
       </div>
@@ -74,12 +74,13 @@ export function AffordabilityDashboardCard({ refreshKey }: { refreshKey: number 
               {segment.length > 1 && <polyline points={segment.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#246544" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
             </g>)}
             {coords.filter((point): point is NonNullable<typeof point> => point !== null).map((point) => <circle key={point.point.month} cx={point.x} cy={point.y} r="5" tabIndex={0} role="img" aria-label={`${monthName(point.point.month)}: ${valueFor(point.point) == null ? 'no estimate' : formatCurrency(valueFor(point.point)!)}`} fill="white" stroke="#246544" strokeWidth="3"><title>{`${monthName(point.point.month)} · ${valueFor(point.point) == null ? 'No snapshot' : formatCurrency(valueFor(point.point)!)} · ${point.point.calculatedAt ? new Date(point.point.calculatedAt).toLocaleDateString() : ''}`}</title></circle>)}
-            {points.map((point, index) => <text key={point.month} x={points.length === 1 ? 360 : 28 + index * (664 / (points.length - 1))} y="237" textAnchor="middle" className="fill-gray-500 text-[11px]">{monthName(point.month)}</text>)}
+            {/* Beyond 12 months, label every other month (always including the newest) so labels don't overlap. */}
+            {points.map((point, index) => (points.length <= 12 || (points.length - 1 - index) % 2 === 0) && <text key={point.month} x={points.length === 1 ? 360 : 28 + index * (664 / (points.length - 1))} y="237" textAnchor="middle" className="fill-gray-500 text-[11px]">{monthName(point.month)}</text>)}
           </svg>
           <details className="mt-3"><summary>History values</summary><div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm"><caption className="sr-only">Accessible monthly estimate values</caption>
               <thead><tr className="border-b text-gray-500"><th className="py-2 pr-4">Month</th><th className="py-2 pr-4">Amount</th><th className="py-2">Snapshot</th></tr></thead>
-              <tbody>{points.map((point) => <tr key={point.month} className="border-b border-gray-100"><th scope="row" className="py-2 pr-4 font-medium">{monthName(point.month)}</th><td className="py-2 pr-4">{valueFor(point) == null ? 'No snapshot' : formatCurrency(valueFor(point)!)}</td><td className="py-2 text-gray-500">{point.calculatedAt ? new Date(point.calculatedAt).toLocaleDateString() : '—'}</td></tr>)}</tbody>
+              <tbody>{points.map((point) => <tr key={point.month} className="border-b border-gray-100"><th scope="row" className="py-2 pr-4 font-medium">{monthName(point.month)}</th><td className="py-2 pr-4">{valueFor(point) == null ? 'No snapshot' : formatCurrency(valueFor(point)!)}</td><td className="py-2 text-gray-500">{point.calculatedAt ? new Date(point.calculatedAt).toLocaleDateString() : '—'}{point.dataSource === 'SYNTHETIC' && ' · synthetic demo data'}</td></tr>)}</tbody>
             </table>
           </div></details>
         </div>}

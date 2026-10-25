@@ -1,5 +1,5 @@
 {
-  "_comment": "Synthetic diploma personas. Every value is invented for the demonstration; no real financial data. Transactions are generated deterministically from each 'history' block (one purchase every 'everyDays' days, ending at 'anchorDate', amounts cycling through 'amounts'). Indices in 'refunded'/'late' are 0-based positions in that partner's sequence, newest first.",
+  "_comment": "Synthetic diploma personas. Every value is invented for the demonstration; no real financial data. Transactions are generated deterministically from each 'history' block (one purchase every 'everyDays' days, ending at 'anchorDate', amounts cycling through 'amounts'). Indices in 'refunded'/'late' are 0-based positions in that partner's sequence, newest first. 'affordabilityHistory' holds synthetic monthly affordable amounts in USD, oldest first, ending with the month before the current one; the loader stores them as SYNTHETIC snapshots dated relative to today and skips months that already have a snapshot.",
   "anchorDate": "2026-09-01",
   "password": "rocket-demo-123",
   "customers": [
@@ -13,7 +13,8 @@
         { "partner": "streambox", "count": 12, "everyDays": 30, "amounts": [15.99], "refunded": [], "late": [] },
         { "partner": "markethub", "count": 8,  "everyDays": 40, "amounts": [129.00, 89.50, 249.00, 64.99], "refunded": [5], "late": [] },
         { "partner": "threadly",  "count": 5,  "everyDays": 55, "amounts": [99.00, 59.00, 129.00], "refunded": [], "late": [] }
-      ]
+      ],
+      "affordabilityHistory": [1450, 1320, 1380, 1490, 1560, 1610, 1580, 1680, 1720, 1650, 1780, 1840, 1870, 1710, 1800, 1920, 1980, 2010, 1960, 2050, 2090, 2020, 2120]
     },
     {
       "fixtureId": "riley",
@@ -24,7 +25,8 @@
       "history": [
         { "partner": "markethub", "count": 6, "everyDays": 40, "amounts": [64.99, 89.00, 129.00], "refunded": [3], "late": [1] },
         { "partner": "threadly",  "count": 1, "everyDays": 30, "amounts": [59.00], "refunded": [0], "late": [] }
-      ]
+      ],
+      "affordabilityHistory": [610, 540, 575, 640, 660, 600, 520, 560, 590, 480, 430, 455, 470, 360, 380, 410, 330, 290, 310, 240, 210, 180, 160]
     },
     {
       "fixtureId": "drew",
@@ -34,7 +36,8 @@
       "finance": { "monthlyIncome": 1800.00, "monthlyExpenses": 1700.00, "monthlyObligations": 150.00, "profileComplete": false, "emailVerified": false },
       "history": [
         { "partner": "threadly", "count": 1, "everyDays": 30, "amounts": [129.00], "refunded": [], "late": [0] }
-      ]
+      ],
+      "affordabilityHistory": [260, 210, 240, 280, 230, 180, 150, 190, 170, 120, 90, 110, 140, 80, 60, 75, 40, 0, 25, 0, 0, 0, 0]
     },
     {
       "fixtureId": "casey",
@@ -46,7 +49,8 @@
         { "partner": "streambox", "count": 10, "everyDays": 30, "amounts": [9.99], "refunded": [], "late": [] },
         { "partner": "markethub", "count": 4,  "everyDays": 60, "amounts": [79.00, 129.00], "refunded": [], "late": [] },
         { "partner": "threadly",  "count": 3,  "everyDays": 70, "amounts": [59.00, 99.00], "refunded": [], "late": [] }
-      ]
+      ],
+      "affordabilityHistory": [520, 480, 500, 560, 590, 540, 510, 470, 430, 460, 490, 450, 410, 380, 420, 440, 400, 360, 330, 350, 310, 280, 250]
     }
   ]
 }
