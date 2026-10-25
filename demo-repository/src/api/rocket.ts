@@ -1,10 +1,14 @@
 import { api, apiMultipart } from './client';
 import type { MonthlyCostDraft, MonthlyLivingCosts, PostalCodeDistrict } from './types';
-import type { Address, AddressSaveRequest, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, SocialConnection, FinancialInputs, FinancialInputsSaveResult, FinancialProfile, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SaveFinancialInputs, SubmitApplication, Transaction } from './types';
+import type { Address, AddressSaveRequest, CatalogItem, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, SocialConnection, FinancialInputs, FinancialInputsSaveResult, FinancialProfile, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SaveFinancialInputs, SubmitApplication, Transaction } from './types';
 
 export const partnersApi = {
   list: () => api<Partner[]>('/api/partners'),
   get: (slug: string) => api<PartnerDetail>(`/api/partners/${encodeURIComponent(slug)}`),
+};
+
+export const catalogApi = {
+  list: () => api<CatalogItem[]>('/api/catalog'),
 };
 
 export const meApi = {
@@ -48,5 +52,5 @@ export const transactionsApi = {
 export const applicationsApi = {
   list: () => api<Application[]>('/api/applications'),
   get: (id: number | string) => api<Application>(`/api/applications/${id}`),
-  submit: (body: SubmitApplication) => api<Application>('/api/applications', { method: 'POST', body }),
+  submit: (body: SubmitApplication, key: string) => api<Application>('/api/applications', { method: 'POST', body, idempotencyKey: key }),
 };

@@ -1,31 +1,30 @@
 import { Link } from 'react-router-dom';
 import { applicationsApi } from '../../api/rocket';
 import { Card, Empty, LinkButton, Loading, Notice, Page, StatusBadge } from '../../components/app/Ui';
+import { Icon } from '../../components/common/Icon';
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { formatCurrency } from '../../utils/format';
 
 const ApplicationsPage = () => {
   const list = useApi(() => applicationsApi.list(), []);
   return (
-    <Page title="Credit applications" subtitle="Every request you submitted, with its saved decision." actions={<LinkButton to="/apply">New request</LinkButton>}>
+    <Page title="Applications" actions={<LinkButton to="/apply">New application</LinkButton>}>
       <Card>
         {list.status === 'loading' && <Loading />}
         {list.status === 'error' && <Notice tone="error">{errorMessage(list.error)}</Notice>}
-        {list.status === 'ready' && list.data.length === 0 && <Empty>No applications yet.</Empty>}
+        {list.status === 'ready' && list.data.length === 0 && <Empty>No applications yet. <Link to="/marketplace" className="font-medium text-primary underline">Find something in the marketplace</Link>.</Empty>}
         {list.status === 'ready' && list.data.length > 0 && (
           <ul className="divide-y divide-gray-100">
             {list.data.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div>
-                  <Link to={`/applications/${a.id}`} className="font-medium text-gray-800 hover:text-primary">
-                    {formatCurrency(a.requestedAmount)} at {a.partnerName}
-                    {a.productName ? ` · ${a.productName}` : ''}
-                  </Link>
-                  <div className="text-xs text-gray-500">
-                    {new Date(a.createdAt).toLocaleString()} · possible {formatCurrency(a.possibleAmount)} · {a.aiStatus === 'APPLIED' ? 'rules + AI' : 'rules'}
+              <li key={a.id}>
+                <Link to={`/applications/${a.id}`} className="-mx-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md px-2 py-3 hover:bg-gray-50">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-gray-800">{a.productName ?? 'Custom amount'} · {formatCurrency(a.requestedAmount)}</div>
+                    <div className="text-sm text-gray-500">{a.partnerName} · {new Date(a.createdAt).toLocaleDateString()}{a.loanId ? ' · accepted' : ''}</div>
                   </div>
-                </div>
-                <StatusBadge status={a.decisionStatus} />
+                  <StatusBadge status={a.decisionStatus} />
+                  <Icon name="arrow" className="h-4 w-4 text-gray-400" />
+                </Link>
               </li>
             ))}
           </ul>

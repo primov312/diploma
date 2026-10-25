@@ -46,7 +46,7 @@ class FacebookClientTest {
         var client = new FacebookClient(props, RestClient.builder(), mapper);
         String url = client.authorizeUrl("st4te");
         assertThat(url).startsWith("https://www.facebook.com/v23.0/dialog/oauth?client_id=app-1")
-                .contains("state=st4te", "scope=public_profile%2Cuser_posts",
+                .contains("state=st4te", "scope=public_profile%2Cuser_posts", "auth_type=rerequest",
                         "redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Fapi%2Fme%2Fsocial-connection%2Ffacebook%2Fcallback");
     }
 
@@ -65,6 +65,24 @@ class FacebookClientTest {
 
         assertThat(client.fetchPosts("tok")).hasSize(1);
         assertThatThrownBy(() -> client.fetchPosts("old")).isInstanceOf(FacebookClient.TokenRejectedException.class);
+    }
+
+    @Test
+    void readsGrantedPermissionsAndMapsDeclinedOnes() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        var client = new FacebookClient(props, builder.baseUrl(FacebookClient.graphBase(props)).build(), mapper);
+
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith("https://graph.test/v23.0/me/permissions?")))
+                .andRespond(withSuccess("""
+                        {"data":[{"permission":"public_profile","status":"granted"},{"permission":"user_posts","status":"declined"}]}""",
+                        MediaType.APPLICATION_JSON));
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith("https://graph.test/v23.0/me/posts?")))
+                .andRespond(withStatus(HttpStatus.FORBIDDEN).contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":{\"type\":\"OAuthException\",\"code\":200,\"message\":\"Permissions error\"}}"));
+
+        assertThat(client.grantedPermissions("tok")).containsExactly("public_profile");
+        assertThatThrownBy(() -> client.fetchPosts("tok")).isInstanceOf(FacebookClient.PermissionMissingException.class);
     }
 
     @Test

@@ -305,7 +305,7 @@ public class MonthlyCostResolver {
         ensureDefaultProfile(userId);
         ObjectNode context = quote(userId, null, null, false);
         context.put("methodVersion", METHOD_VERSION);
-        if(!context.has("addressRevision")) context.put("addressRevision",jdbc.query("SELECT current_revision FROM user_address_state WHERE user_id=?",rs->rs.next()?rs.getInt(1):0,userId));
+        if(!context.has("addressRevision")) context.put("addressRevision",jdbc.<Integer>query("SELECT current_revision FROM user_address_state WHERE user_id=?",rs->rs.next()?rs.getInt(1):0,userId));
         if (context.path("available").asBoolean()) {
             context.put("rentUsd", usd(context.path("monthlyRent").decimalValue()))
                     .put("groceriesUsd", usd(context.path("monthlyGroceries").decimalValue()))

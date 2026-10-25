@@ -11,8 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class RegistrationService {
     private final UserService userService;
     private final StarterDataService starterData;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
-    public RegistrationService(UserService userService, StarterDataService starterData) {
+    public RegistrationService(UserService userService, StarterDataService starterData, org.springframework.jdbc.core.JdbcTemplate jdbc) {
+        this.jdbc=jdbc;
         this.userService = userService;
         this.starterData = starterData;
     }
@@ -21,6 +23,7 @@ public class RegistrationService {
     public UserEntity register(String email, String password, String displayName) {
         UserEntity user = userService.register(email, password, displayName);
         starterData.createFor(user);
+        jdbc.update("INSERT INTO wallet_accounts(user_id) VALUES(?) ON CONFLICT DO NOTHING",user.getId());
         return user;
     }
 }

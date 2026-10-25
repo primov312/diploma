@@ -20,7 +20,8 @@ public final class ApplicationDtos {
             @NotBlank String partnerSlug,
             @Positive @Digits(integer = 10, fraction = 2) BigDecimal requestedAmount,
             Long productId,
-            boolean useAi
+            boolean useAi,
+            Long quoteId
     ) {}
 
     public record ApplicationDto(
@@ -44,6 +45,8 @@ public final class ApplicationDtos {
             OffsetDateTime observedAt,
             OffsetDateTime createdAt,
             /** present on the detail view only */
-            Map<String, Object> featureSnapshot
+            Map<String, Object> featureSnapshot,
+            com.rocketcredit.backend.payments.CreditQuotes.Quote quote,
+            Long loanId, boolean canAccept, String acceptanceUnavailableReason
     ) {}
 }

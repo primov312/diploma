@@ -40,6 +40,11 @@ public class SocialConnectionService {
     public void connect(long userId, String code) {
         requireConfigured();
         var token = facebook.exchangeCode(code);
+        if (!facebook.grantedPermissions(token.accessToken()).contains("user_posts")) {
+            // Without posts the analysis can never run; do not keep a token we cannot use.
+            facebook.revoke(token.accessToken());
+            throw ApiException.badRequest("SOCIAL_PERMISSION_REQUIRED", "Allow access to your posts to analyze your Facebook activity.");
+        }
         var profile = facebook.me(token.accessToken());
         try {
             jdbc.update("""

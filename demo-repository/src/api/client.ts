@@ -47,11 +47,13 @@ type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   signal?: AbortSignal;
+  idempotencyKey?: string;
 };
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? 'GET';
   const headers: Record<string, string> = { Accept: 'application/json' };
+  if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (MUTATING.has(method)) headers[CSRF_HEADER] = await ensureCsrfToken();
 

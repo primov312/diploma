@@ -18,7 +18,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 
 from app.ai import Model, load_model, predict
-from app.demo_analysis import AddressExtraction, AddressImageRequest, LocalCostExtraction, LocalCostRequest, LocationRequest, LocationReport, ScenarioRequest, SocialAccountRequest, SocialReport, analyze_location, analyze_posts, analyze_social, extract_address_image, extract_local_costs
+from app.demo_analysis import _ai_key, AddressExtraction, AddressImageRequest, LocalCostExtraction, LocalCostRequest, LocationRequest, LocationReport, ScenarioRequest, SocialAccountRequest, SocialReport, analyze_location, analyze_posts, analyze_social, extract_address_image, extract_local_costs
 from app.logging import get_logger, log_decision
 from app.models import AffordabilityRequest, AffordabilityResponse, ScoreRequest, ScoreResponse
 from app.policy import Policy, load_policy
@@ -77,6 +77,8 @@ def health(policy: Policy = Depends(get_policy), model: Optional[Model] = Depend
         "modelLoaded": model is not None,
         "demoProviderMode": cfg.demo_provider_mode.upper(),
         "geminiConfigured": bool(cfg.gemini_api_key),
+        "aiProvider": cfg.ai_provider.upper(),
+        "aiConfigured": bool(_ai_key(cfg)),
     }
 
 
@@ -88,7 +90,7 @@ def read_policy(policy: Policy = Depends(get_policy)):
 @app.post("/score", response_model=ScoreResponse, dependencies=[Depends(require_token)])
 def score(req: ScoreRequest, policy: Policy = Depends(get_policy),
           model: Optional[Model] = Depends(get_model)) -> ScoreResponse:
-    if req.affordability is not None and policy.version == "rules-v1":
+    if req.affordability is not None and policy.version == "rules-v1" and req.repaymentTerms is None:
         req = req.model_copy(update={"affordability": None})
     ai = None
     if req.useAi and model is not None:
@@ -105,8 +107,8 @@ def score(req: ScoreRequest, policy: Policy = Depends(get_policy),
 @app.post("/affordability", response_model=AffordabilityResponse, dependencies=[Depends(require_token)])
 def affordability(req: AffordabilityRequest, policy: Policy = Depends(get_policy)) -> AffordabilityResponse:
     """Pure version-dispatched estimate. It does not invoke or modify the risk model."""
-    if policy.version in ("rules-v2", "rules-v3", "rules-v4"):
-        return calculate_affordability(req.inputs, policy.version)
+    if req.repaymentTerms is not None or policy.version in ("rules-v2", "rules-v3", "rules-v4"):
+        return calculate_affordability(req.inputs, policy.version, req.repaymentTerms)
     resolved = calculate_affordability(req.inputs, policy.version)
     if resolved.baseAmount is None:
         return resolved.model_copy(update={"formulaVersion": "affordability-v1"})
@@ -149,7 +151,7 @@ def social_account_analysis(req: SocialAccountRequest, cfg: Settings = Depends(g
 @app.post("/demo-analysis/address", response_model=AddressExtraction, dependencies=[Depends(require_token)])
 def address_analysis(req: AddressImageRequest, cfg: Settings = Depends(get_settings)) -> AddressExtraction:
     try:
-        return extract_address_image(req.imageData, req.mimeType, cfg)
+        return extract_address_image(req.imageData, req.mimeType, cfg, req.claimed)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported address evidence fixture") from exc
 

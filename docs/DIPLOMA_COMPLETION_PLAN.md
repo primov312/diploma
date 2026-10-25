@@ -1,6 +1,6 @@
 # Rocket Credit — Simple Diploma Completion Plan
 
-Updated: 2026-09-19. This plan replaces the earlier 12-phase distributed-system roadmap.
+Updated: 2026-10-22 (Step 8 completed; scope additions recorded in §6). This plan replaces the earlier 12-phase distributed-system roadmap.
 
 Scope: [README](../README.md). Design: [simple architecture](DIPLOMA_ARCHITECTURE.md). Research description: [diploma topic](DIPLOMA_PROJECT_TOPIC.md).
 
@@ -10,7 +10,7 @@ Build a customer account with demo partner transaction history, a credit request
 
 Target runtime: one React app, one Java backend, one Python analysis service and one PostgreSQL database. No payments, separate partner backend, identity-provider deployment, queue, object store or distributed workflow is required.
 
-The code has not yet been simplified. Existing microservices and earlier Docker smoke results are reuse material, not evidence that this target is implemented. All steps below are pending. This documentation change starts no services.
+Status 2026-10-22: Steps 1–8 are done. The only open item is a successful live AI answer. The Gemini key is valid, but its project has no credits (HTTP 402). On 2026-10-23 Jev (TypeSafe) became the default provider; it needs a `TYPESAFE_API_KEY`. See [VERIFICATION.md](VERIFICATION.md). Work added after the original plan (simulated payments, Budapest living costs, location and Facebook analysis, the single marketplace and the district map) is listed in §6.
 
 ## 2. What to reuse and what to stop building
 
@@ -139,15 +139,17 @@ Status 2026-09-19: done. `applications/features/` — provider interfaces, `Sequ
 
 Locations: tests, `research/`, `docs/` and the run instructions.
 
-- [ ] 8.1 Run focused checks: authentication/ownership/CSRF, feature calculations, score/cap boundaries, decision persistence, rules/AI behavior and thread-result equality.
-- [ ] 8.2 Add one browser smoke scenario covering login, history, a store handoff, application submission, saved result and logout. Include approval, rejection and review fixture cases in API tests.
-- [ ] 8.3 Finalize evidence for all five research topics using the table below. Include a DB backup/restore example and clearly state local security limits.
-- [ ] 8.4 Write the diploma chapters and a short demo script. Update screenshots, architecture and fixture instructions to match implemented behavior.
-- [ ] 8.5 Verify a fresh start from the simplified Compose setup and document shutdown. Archive or remove unused legacy code only in a separate reviewed cleanup after the new path passes; deleting old volumes is not part of completion.
+- [x] 8.1 Run focused checks: authentication/ownership/CSRF, feature calculations, score/cap boundaries, decision persistence, rules/AI behavior and thread-result equality.
+- [x] 8.2 Add one browser smoke scenario covering login, history, a store handoff, application submission, saved result and logout. Include approval, rejection and review fixture cases in API tests.
+- [x] 8.3 Finalize evidence for all five research topics using the table below. Include a DB backup/restore example and clearly state local security limits.
+- [x] 8.4 Write the diploma chapters and a short demo script. Update screenshots, architecture and fixture instructions to match implemented behavior.
+- [x] 8.5 Verify a fresh start from the simplified Compose setup and document shutdown. Archive or remove unused legacy code only in a separate reviewed cleanup after the new path passes; deleting old volumes is not part of completion.
 
-  Legacy cleanup done 2026-09-19 (after Steps 1–7 passed): `rocket-credit-gateway`, `rocket-credit-user-data`, `rocket-credit-payment`, `rocket-credit-repayment`, `rocket-credit-claimcheck`, `rocket-credit-analysis/legacy/` and the five-service `docker-compose.yml` with its OpenAPI configs and stub generator were removed; last commit containing them is `1b886c0`. Old Docker volumes were not touched. The fresh-start verification itself is still pending.
+  Legacy cleanup done 2026-09-19 (after Steps 1–7 passed): `rocket-credit-gateway`, `rocket-credit-user-data`, `rocket-credit-payment`, `rocket-credit-repayment`, `rocket-credit-claimcheck`, `rocket-credit-analysis/legacy/` and the five-service `docker-compose.yml` with its OpenAPI configs and stub generator were removed; last commit containing them is `1b886c0`. Old Docker volumes were not touched.
 
 Done when: another person can start the simple app, follow the demo and reproduce the two research experiments without running the legacy stack.
+
+Status 2026-10-22: done. Results in [VERIFICATION.md](VERIFICATION.md): backend 75 tests, analysis 67 (+1 live Gemini test skipped without a key), browser 18, all passing; the fresh Compose start with new volumes is recorded in `rocket-credit-deployment/DIPLOMA_RUNTIME.md` (including the new `diploma/import-prices.sh` step). Diploma text: [diploma/THESIS.md](diploma/THESIS.md); demo script: [diploma/DEMO_SCRIPT.md](diploma/DEMO_SCRIPT.md); expected `rules-v4` outcomes: [DEMO_SCENARIOS.md](DEMO_SCENARIOS.md). Open: a successful live Gemini run after adding credits to the key's Google AI Studio project (the key itself is valid; calls return HTTP 402), or a live run with Claude Haiku 5.5 once an `ANTHROPIC_API_KEY` is set (`AI_PROVIDER=ANTHROPIC`; test commands in the runtime guide).
 
 ## 4. Minimum research evidence
 
@@ -164,3 +166,20 @@ Done when: another person can start the simple app, follow the demo and reproduc
 Start with Step 1: create the consolidated backend and database-free Python analysis path, then run them against the new diploma database. Do not add features to the legacy five-service checkout while building the simplified route.
 
 After that, prioritize a thin complete path: login → own transaction history → rules-only request → saved result. Add the trained AI model and thread experiment to that working path.
+
+## 6. Scope added after the original plan
+
+These features were built after Step 7 and are part of the final demonstration. They do not change the five research topics; they give the scoring and AI chapters real inputs.
+
+| Addition | What it does | Documentation |
+| --- | --- | --- |
+| Simulated wallet and credit | Top-ups, purchases from balance, quoted interest-bearing schedules (1–3 weeks or 1–24 months), explicit acceptance, automatic collection, early settlement | [BALANCE_AND_REPAYMENTS.md](BALANCE_AND_REPAYMENTS.md) |
+| Budapest living costs (`rules-v2`…`rules-v4`) | Postcode → district, researched rent and grocery prices, automatic monthly budget after address verification | [LOCATION_PRICING.md](LOCATION_PRICING.md), [AFFORDABILITY_FEATURE_PLAN.md](AFFORDABILITY_FEATURE_PLAN.md) |
+| Location analysis + district map | Synthetic visit history priced per district; the map shades the 23 districts by visits and outlines the most visited one | [DEMO_SCENARIOS.md](DEMO_SCENARIOS.md) |
+| Facebook analysis | The owner's own posts via Facebook Login; deterministic metrics plus optional Gemini findings with evidence IDs; zero weight in scoring | [SOCIAL_ACCOUNT_ANALYSIS.md](SOCIAL_ACCOUNT_ANALYSIS.md) |
+| AI adapters (Jev default; Gemini, Claude) | Address-card check, local-cost extraction and social findings, with rule-based fallback; Jev answers typed questions and code writes every value and sentence | [SAFE_DATA_KEEPING.md](SAFE_DATA_KEEPING.md) |
+| Single marketplace | The three store pages became one `/marketplace` (`GET /api/catalog`) with departments, search and sorting; sellers stay visible per product | [DIPLOMA_ARCHITECTURE.md](DIPLOMA_ARCHITECTURE.md) |
+| UI simplification (2026-10-22) | Four-item navigation, three dashboard tabs, Wallet tabs, decision-first result page, one demo footer instead of repeated disclaimers | [diploma/THESIS.md](diploma/THESIS.md) §9 |
+
+Ideas listed in `NEW_FEATERUES.md` (refunds, admin account, business onboarding) are future work and outside the diploma scope.
+

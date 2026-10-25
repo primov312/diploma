@@ -19,11 +19,18 @@ public record FeatureBundle(
         Profile profile,
         History history,
         Finance finance,
-        AffordabilityRequest.Inputs affordability
+        AffordabilityRequest.Inputs affordability,
+        com.rocketcredit.backend.payments.RepaymentCalculator.Terms repaymentTerms
 ) {
     public FeatureBundle(BigDecimal requestedAmount, String currency, BigDecimal partnerCap, boolean useAi,
                         OffsetDateTime observedAt, Profile profile, History history, Finance finance) {
-        this(requestedAmount, currency, partnerCap, useAi, observedAt, profile, history, finance, null);
+        this(requestedAmount, currency, partnerCap, useAi, observedAt, profile, history, finance, null, null);
+    }
+    public FeatureBundle(BigDecimal amount,String currency,BigDecimal cap,boolean ai,OffsetDateTime at,Profile profile,History history,Finance finance,AffordabilityRequest.Inputs affordability) {
+        this(amount,currency,cap,ai,at,profile,history,finance,affordability,null);
+    }
+    public FeatureBundle withTerms(com.rocketcredit.backend.payments.RepaymentCalculator.Terms terms) {
+        return new FeatureBundle(requestedAmount,currency,partnerCap,useAi,observedAt,profile,history,finance,affordability,terms);
     }
     public record Profile(int accountAgeMonths, boolean profileComplete, boolean emailVerified) {}
 

@@ -1,5 +1,7 @@
 # Diploma Project Topic
 
+> Payment scope update: the application now supports simulated balances, purchases, interest-bearing credit schedules and repayments. See [Balance and repayments](BALANCE_AND_REPAYMENTS.md) for the current behavior; earlier exclusions of simulated payments below are historical. Real payment providers remain outside scope.
+
 Updated: 2026-09-16. This revision follows the research priorities in [README](../README.md) and replaces the earlier microservice-commerce scope.
 
 Detailed design: [architecture](DIPLOMA_ARCHITECTURE.md). Implementation tasks: [completion plan](DIPLOMA_COMPLETION_PLAN.md).

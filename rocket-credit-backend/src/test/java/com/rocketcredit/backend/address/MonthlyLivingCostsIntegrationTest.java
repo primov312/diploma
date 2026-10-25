@@ -221,7 +221,7 @@ class MonthlyLivingCostsIntegrationTest extends AbstractIntegrationTest {
                  "addressee":"Riley Review","countryCode":"HU","city":"Budapest","districtName":"District V",
                  "postalCode":"1051","street":"Minta utca","building":"12","unit":null,"evidenceQuotes":["Sample"]}
                 """);
-        when(analysis.extractDemoAddress(any(), any())).thenReturn(extraction);
+        when(analysis.extractDemoAddress(any(), any(), any())).thenReturn(extraction);
         byte[] image = java.nio.file.Files.readAllBytes(Path.of("../demo-repository/src/assets/sample-address-card-riley.png"));
         var file = new org.springframework.mock.web.MockMultipartFile("file", "sample.png", "image/png", image);
         assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("VERIFIED_DEMO");
@@ -231,6 +231,34 @@ class MonthlyLivingCostsIntegrationTest extends AbstractIntegrationTest {
         assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("MISMATCH");
         assertThat(generation(user)).isGreaterThan(verifiedGeneration);
         assertThat(costs.references(costs.currentContext(user, generation(user))).eligible()).isFalse();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void jevFieldChecksVerifyTheSavedAddressAndThresholdsSetTheOutcome() throws Exception {
+        long user = user(true);
+        jdbc.update("UPDATE users SET display_name='Riley Review' WHERE id=?", user);
+        ObjectNode extraction = (ObjectNode) mapper.readTree("""
+                {"status":"EXTRACTED","provider":"TYPESAFE","documentType":"ADDRESS_CARD","confidence":0.93,
+                 "addressee":"Riley Review","countryCode":"HU","city":"Budapest","districtName":"District V",
+                 "postalCode":"1051","street":"Minta utca","building":"12","unit":null,"evidenceQuotes":["Minta utca"],
+                 "fieldChecks":{"addressee":0.97,"countryCode":0.9,"city":0.98,"districtName":0.95,
+                                "postalCode":0.96,"street":0.97,"building":0.94,"unit":0.91}}
+                """);
+        var claim = org.mockito.ArgumentCaptor.forClass(Map.class);
+        when(analysis.extractDemoAddress(any(), any(), claim.capture())).thenReturn(extraction);
+        byte[] image = java.nio.file.Files.readAllBytes(Path.of("../demo-repository/src/assets/sample-address-card-riley.png"));
+        var file = new org.springframework.mock.web.MockMultipartFile("file", "sample.png", "image/png", image);
+
+        assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("VERIFIED_DEMO");
+        Map<String, Object> sent = claim.getValue();
+        assertThat(sent).containsEntry("addressee", "Riley Review").containsEntry("postalCode", "1051")
+                .containsEntry("districtName", "District V").containsEntry("unit", null);
+
+        ((ObjectNode) extraction.path("fieldChecks")).put("postalCode", 0.5);
+        assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("NEEDS_REVIEW");
+        ((ObjectNode) extraction.path("fieldChecks")).put("postalCode", 0.04);
+        assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("MISMATCH");
     }
 
     @Test

@@ -104,6 +104,9 @@ public class DemoSignalService {
         } catch (FacebookClient.TokenRejectedException e) {
             fail(job.id(), "SOCIAL_RECONNECT_REQUIRED");
             throw ApiException.conflict("SOCIAL_RECONNECT_REQUIRED", "Facebook no longer accepts the saved login. Reconnect your account.");
+        } catch (FacebookClient.PermissionMissingException e) {
+            fail(job.id(), "SOCIAL_PERMISSION_REQUIRED");
+            throw ApiException.conflict("SOCIAL_PERMISSION_REQUIRED", "Facebook no longer allows access to your posts. Reconnect and allow posts.");
         } catch (ApiException e) {
             fail(job.id(), e.getCode());
             throw e;

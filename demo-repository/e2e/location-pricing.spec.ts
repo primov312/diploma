@@ -9,8 +9,10 @@ test.beforeAll(async ({ request }) => {
 
 async function openActivity(page: Page) {
   await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
-  await expect(page.getByRole('button', { name: 'Run location analysis' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Analyze visits' })).toBeEnabled();
 }
+
+const openVisits = (page: Page) => page.getByText(/^All visits \(\d+\)$/).click();
 
 async function register(page: Page) {
   await page.goto('/register');
@@ -27,11 +29,11 @@ test('live imported benchmarks cover five categories, persist, and leave finance
   await register(page);
   const before = await (await page.request.get('/api/me/financial-inputs')).json();
   await openActivity(page);
-  await page.getByRole('button', { name: 'Location scenario' }).click();
-  await page.getByRole('option', { name: 'budapest priced-week', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Run location analysis' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Visit history sample' }).click();
+  await page.getByRole('option', { name: 'A week in Budapest', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Analyze visits' })).toBeEnabled();
   const responsePromise = page.waitForResponse(response => response.url().endsWith('/api/me/demo-signals/location-runs') && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Run location analysis' }).click();
+  await page.getByRole('button', { name: 'Analyze visits' }).click();
   const response = await responsePromise;
   expect(response.status()).toBe(202);
   const result = await response.json();
@@ -40,6 +42,8 @@ test('live imported benchmarks cover five categories, persist, and leave finance
   expect(result.report.visits.map((visit: { pricing: { category: string } }) => visit.pricing.category).sort())
     .toEqual(['CAFE', 'GROCERY', 'GYM', 'LIBRARY', 'STARBUCKS']);
   expect(result.report.visits.every((visit: { pricing: { currency: string } }) => visit.pricing.currency === 'HUF')).toBe(true);
+  await expect(page.getByRole('button', { name: /District II: 1 visit/ })).toBeVisible();
+  await openVisits(page);
   await expect(page.getByRole('heading', { name: 'Estimated benchmark prices' })).toBeVisible();
   await expect(page.getByTestId('location-visit-price')).toHaveCount(5);
   await expect(page.getByText('Annual membership benchmark')).toBeVisible();
@@ -51,6 +55,7 @@ test('live imported benchmarks cover five categories, persist, and leave finance
   expect(after).toEqual(before);
   await page.reload();
   await expect(page.getByTestId('location-visit-price')).toHaveCount(5);
+  await openVisits(page);
   const reports = await (await page.request.get('/api/me/demo-signals/reports?kind=LOCATION')).json();
   expect(reports[0]).toEqual(result.report);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -62,9 +67,11 @@ test('live imported benchmarks cover five categories, persist, and leave finance
 test('regular scenario keeps parks unpriced', async ({ page }) => {
   await register(page);
   await openActivity(page);
-  await page.getByRole('button', { name: 'Location scenario' }).click();
-  await page.getByRole('option', { name: 'regular week', exact: true }).click();
-  await page.getByRole('button', { name: 'Run location analysis' }).click();
+  await page.getByRole('button', { name: 'Visit history sample' }).click();
+  await page.getByRole('option', { name: 'Regular week', exact: true }).click();
+  await page.getByRole('button', { name: 'Analyze visits' }).click();
+  await expect(page.getByRole('button', { name: /District V: 3 visits · most visited/ })).toBeVisible();
+  await openVisits(page);
   await expect(page.getByText('No benchmark for this place type')).toBeVisible();
   await expect(page.getByTestId('location-visit-price')).toHaveCount(3);
 });
@@ -75,9 +82,11 @@ test('older saved reports and unavailable datasets remain readable', async ({ pa
   await page.route('**/api/me/demo-signals/reports?kind=LOCATION', route => route.fulfill({ json: [report] }));
   await register(page);
   await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
+  await openVisits(page);
   await expect(page.getByText('Run location analysis again to attach benchmark prices to this saved report.')).toBeVisible();
   await expect(page.getByText('Cafe · Budapest XI', { exact: true })).toBeVisible();
   report.pricing = { available: false, method: 'Test reference method' };
   await page.reload();
+  await openVisits(page);
   await expect(page.getByText('Price references are not available for this report. Import a dataset and run analysis again.')).toBeVisible();
 });

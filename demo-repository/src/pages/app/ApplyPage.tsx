@@ -1,168 +1,127 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ApiError } from '../../api/client';
-import { applicationsApi, partnersApi } from '../../api/rocket';
-import type { PartnerDetail } from '../../api/types';
-import { Card, Loading, Notice, Page, SyntheticTag } from '../../components/app/Ui';
-import { errorMessage, useApi } from '../../hooks/useApi';
-import { formatCurrency, hufToUsd, usdToHuf } from '../../utils/format';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { applicationsApi, catalogApi, partnersApi } from '../../api/rocket';
+import { paymentsApi, type CreditQuote, type TermUnit } from '../../api/payments';
+import type { CatalogItem } from '../../api/types';
+import { Card, Loading, Notice, Page } from '../../components/app/Ui';
+import { ScheduleReview } from '../../components/payments/PaymentUi';
 import LocalDropdown from '../../components/common/LocalDropdown';
+import { Icon } from '../../components/common/Icon';
+import { errorMessage, useApi } from '../../hooks/useApi';
+import { usePaymentAction } from '../../hooks/useFinancial';
+import { formatCurrency, hufToUsd } from '../../utils/format';
 
-/**
- * One form for both entry points:
- *   /apply                                  direct: choose a store and an amount
- *   /apply?partner=threadly&product=14      from a store page: the product is prefilled
- * The backend resolves the product price itself; the amount shown here is informational.
- */
-const ApplyPage = () => {
-  const [params] = useSearchParams();
-  const navigate = useNavigate();
+const STEPS = ['What you buy', 'Repayment', 'Review'];
+
+const ProductSummary = ({ item, onChange }: { item: CatalogItem; onChange?: () => void }) =>
+  <div className="flex items-center gap-4 rounded-md border border-gray-200 p-3">
+    <img src={item.imagePath} alt="" className="h-16 w-16 shrink-0 rounded bg-gray-100 object-contain" />
+    <div className="min-w-0 flex-1"><p className="truncate font-semibold text-gray-800">{item.name}</p><p className="text-sm text-gray-500">{item.partnerName} · {formatCurrency(item.price)}</p></div>
+    {onChange && <button type="button" className="text-sm underline" onClick={onChange}>Change</button>}
+  </div>;
+
+export default function ApplyPage() {
+  const [params] = useSearchParams(); const navigate = useNavigate();
+  const catalog = useApi(() => catalogApi.list(), []);
   const partners = useApi(() => partnersApi.list(), []);
-
-  const [partnerSlug, setPartnerSlug] = useState(params.get('partner') ?? '');
   const [productId, setProductId] = useState<number | null>(params.get('product') ? Number(params.get('product')) : null);
+  const [mode, setMode] = useState<'product' | 'amount'>(params.get('amount') && !params.get('product') ? 'amount' : 'product');
+  const [seller, setSeller] = useState(params.get('partner') ?? '');
   const [amount, setAmount] = useState(params.get('amount') ?? '');
+  const [search, setSearch] = useState('');
   const [useAi, setUseAi] = useState(false);
-  const [detail, setDetail] = useState<PartnerDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState(1), [unit, setUnit] = useState<TermUnit>('MONTH'), [count, setCount] = useState('');
+  const [quote, setQuote] = useState<CreditQuote>(), [error, setError] = useState<string>(), [quoting, setQuoting] = useState(false);
+  const action = usePaymentAction();
 
-  useEffect(() => {
-    if (!partnerSlug) {
-      setDetail(null);
-      return;
-    }
-    let cancelled = false;
-    partnersApi.get(partnerSlug).then((d) => !cancelled && setDetail(d)).catch(() => !cancelled && setDetail(null));
-    return () => {
-      cancelled = true;
-    };
-  }, [partnerSlug]);
+  const items = catalog.status === 'ready' ? catalog.data : [];
+  const product = mode === 'product' ? items.find(item => item.id === productId) : undefined;
+  const sellers = partners.status === 'ready' ? partners.data : [];
+  useEffect(() => { if (!seller && sellers.length) setSeller(sellers[0].slug); }, [sellers.length]);
+  const sellerCap = sellers.find(p => p.slug === seller)?.amountCap;
+  const matches = useMemo(() => {
+    const terms = search.trim().toLowerCase();
+    return terms ? items.filter(item => `${item.name} ${item.partnerName} ${item.category}`.toLowerCase().includes(terms)).slice(0, 6) : [];
+  }, [items, search]);
 
-  useEffect(() => {
-    if (partners.status === 'ready' && !partnerSlug && partners.data.length > 0) setPartnerSlug(partners.data[0].slug);
-  }, [partners.status, partners.data, partnerSlug]);
+  const request = product ? { partnerSlug: product.partnerSlug, productId: product.id } : { partnerSlug: seller, requestedAmount: hufToUsd(Number(amount)) };
 
-  const product = useMemo(() => detail?.products.find((p) => p.id === productId) ?? null, [detail, productId]);
-  const cap = detail?.amountCap;
-
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (submitting) return; // no double submit while a request is pending
-    setError(null);
-    setFieldErrors({});
-    const parsed = product ? product.price : hufToUsd(Number(amount));
-    if (!product && (!amount || !Number.isFinite(parsed) || parsed <= 0)) {
-      setFieldErrors({ amount: 'Enter an amount greater than zero.' });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const saved = await applicationsApi.submit(
-        product ? { partnerSlug, productId: product.id, useAi } : { partnerSlug, requestedAmount: Math.round(parsed * 100) / 100, useAi },
-      );
-      navigate(`/applications/${saved.id}`, { replace: true });
-    } catch (err) {
-      if (err instanceof ApiError && err.code === 'ANALYSIS_UNAVAILABLE') {
-        setError('The analysis service is unavailable right now. Nothing was saved — please try again in a moment.');
-      } else if (err instanceof ApiError && err.code === 'VALIDATION_FAILED') {
-        setFieldErrors(err.fields);
-        setError('Please correct the highlighted fields.');
-      } else if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Something went wrong. Nothing was saved.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
+  const continueFromPurchase = () => {
+    setError(undefined);
+    if (mode === 'product' && !product) return setError('Choose a product, or switch to “Another amount”.');
+    if (mode === 'amount' && !(Number(request.requestedAmount) > 0)) return setError('Enter an amount greater than zero.');
+    setStep(2);
+  };
+  const preview = async () => {
+    setError(undefined); setQuoting(true);
+    try { setQuote(await paymentsApi.quote({ ...request, termUnit: unit, installmentCount: Number(count) })); setStep(3); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Unable to prepare terms.'); }
+    finally { setQuoting(false); }
+  };
+  const submit = async () => {
+    if (!quote) return;
+    const body = { ...request, quoteId: quote.id, useAi };
+    const saved = await action.run(JSON.stringify(body), key => applicationsApi.submit(body, key));
+    if (saved) navigate(`/applications/${saved.id}`, { replace: true });
   };
 
-  return (
-    <Page title="Apply for financing" subtitle="Choose a store and amount. Review your saved demo decision after submitting.">
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card title="Your request" icon="file" className="lg:col-span-2">
-          {partners.status === 'loading' && <Loading />}
-          {partners.status === 'error' && <Notice tone="error">{errorMessage(partners.error)}</Notice>}
-          {partners.status === 'ready' && (
-            <form className="space-y-5" onSubmit={onSubmit} noValidate>
-              <div>
-                <label htmlFor="store" className="block text-sm font-medium text-gray-700">Store</label>
-                <LocalDropdown
-                  id="store"
-                  className="mt-1 w-full"
-                  value={partnerSlug}
-                  onValueChange={(value) => {
-                    setPartnerSlug(value);
-                    setProductId(null);
-                  }}
-                  options={partners.data.map((p) => ({ value: p.slug, label: `${p.displayName} — up to ${formatCurrency(p.amountCap)}` }))}
-                />
-              </div>
+  return <Page title="Apply for credit">
+    <ol aria-label="Application steps" className="mb-6 grid grid-cols-3 gap-2 text-sm">{STEPS.map((label, i) =>
+      <li key={label} aria-current={step === i + 1 ? 'step' : undefined} className={`border-b-2 py-3 ${step === i + 1 ? 'border-primary font-semibold text-primary' : step > i + 1 ? 'border-primary-300 text-gray-700' : 'border-gray-200 text-gray-500'}`}>{i + 1}. {label}</li>)}</ol>
+    <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <Card>
+        {(catalog.status === 'loading' || partners.status === 'loading') && <Loading />}
+        {catalog.status === 'error' && <Notice tone="error">{errorMessage(catalog.error)}</Notice>}
 
-              <div>
-                <label htmlFor="product" className="block text-sm font-medium text-gray-700">Product (optional)</label>
-                <LocalDropdown
-                  id="product"
-                  className="mt-1 w-full"
-                  value={productId == null ? '' : String(productId)}
-                  onValueChange={(value) => setProductId(value ? Number(value) : null)}
-                  placeholder="No product — enter an amount"
-                  options={detail?.products.map((p) => ({ value: String(p.id), label: `${p.name} — ${formatCurrency(p.price)}` })) ?? []}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-gray-700">Amount (HUF)</label>
-                <input
-                  id="amount"
-                  type="number"
-                  inputMode="decimal"
-                  min="1"
-                  step="1"
-                  className="form-input mt-1 w-full py-2 disabled:bg-gray-50"
-                  value={product ? usdToHuf(product.price) : amount}
-                  disabled={Boolean(product)}
-                  onChange={(e) => setAmount(e.target.value)}
-                  aria-invalid={Boolean(fieldErrors.amount || fieldErrors.requestedAmount)}
-                  aria-describedby="amount-hint"
-                />
-                <p id="amount-hint" className="mt-1 text-xs text-gray-500">
-                  {product ? 'The price comes from the store catalog and cannot be changed here.' : cap ? `This store finances up to ${formatCurrency(cap)}.` : ''}
-                </p>
-                {(fieldErrors.amount || fieldErrors.requestedAmount) && (
-                  <p className="mt-1 text-xs text-error-700">{fieldErrors.amount ?? fieldErrors.requestedAmount}</p>
-                )}
-              </div>
-
-              <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
-                <input type="checkbox" className="mt-1" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} />
-                <span className="text-sm">
-                  <span className="font-medium text-gray-800">Use AI analysis for this request</span>
-                  <br />
-                  <span className="text-gray-600">Adds a model risk estimate when available. Otherwise the decision uses rules.</span>
-                </span>
+        {step === 1 && catalog.status === 'ready' && <form noValidate className="space-y-5" onSubmit={e => { e.preventDefault(); continueFromPurchase(); }}>
+          <div className="inline-flex rounded-md border border-gray-200 p-1" role="group" aria-label="What are you buying">
+            {([['product', 'A marketplace product'], ['amount', 'Another amount']] as const).map(([value, label]) =>
+              <button key={value} type="button" aria-pressed={mode === value} onClick={() => { setMode(value); setError(undefined); }}
+                className={`min-h-11 rounded px-4 text-sm font-medium ${mode === value ? 'bg-primary text-white' : 'text-gray-700'}`}>{label}</button>)}
+          </div>
+          {mode === 'product' && (product
+            ? <ProductSummary item={product} onChange={() => setProductId(null)} />
+            : <div>
+              <label className="block text-sm font-medium">Find a product
+                <span className="relative mt-1 block"><Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
+                  <input type="search" autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="e.g. coat, headphones, series" className="form-input w-full pl-10" /></span>
               </label>
+              {matches.length > 0 && <ul className="mt-2 divide-y divide-gray-100 rounded-md border border-gray-200">{matches.map(item =>
+                <li key={item.id}><button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-gray-50" onClick={() => { setProductId(item.id); setSearch(''); }}>
+                  <span><span className="font-medium">{item.name}</span><span className="block text-xs text-gray-500">{item.partnerName}</span></span><span className="shrink-0 font-semibold">{formatCurrency(item.price)}</span>
+                </button></li>)}</ul>}
+              {search.trim() && matches.length === 0 && <p className="mt-2 text-sm text-gray-500">No match. Try another word.</p>}
+              <p className="mt-2 text-sm text-gray-500">Or browse the <Link to="/marketplace" className="underline">marketplace</Link> and press “Apply for credit”.</p>
+            </div>)}
+          {mode === 'amount' && <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-medium">Amount (HUF)<input type="number" inputMode="decimal" min="2" step="1" required value={amount} onChange={e => setAmount(e.target.value)} className="form-input mt-1 w-full" /></label>
+            <label className="block text-sm font-medium">Seller<LocalDropdown id="store" aria-label="Seller" className="mt-1 w-full" value={seller} onValueChange={setSeller} options={sellers.map(p => ({ value: p.slug, label: p.displayName }))} /></label>
+            {sellerCap != null && <p className="text-sm text-gray-500 sm:col-span-2">Up to {formatCurrency(sellerCap)} with this seller.</p>}
+          </div>}
+          <button className="btn-primary">Continue</button>
+        </form>}
 
-              {error && <Notice tone="error">{error}</Notice>}
+        {step === 2 && <form className="space-y-5" onSubmit={e => { e.preventDefault(); void preview(); }}>
+          {product && <ProductSummary item={product} />}
+          <fieldset><legend className="mb-2 text-sm font-medium">Pay back</legend><div className="flex gap-3">{(['MONTH', 'WEEK'] as const).map(value =>
+            <label key={value} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-4 ${unit === value ? 'border-primary bg-primary-50' : 'border-gray-200'}`}><input type="radio" name="term-unit" value={value} checked={unit === value} onChange={() => { setUnit(value); if (value === 'WEEK' && Number(count) > 3) setCount(''); }} />{value === 'WEEK' ? 'Weekly' : 'Monthly'}</label>)}</div></fieldset>
+          <label className="block text-sm font-medium">Number of payments<select required className="form-input mt-1 w-full" value={count} onChange={e => setCount(e.target.value)}><option value="">Choose</option>{Array.from({ length: unit === 'WEEK' ? 3 : 24 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1} {unit === 'WEEK' ? 'week' : 'month'}{i ? 's' : ''}</option>)}</select></label>
+          <div className="flex gap-3"><button type="button" className="btn-secondary" onClick={() => setStep(1)}>Back</button><button className="btn-primary disabled:opacity-50" disabled={quoting || !count}>{quoting ? 'Calculating…' : 'See my payments'}</button></div>
+        </form>}
 
-              <button type="submit" className="btn-primary w-full py-3 disabled:opacity-60" disabled={submitting} aria-busy={submitting}>
-                {submitting ? 'Checking…' : 'Submit request'}
-              </button>
-            </form>
-          )}
-        </Card>
-
-        <Card icon="info" title="What happens" className="text-sm text-gray-600">
-          <SyntheticTag>Demo application</SyntheticTag>
-          <ol className="mt-4 list-decimal space-y-3 pl-5"><li>Check the store limit and your account information.</li><li>Review the decision and its reasons.</li><li>Reopen the saved request in Applications.</li></ol>
-          <p className="mt-4">No real lending or payments. Outcomes are approved, not approved or needs review.</p>
-          <details className="mt-5"><summary>How the request is assessed</summary><p>Your profile, purchase history and synthetic financial information are evaluated by rules and the AI model when selected and available. The request and decision are saved together. Needs review indicates an inconclusive automatic check.</p></details>
-        </Card>
-      </div>
-    </Page>
-  );
-};
-
-export default ApplyPage;
+        {step === 3 && quote && <div className="space-y-5">
+          <ScheduleReview schedule={quote.schedule} />
+          <label className="flex cursor-pointer gap-3 rounded-md border border-gray-200 p-3 text-sm"><input type="checkbox" checked={useAi} onChange={e => setUseAi(e.target.checked)} /><span><strong>Also use AI analysis</strong><span className="block text-gray-600">A trained model adds a risk estimate to the rules.</span></span></label>
+          <div className="flex flex-wrap gap-3"><button className="btn-secondary" disabled={action.pending} onClick={() => { setQuote(undefined); setStep(2); }}>Back</button><button className="btn-primary disabled:opacity-50" disabled={action.pending} onClick={submit}>{action.pending ? 'Checking…' : 'Get my decision'}</button></div>
+          <p className="text-xs text-gray-500">Quote valid until {new Date(quote.expiresAt).toLocaleTimeString()}.</p>
+        </div>}
+        {(error || action.error) && <div className="mt-4"><Notice tone="error">{error ?? action.error}</Notice></div>}
+      </Card>
+      <Card title="How it works" icon="info"><ol className="list-decimal space-y-3 pl-5 text-sm text-gray-600">
+        <li>Choose what you buy and how to pay it back.</li>
+        <li>You get an instant decision with reasons.</li>
+        <li>If approved, accept to pay the seller. Nothing happens until you accept.</li>
+      </ol></Card>
+    </div>
+  </Page>;
+}

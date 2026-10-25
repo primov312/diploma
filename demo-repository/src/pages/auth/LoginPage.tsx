@@ -4,6 +4,10 @@ import { ApiError } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { AuthForm, Field } from './AuthForm';
 
+/** Seeded personas from docs/DEMO_SCENARIOS.md; one click fills the form. */
+const DEMO_PASSWORD = 'rocket-demo-123';
+const DEMO_ACCOUNTS = [['Avery · approved', 'avery@demo.rocket.local'], ['Riley · review', 'riley@demo.rocket.local'], ['Drew · rejected', 'drew@demo.rocket.local'], ['Casey · no budget', 'casey@demo.rocket.local']];
+
 const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -33,7 +37,7 @@ const LoginPage = () => {
   return (
     <AuthForm
       title="Sign in"
-      subtitle="Use your Rocket Credit account to see your history and apply for financing."
+      subtitle="Welcome back."
       error={error}
       submitting={submitting}
       submitLabel="Sign in"
@@ -44,6 +48,13 @@ const LoginPage = () => {
           <Link to="/register" state={location.state} className="font-medium text-primary hover:text-primary-600">
             Create an account
           </Link>
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Demo accounts</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {DEMO_ACCOUNTS.map(([name, address]) => <button key={address} type="button" className="min-h-11 rounded-full border border-gray-300 px-3 text-sm hover:border-primary"
+                onClick={() => { setEmail(address); setPassword(DEMO_PASSWORD); }}>{name}</button>)}
+            </div>
+          </div>
         </>
       }
     >

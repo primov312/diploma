@@ -1,0 +1,47 @@
+[
+  {
+    "principal": "1200",
+    "annualRate": "0.12",
+    "termUnit": "MONTH",
+    "installmentCount": 12,
+    "pricingVersion": "test-v1",
+    "maximumPayment": "106.62",
+    "totalInterest": "79.42"
+  },
+  {
+    "principal": "300",
+    "annualRate": "0.12",
+    "termUnit": "WEEK",
+    "installmentCount": 3,
+    "pricingVersion": "test-v1",
+    "maximumPayment": "100.46",
+    "totalInterest": "1.38"
+  },
+  {
+    "principal": "100",
+    "annualRate": "0",
+    "termUnit": "MONTH",
+    "installmentCount": 3,
+    "pricingVersion": "test-v1",
+    "maximumPayment": "33.34",
+    "totalInterest": "0.00"
+  },
+  {
+    "principal": "10",
+    "annualRate": "0.12",
+    "termUnit": "MONTH",
+    "installmentCount": 24,
+    "pricingVersion": "test-v1",
+    "maximumPayment": "0.49",
+    "totalInterest": "1.30"
+  },
+  {
+    "principal": "50",
+    "annualRate": "0.12",
+    "termUnit": "WEEK",
+    "installmentCount": 1,
+    "pricingVersion": "test-v1",
+    "maximumPayment": "50.12",
+    "totalInterest": "0.12"
+  }
+]

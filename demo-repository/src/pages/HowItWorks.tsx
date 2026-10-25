@@ -1,14 +1,15 @@
 import { LinkButton, Page } from '../components/app/Ui';
 import { FlowSteps } from '../components/common/FlowSteps';
-const HowItWorks = () => <Page title="How it works" subtitle="Explore a purchase and review the result in three steps." actions={<LinkButton to="/stores" icon="store">Explore stores</LinkButton>}>
+const FAQ = [
+  ['How is my amount estimated?', 'From your income, debts and living costs for your Budapest district. Open “How this is calculated” on your dashboard to see every input.'],
+  ['Why was I not approved?', 'Every decision lists its reasons, such as a short purchase history or an amount above your budget. Often a lower amount is suggested.'],
+  ['What does the AI do?', 'Optionally, a trained model adds a risk estimate to the rules. The location and social analyses use a hosted AI model (Gemini or Claude) to explain activity; they never decide on their own.'],
+  ['Is my Facebook data used?', 'Only if you connect your account and run the analysis yourself. You can disconnect at any time.'],
+];
+const HowItWorks = () => <Page title="How it works" actions={<LinkButton to="/marketplace" icon="store">Browse marketplace</LinkButton>}>
   <FlowSteps />
-  <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.4fr]"><div><h2 className="text-2xl font-semibold">Before you apply</h2><p className="mt-2 max-w-md text-gray-600">This demonstration uses synthetic financial data and illustrative catalogs. It does not provide real credit or process payments.</p></div>
-    <div className="space-y-4">
-      <details><summary>How is the affordable amount estimated?</summary><p>Your dashboard combines supplied financial data, saved housing information and local cost context. Open the calculation details on Overview to review its inputs.</p></details>
-      <details><summary>Can I choose a product or enter an amount?</summary><p>Both. A catalog link carries your chosen product into the application. You can also start a request and enter an amount for the selected store.</p></details>
-      <details><summary>Where is my decision saved?</summary><p>Applications lists your requests. Open one to review the outcome, amount and decision reasons.</p></details>
-      <details><summary>What do the activity analyses use?</summary><p>Location and social demo analyses are always available. Clearly labeled synthetic scenarios let you explore their effects; connected Facebook content is used only when you select that source.</p></details>
-    </div>
+  <div className="mt-10 max-w-3xl space-y-4"><h2 className="text-2xl font-semibold">Questions</h2>
+    {FAQ.map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}
   </div>
 </Page>;
 export default HowItWorks;

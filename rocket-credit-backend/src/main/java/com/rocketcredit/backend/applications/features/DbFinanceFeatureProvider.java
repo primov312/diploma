@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class DbFinanceFeatureProvider implements FeatureProviders.FinanceFeatureProvider {
     private final JdbcTemplate jdbc;
+    private final com.rocketcredit.backend.payments.LoanObligations loanObligations;
     private final com.rocketcredit.backend.address.MonthlyCostResolver costs;
 
-    public DbFinanceFeatureProvider(JdbcTemplate jdbc, com.rocketcredit.backend.address.MonthlyCostResolver costs) {
+    public DbFinanceFeatureProvider(JdbcTemplate jdbc, com.rocketcredit.backend.address.MonthlyCostResolver costs, com.rocketcredit.backend.payments.LoanObligations loanObligations) {
+        this.loanObligations=loanObligations;
         this.jdbc = jdbc;
         this.costs = costs;
     }
@@ -41,7 +43,7 @@ public class DbFinanceFeatureProvider implements FeatureProviders.FinanceFeature
         FinanceRow row = rows.getFirst();
         var reference = costs.references(costs.currentContext(ctx.userId(), row.generation()));
         BigDecimal income = row.income() == null ? BigDecimal.ZERO : row.income();
-        BigDecimal obligations = row.obligations();
+        BigDecimal obligations = row.obligations().add(loanObligations.monthly(ctx.userId(),ctx.observedAt().atZoneSameInstant(com.rocketcredit.backend.payments.RepaymentCalculator.ZONE).toLocalDate()));
         boolean itemized = "ITEMIZED".equals(row.mode());
         BigDecimal expenses;
         if ("AUTOMATIC".equals(row.mode())) {

@@ -13,7 +13,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ProfileFeatures(BaseModel):
@@ -70,10 +70,25 @@ class AffordabilityInputs(BaseModel):
     generation: Optional[int] = Field(None, ge=1)
 
 
+class RepaymentTerms(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    termUnit: Literal["WEEK", "MONTH"]
+    installmentCount: int = Field(..., strict=True, ge=1, le=24)
+    annualRate: Decimal = Field(..., ge=0, le=1, max_digits=7, decimal_places=6)
+    pricingVersion: str = Field(..., min_length=1, max_length=80)
+
+    @model_validator(mode="after")
+    def validate_count(self):
+        if self.termUnit == "WEEK" and self.installmentCount > 3:
+            raise ValueError("Weekly terms must have 1–3 installments")
+        return self
+
+
 class AffordabilityRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     inputs: AffordabilityInputs
+    repaymentTerms: Optional[RepaymentTerms] = None
 
 
 class AffordabilityResponse(BaseModel):
@@ -102,6 +117,7 @@ class ScoreRequest(BaseModel):
     # New callers can opt into the shared v2 contract. Existing callers remain
     # on the legacy finance fields until Java has migrated its feature bundle.
     affordability: Optional[AffordabilityInputs] = None
+    repaymentTerms: Optional[RepaymentTerms] = None
 
 
 class DecisionStatus(str, Enum):

@@ -30,7 +30,7 @@ class DemoDataTest extends AbstractIntegrationTest {
     void catalogAndPersonasAreSeeded() {
         assertThat(partners.findAll()).extracting("slug").contains("streambox", "markethub", "threadly");
         assertThat(products.count()).isGreaterThanOrEqualTo(90);
-        for (var partner : partners.findAll()) {
+        for (var partner : partners.findAll().stream().filter(p -> java.util.Set.of("streambox","markethub","threadly").contains(p.getSlug())).toList()) {
             assertThat(products.findByPartnerIdOrderByName(partner.getId())).hasSize(30)
                     .allMatch(p -> p.getDescription() != null && !p.getDescription().isBlank())
                     .allMatch(p -> p.getImagePath().startsWith("/catalog/") && p.getImagePath().endsWith(".jpg"));
@@ -131,6 +131,15 @@ class DemoDataTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.products[?(@.fixtureId == 'threadly-wool-coat')].price").value(189.00));
 
         mvc.perform(get("/api/partners/nope")).andExpect(status().isNotFound());
+
+        // the single marketplace lists every partner's products, each labelled with its seller
+        long productCount = products.count();
+        mvc.perform(get("/api/catalog"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value((int) productCount))
+                .andExpect(jsonPath("$[?(@.partnerSlug == 'threadly')]", hasSize(30)))
+                .andExpect(jsonPath("$[?(@.imagePath == '/catalog/threadly-wool-coat.jpg')].partnerName").value("Zara"))
+                .andExpect(jsonPath("$[0].partnerAmountCap").isNumber());
 
         // nothing under /api writes fixture values: there is no such route at all
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/me/profile"))

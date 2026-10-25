@@ -83,6 +83,11 @@ public class CreditApplicationEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
+    @Column(name="quote_id")
+    private Long quoteId;
+    public Long getQuoteId(){return quoteId;}
+    public void setQuoteId(Long id){quoteId=id;}
+
     protected CreditApplicationEntity() {}
 
     public Long getId() { return id; }

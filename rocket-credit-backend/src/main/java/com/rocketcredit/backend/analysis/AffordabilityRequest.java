@@ -3,7 +3,8 @@ package com.rocketcredit.backend.analysis;
 import java.math.BigDecimal;
 
 /** Versioned input contract for the pure affordability calculation endpoint. */
-public record AffordabilityRequest(Inputs inputs) {
+public record AffordabilityRequest(Inputs inputs, com.rocketcredit.backend.payments.RepaymentCalculator.Terms repaymentTerms) {
+    public AffordabilityRequest(Inputs inputs) { this(inputs,null); }
     public record Inputs(
             BigDecimal monthlyNetIncome,
             String housingSituation,

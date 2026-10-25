@@ -82,3 +82,9 @@ logging:
     org.springframework.web: INFO
     org.springframework.security: INFO
     org.hibernate.SQL: INFO
+
+# Payment defaults can be overridden with ROCKET_PAYMENTS_ANNUALRATE,
+# ROCKET_PAYMENTS_COLLECTIONENABLED, ROCKET_PAYMENTS_POLLDELAY and
+# ROCKET_PAYMENTS_SEEDFIXTURES, or equivalent Spring command-line properties.
+# Pricing defaults to 0.12 annually; collection polls every 60000 ms;
+# synthetic payment fixtures are opt-in and never alter existing accounts.

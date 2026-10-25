@@ -48,11 +48,14 @@ public class ApplicationService {
     private final ObjectMapper objectMapper;
     private final TransactionTemplate tx;
     private final JdbcTemplate jdbc;
+    private final com.rocketcredit.backend.payments.PaymentLedger ledger;
+    private final com.rocketcredit.backend.payments.CreditQuotes quotes;
 
     public ApplicationService(PartnerRepository partners, ProductRepository products,
                               CreditApplicationRepository applications, FeaturePreparation features,
                               AnalysisClient analysis, ObjectMapper objectMapper, TransactionTemplate tx,
-                              JdbcTemplate jdbc) {
+                              JdbcTemplate jdbc, com.rocketcredit.backend.payments.PaymentLedger ledger, com.rocketcredit.backend.payments.CreditQuotes quotes) {
+        this.ledger=ledger;this.quotes=quotes;
         this.partners = partners;
         this.products = products;
         this.applications = applications;
@@ -63,7 +66,9 @@ public class ApplicationService {
         this.jdbc = jdbc;
     }
 
-    public ApplicationDtos.ApplicationDto submit(Long userId, ApplicationDtos.SubmitRequest req) {
+    public ApplicationDtos.ApplicationDto submit(Long userId, ApplicationDtos.SubmitRequest req, String key) {
+        var replay=ledger.replay(userId,key,"APPLICATION",req);
+        if(replay!=null)return getForUser(userId,((Number)replay.get("applicationId")).longValue());
         // 1) validate and resolve partner / product / amount on the server
         PartnerEntity partner = partners.findBySlug(req.partnerSlug())
                 .orElseThrow(() -> ApiException.badRequest("UNKNOWN_PARTNER", "Unknown partner"));
@@ -82,12 +87,16 @@ public class ApplicationService {
             throw ApiException.badRequest("AMOUNT_REQUIRED", "requestedAmount is required without a productId");
         }
         amount = amount.setScale(2, RoundingMode.UNNECESSARY);
+        if(req.quoteId()==null)throw ApiException.badRequest("QUOTE_REQUIRED","Choose repayment terms and review a quote first.");
+        var quote=quotes.get(userId,req.quoteId()); quotes.validate(userId,quote,false);
+        if(quote.partnerId()!=partner.getId() || !java.util.Objects.equals(quote.productId(),req.productId()) || new BigDecimal(quote.schedule().principal()).compareTo(amount)!=0)
+            throw ApiException.badRequest("QUOTE_MISMATCH","The quote does not match this request.");
 
         // 2) prepare features (sequential for now; Step 7 adds the parallel implementation)
-        OffsetDateTime observedAt = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime observedAt = ledger.now();
         var ctx = new FeatureProviders.Context(userId, partner.getId(), observedAt);
         FeaturePreparation.Sections sections = features.prepare(ctx);
-        FeatureBundle bundle = FeaturePreparation.toBundle(sections, amount, partner.getAmountCap(), req.useAi(), ctx);
+        FeatureBundle bundle = FeaturePreparation.toBundle(sections, amount, partner.getAmountCap(), req.useAi(), ctx).withTerms(quotes.terms(quote));
 
         // 3) score — may throw AnalysisUnavailableException (-> 503, nothing saved)
         AnalysisDecision decision = analysis.score(bundle);
@@ -95,7 +104,10 @@ public class ApplicationService {
         // 4) save request + snapshot + result atomically
         final ProductEntity resolvedProduct = product;
         final BigDecimal resolvedAmount = amount;
-        CreditApplicationEntity saved = tx.execute(status -> {
+        var operation = ledger.execute(userId,key,"APPLICATION",req,op -> {
+            quotes.validate(userId,quote,false);
+            var used=jdbc.queryForList("SELECT id FROM credit_applications WHERE quote_id=?",quote.id());
+            if(!used.isEmpty())throw ApiException.conflict("QUOTE_USED","This quote has already been submitted.");
             if (bundle.affordability() != null && bundle.affordability().generation() != null) {
                 Long currentGeneration = jdbc.queryForObject(
                         "SELECT generation FROM financial_input_state WHERE user_id=? FOR UPDATE", Long.class, userId);
@@ -104,6 +116,7 @@ public class ApplicationService {
                 }
             }
             var e = new CreditApplicationEntity();
+            e.setQuoteId(quote.id());
             e.setUserId(userId);
             e.setPartnerId(partner.getId());
             e.setProductId(resolvedProduct == null ? null : resolvedProduct.getId());
@@ -120,12 +133,10 @@ public class ApplicationService {
             e.setModelVersion(decision.modelVersion());
             e.setPreparationMode(features.mode());
             e.setObservedAt(observedAt);
-            return applications.saveAndFlush(e);
+            return Map.<String,Object>of("applicationId",applications.saveAndFlush(e).getId());
         });
 
-        log.info("application saved id={} user={} partner={} status={} policy={} ai={}",
-                saved.getId(), userId, partner.getSlug(), saved.getDecisionStatus(), saved.getPolicyVersion(), saved.getAiStatus());
-        return toDto(saved, partner, product, true);
+        return getForUser(userId,((Number)operation.get("applicationId")).longValue());
     }
 
     @Transactional(readOnly = true)
@@ -149,8 +160,14 @@ public class ApplicationService {
         return toDto(a, partner, product, true);
     }
 
-    static ApplicationDtos.ApplicationDto toDto(CreditApplicationEntity a, PartnerEntity partner, ProductEntity product,
+    ApplicationDtos.ApplicationDto toDto(CreditApplicationEntity a, PartnerEntity partner, ProductEntity product,
                                                 boolean withSnapshot) {
+        var quote=a.getQuoteId()==null?null:quotes.get(a.getUserId(),a.getQuoteId());
+        var loans=jdbc.queryForList("SELECT id FROM loans WHERE application_id=?",a.getId());
+        Long loanId=loans.isEmpty()?null:((Number)loans.getFirst().get("id")).longValue();
+        boolean canAccept=quote!=null && loanId==null && a.getDecisionStatus()==CreditApplicationEntity.DecisionStatus.APPROVED;
+        String unavailable=null;
+        if(canAccept)try{quotes.validate(a.getUserId(),quote,true);}catch(ApiException ex){canAccept=false;unavailable=ex.getMessage();}
         return new ApplicationDtos.ApplicationDto(
                 a.getId(),
                 partner == null ? null : partner.getSlug(),
@@ -162,6 +179,6 @@ public class ApplicationService {
                 a.getReasons(), a.getFactors(),
                 a.isAiRequested(), a.getAiStatus().name(), a.getPolicyVersion(), a.getModelVersion(),
                 a.getPreparationMode().name(), a.getObservedAt(), a.getCreatedAt(),
-                withSnapshot ? a.getFeatureSnapshot() : null);
+                withSnapshot ? a.getFeatureSnapshot() : null,quote,loanId,canAccept,unavailable);
     }
 }

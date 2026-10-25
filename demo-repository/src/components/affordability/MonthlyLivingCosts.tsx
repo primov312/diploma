@@ -45,7 +45,7 @@ export function MonthlyLivingCosts({ postalCode, resolved, savedAddressMatches, 
     try {
       const result = await meApi.saveMonthlyLivingCosts({ ...draft, expectedRevision: current.profile.revision, refreshDataset });
       setPreview(result); setDraft(result.profile ? draftFrom(result.profile) : draft);
-      setNotice(refreshDataset ? 'Latest researched prices adopted. Your affordability estimate is recalculating.' : 'Housing details saved. Your automatic estimate is recalculating.');
+      setNotice(refreshDataset ? 'Prices updated. Your amount is being recalculated.' : 'Saved. Your amount is being recalculated.');
       loaded.reload(); onUpdated();
     } catch (cause) { setError(errorMessage(cause instanceof Error ? cause : new Error(String(cause)))); }
     finally { setSaving(false); }
@@ -63,12 +63,11 @@ export function MonthlyLivingCosts({ postalCode, resolved, savedAddressMatches, 
   return <aside className="min-w-0 border-t border-gray-200 pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0" aria-label="Monthly living costs">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="font-semibold text-gray-800">Monthly living costs</h3>
-      <span className="rounded bg-primary-50 px-2 py-1 text-xs font-medium text-primary-900">Estimated · HUF / person</span>
+      <span className="rounded bg-primary-50 px-2 py-1 text-xs font-medium text-primary-900">per person</span>
     </div>
-    <p className="mt-2 text-sm text-gray-600">Automatic rent, per-person groceries and an activity spending forecast from researched prices.</p>
     {loaded.status === 'loading' && <Loading label="Loading monthly cost references…" />}
     {loaded.status === 'error' && <Notice tone="error">{errorMessage(loaded.error)}</Notice>}
-    {current?.unavailableReason === 'NO_DATASET' && <p className="mt-4 text-sm text-warning-700">Monthly price references are unavailable. Import the researched dataset to calculate costs.</p>}
+    {current?.unavailableReason === 'NO_DATASET' && <p className="mt-4 text-sm text-warning-700">Price data is not loaded on this server yet.</p>}
     {draft && current?.profile && <>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         {numberField('Apartment size (m²)', draft.apartmentSize, apartmentSize => setDraft({ ...draft, apartmentSize }), 0.01)}
@@ -83,18 +82,18 @@ export function MonthlyLivingCosts({ postalCode, resolved, savedAddressMatches, 
         </div>)}</dl>
       </details>
       <div className="mt-5" aria-live="polite" aria-busy={calculating}>
-        {calculating ? <p className="text-sm text-gray-500">Calculating monthly estimate…</p> : costs ? <>
+        {calculating ? <p className="text-sm text-gray-500">Calculating…</p> : costs ? <>
           <table className="w-full text-sm" data-testid="monthly-living-cost-table">
             <caption className="mb-2 text-left text-xs font-medium text-gray-500">{costs.district?.displayName} · {Number(costs.coff).toFixed(6)}× district coefficient</caption>
             <tbody>
               <tr className="border-b border-gray-100"><th scope="row" className="py-3 text-left font-normal text-gray-600">Rent benchmark{!costs.rentApplies && <span className="block text-xs">Excluded: you are not renting</span>}</th><td className="py-3 text-right font-medium">{formatHuf(costs.monthlyRent ?? 0)}</td></tr>
               <tr className="border-b border-gray-100"><th scope="row" className="py-3 text-left font-normal text-gray-600">Groceries</th><td className="py-3 text-right font-medium">{formatHuf(costs.monthlyGroceries ?? 0)}</td></tr>
-              <tr className="border-b border-gray-100"><th scope="row" className="py-3 text-left font-normal text-gray-600">Activity spending forecast</th><td className="py-3 text-right font-medium">{formatHuf(costs.monthlyOther ?? 0)}</td></tr>
+              <tr className="border-b border-gray-100"><th scope="row" className="py-3 text-left font-normal text-gray-600">Cafés, gym, library (forecast)</th><td className="py-3 text-right font-medium">{formatHuf(costs.monthlyOther ?? 0)}</td></tr>
               <tr><th scope="row" className="py-4 text-left font-semibold">Monthly total</th><td className="py-4 text-right font-semibold text-primary-900">{formatHuf(costs.monthlyTotal ?? 0)}</td></tr>
             </tbody>
           </table>
           <details><summary>Budget calculation</summary><p className="text-xs text-gray-500">Rent: {formatHuf(costs.rentPerM2 ?? 0)} / m² × {draft.apartmentSize} m² ÷ {draft.rentSharers}. Food: unit prices × quantities × district coefficient. Activities use the forecast below.</p></details>
-        </> : <p className="text-sm text-gray-500">{resolved ? 'A monthly estimate is unavailable for this postcode.' : 'Enter a supported Budapest postal code to see monthly costs.'}</p>}
+        </> : <p className="text-sm text-gray-500">{resolved ? 'No estimate for this postcode.' : 'Enter a Budapest postal code to see costs.'}</p>}
       </div>
       {costs?.activityForecast?.available && <details className="mt-3 border-t border-gray-200 pt-3">
         <summary className="cursor-pointer text-sm font-medium text-primary-800">How activity spending is forecast</summary>
@@ -106,10 +105,10 @@ export function MonthlyLivingCosts({ postalCode, resolved, savedAddressMatches, 
         <p className="mt-3 text-xs text-gray-500">Demo assumptions: 4 gym entries, 8 café drinks and 4 Starbucks drinks per month, plus one annual library membership divided by 12. Synthetic visits estimate spending; they do not prove purchases. Grocery visits are excluded because the food basket already covers groceries. This benchmark budget excludes utilities and transport.</p>
       </details>}
       <div className="mt-4 flex flex-wrap gap-2">
-        <button type="button" disabled={saving || calculating || !costs || !savedAddressMatches} onClick={() => save()} className="btn-secondary px-3 py-2 text-sm disabled:opacity-50">{saving ? 'Saving…' : 'Save size and sharing'}</button>
-        <button type="button" disabled={saving || calculating || !resolved || !savedAddressMatches} onClick={() => save(true)} className="px-2 py-2 text-sm font-medium text-primary-800 underline underline-offset-4 disabled:opacity-50">Refresh cost estimates</button>
+        <button type="button" disabled={saving || calculating || !costs || !savedAddressMatches} onClick={() => save()} className="btn-secondary px-3 py-2 text-sm disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
+        <button type="button" disabled={saving || calculating || !resolved || !savedAddressMatches} onClick={() => save(true)} className="px-2 py-2 text-sm font-medium text-primary-800 underline underline-offset-4 disabled:opacity-50">Update prices</button>
       </div>
-      <p className="mt-2 text-xs text-gray-600">{!savedAddressMatches ? 'Save this address before saving housing details.' : applied ? 'Saved automatic costs apply to affordability; the supplied expense baseline remains a minimum.' : 'Verify your address to apply researched costs; until then, affordability uses the supplied expense baseline.'} Unsaved edits are preview only.</p>
+      <p className="mt-2 text-xs text-gray-600">{!savedAddressMatches ? 'Save your address first.' : applied ? 'These costs are used for your amount.' : 'Verify your address to use these costs.'}</p>
       <details className="mt-4 border-t border-gray-200 pt-3">
         <summary className="cursor-pointer text-sm font-medium text-gray-700">Sources and calculation dates</summary>
         <div className="mt-3 space-y-2 break-words text-xs text-gray-600">

@@ -68,8 +68,10 @@ public class SecurityConfig {
                 .sessionFixation(sf -> sf.changeSessionId()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/api/health", "/api/csrf").permitAll()
-                .requestMatchers("/api/partners/**").permitAll()
+                .requestMatchers("/api/partners/**", "/api/catalog").permitAll()
                 .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/logout").permitAll()
+                // Meta redirects the browser here; the controller itself sends anonymous callers back to log in.
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/me/social-connection/facebook/callback").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll())
             .exceptionHandling(ex -> ex

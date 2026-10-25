@@ -140,7 +140,8 @@ public class AddressService {
             String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
             JsonNode extraction = null;
             if (PREPARED_CARD_SHA256.equals(digest)) {
-                extraction = analysis.extractDemoAddress(Base64.getEncoder().encodeToString(bytes), mime);
+                extraction = analysis.extractDemoAddress(Base64.getEncoder().encodeToString(bytes), mime,
+                        claimedAddress(userId, addressRevision));
             }
             return recordUploadVerification(userId, addressRevision, fileId, digest, extraction);
         } catch (ApiException e) {
@@ -150,6 +151,24 @@ public class AddressService {
         } finally {
             if (temporary != null) try { Files.deleteIfExists(temporary); } catch (IOException ignored) { }
         }
+    }
+
+    /** The saved address as the analysis service expects it; the locked re-read below still checks the revision. */
+    private Map<String, Object> claimedAddress(long userId, int revision) {
+        AddressDtos.Current address = current(userId);
+        if (!address.available()) throw ApiException.badRequest("ADDRESS_REQUIRED", "Save a living address before verification.");
+        if (address.revision() != revision) throw ApiException.conflict("REVISION_CONFLICT", "The address changed while the document was reviewed.");
+        Map<String, Object> claim = new java.util.HashMap<>();
+        claim.put("addressee", jdbc.queryForObject("SELECT display_name FROM users WHERE id=?", String.class, userId));
+        claim.put("countryCode", address.countryCode());
+        claim.put("city", address.city());
+        claim.put("districtName", jdbc.queryForObject("SELECT display_name FROM demo_districts WHERE district_id=?",
+                String.class, address.districtId()).replaceFirst("(?i)^Budapest\\s+", ""));
+        claim.put("postalCode", address.postalCode());
+        claim.put("street", address.street());
+        claim.put("building", address.building());
+        claim.put("unit", address.unit());
+        return claim;
     }
 
     private AddressDtos.Verification recordUploadVerification(long userId, int revision, String fileId,
@@ -173,17 +192,30 @@ public class AddressService {
         String districtName = jdbc.queryForObject("SELECT display_name FROM demo_districts WHERE district_id=?", String.class, address.districtId());
         boolean aiUnavailable = extraction != null && "AI_UNAVAILABLE".equals(extraction.path("status").asText());
         boolean recognized = extraction != null && "EXTRACTED".equals(extraction.path("status").asText());
-        boolean complete = recognized && extraction.path("documentType").asText().equals("ADDRESS_CARD")
-                && extraction.path("confidence").asDouble(0) >= 0.85
-                && !extraction.path("evidenceQuotes").isEmpty();
-        boolean matches = complete && name.equalsIgnoreCase(extraction.path("addressee").asText())
-                && address.countryCode().equalsIgnoreCase(extraction.path("countryCode").asText())
-                && address.city().equalsIgnoreCase(extraction.path("city").asText())
-                && districtName.replaceFirst("(?i)^Budapest\\s+", "").equalsIgnoreCase(extraction.path("districtName").asText().replaceFirst("(?i)^Budapest\\s+", ""))
-                && address.postalCode().equalsIgnoreCase(extraction.path("postalCode").asText())
-                && address.street().equalsIgnoreCase(extraction.path("street").asText())
-                && address.building().equalsIgnoreCase(extraction.path("building").asText())
-                && same(address.unit(), extraction.path("unit").asText(null));
+        boolean addressCard = recognized && extraction.path("documentType").asText().equals("ADDRESS_CARD")
+                && extraction.path("confidence").asDouble(0) >= 0.85;
+        JsonNode fieldChecks = extraction == null ? null : extraction.path("fieldChecks");
+        boolean complete, matches;
+        if (fieldChecks != null && fieldChecks.isObject() && !fieldChecks.isEmpty()) {
+            // Jev answered "does the card show this saved field?" with a probability per field; the policy is here.
+            boolean allShown = true, anyContradicted = false;
+            for (JsonNode probability : fieldChecks) {
+                allShown &= probability.asDouble(0) >= 0.85;
+                anyContradicted |= probability.asDouble(1) <= 0.15;
+            }
+            matches = addressCard && allShown;
+            complete = matches || addressCard && anyContradicted;
+        } else {
+            complete = addressCard && !extraction.path("evidenceQuotes").isEmpty();
+            matches = complete && name.equalsIgnoreCase(extraction.path("addressee").asText())
+                    && address.countryCode().equalsIgnoreCase(extraction.path("countryCode").asText())
+                    && address.city().equalsIgnoreCase(extraction.path("city").asText())
+                    && districtName.replaceFirst("(?i)^Budapest\\s+", "").equalsIgnoreCase(extraction.path("districtName").asText().replaceFirst("(?i)^Budapest\\s+", ""))
+                    && address.postalCode().equalsIgnoreCase(extraction.path("postalCode").asText())
+                    && address.street().equalsIgnoreCase(extraction.path("street").asText())
+                    && address.building().equalsIgnoreCase(extraction.path("building").asText())
+                    && same(address.unit(), extraction.path("unit").asText(null));
+        }
         String outcome = matches ? "VERIFIED_DEMO" : aiUnavailable || !complete ? "NEEDS_REVIEW" : "MISMATCH";
         List<String> checks = List.of(
                 "PNG or JPEG file signature validated; temporary copy removed after processing",

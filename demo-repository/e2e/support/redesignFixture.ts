@@ -20,6 +20,7 @@ export async function mockCustomerApi(page: Page, signedIn = true) {
   let baseAmount = 900;
   let generation = 1;
   const applications: Application[] = [];
+  const quotes: import('../../src/api/payments').CreditQuote[] = [];
   const reports: Record<string, Record<string, unknown>[]> = { LOCATION: [], SOCIAL: [] };
   const requests: {path:string;body:Record<string, unknown>}[] = [];
   // Restrict to API URLs: a broad **/api/** pattern also matches Vite source modules.
@@ -39,6 +40,7 @@ export async function mockCustomerApi(page: Page, signedIn = true) {
       authenticated = true; return ok(user);
     }
     if (path === '/api/auth/logout') {authenticated = false; return route.fulfill({status:204});}
+    if (path === '/api/catalog') return ok(products.map(({ fixtureId: _f, ...item }) => ({ ...item, partnerSlug: 'threadly', partnerName: 'Zara', partnerAmountCap: 1000 })));
     if (path === '/api/partners') return ok(partners);
     if (path.startsWith('/api/partners/')) return ok({...partners.find(p => p.slug === path.split('/').pop()),products});
     if (path === '/api/me/profile') return ok({monthlyIncome:2500,monthlyExpenses:600,monthlyObligations:100,profileComplete:false,emailVerified:true,syntheticSource:'FIXTURE',accountAgeMonths:9});
@@ -82,12 +84,27 @@ export async function mockCustomerApi(page: Page, signedIn = true) {
       reports[kind]=[report];
       return ok({jobId:1,state:'SUCCEEDED',report},202);
     }
+    if(path === '/api/wallet') return ok({balance:'0.00',currency:'USD',version:0,outstanding:'0.00',overdue:'0.00',nextDueDate:null,nextPayment:null,monthlyObligations:'0.00'});
+    if(path === '/api/wallet/chart') return ok({points:[],flows:[],openingBalance:'0.00'});
+    if(path === '/api/repayments') return ok({items:[],page:0,size:25,total:0});
+    if(path === '/api/history') {
+      const items=partners.filter(p => !url.searchParams.get('partner') || p.slug===url.searchParams.get('partner')).map(p=>({id:'purchase:'+p.id,partnerSlug:p.slug,partnerName:p.displayName,amount:'59.00',balanceChange:'0.00',date:'2026-10-01',kind:'PURCHASE',status:'COMPLETED',paymentMethod:'HISTORICAL',paidOnTime:true,description:'Synthetic catalog purchase'}));
+      return ok({items,total:items.length,page:0,size:25});
+    }
+    if(path === '/api/credit-quotes') {
+      const product=products.find(p=>p.id===body.productId);
+      const principal=product?.price ?? Number(body.requestedAmount), count=Number(body.installmentCount);
+      const schedule={principal:principal.toFixed(2),annualRate:'0.12',termUnit:body.termUnit,installmentCount:count,pricingVersion:'test-v1',startDate:'2026-10-09',totalInterest:'1.00',totalRepayment:(principal+1).toFixed(2),installments:Array.from({length:count},(_,i)=>({sequence:i+1,periodStart:'2026-10-09',dueDate:'2026-11-09',principal:(principal/count).toFixed(2),interest:(1/count).toFixed(2),total:((principal+1)/count).toFixed(2)}))};
+      const quote={id:quotes.length+1,partnerId:partners.find(p=>p.slug===body.partnerSlug)!.id,productId:product?.id??null,generation:1,expiresAt:'2099-10-09T12:00:00Z',schedule};
+      quotes.push(quote as import('../../src/api/payments').CreditQuote);return ok(quote);
+    }
     if(path === '/api/transactions') return ok(partners.filter(p => !url.searchParams.get('partner') || p.slug === url.searchParams.get('partner')).map(p => ({id:p.id,partnerSlug:p.slug,partnerName:p.displayName,amount:59,currency:'USD',occurredOn:'2026-10-01',status:'COMPLETED',paidOnTime:true,description:'Synthetic catalog purchase'})));
     if(path === '/api/applications') {
       if(method === 'POST') {
         const p=partners.find(p => p.slug===body.partnerSlug)!;
         const product=products.find(p => p.id===body.productId);
         const a: Application = {id:applications.length+1,partnerSlug:p.slug,partnerName:p.displayName,productId:product?.id??null,productName:product?.name??null,requestedAmount:product?.price??body.requestedAmount,currency:'USD',decisionStatus:body.useAi?'REVIEW':'APPROVED',score:.7,possibleAmount:baseAmount,reasons:body.useAi?['PROFILE_INCOMPLETE']:[],factors:{profile:{score:.7,weight:1,reasons:body.useAi?['PROFILE_INCOMPLETE']:[],details:{}}},aiRequested:body.useAi,aiStatus:body.useAi?'APPLIED':'NOT_REQUESTED',policyVersion:'rules-v4',modelVersion:body.useAi?'logreg-v1':null,preparationMode:'PARALLEL',observedAt:'2026-10-05T10:00:00Z',createdAt:'2026-10-05T10:00:00Z'};
+        a.quote=quotes.find(q=>q.id===body.quoteId);a.canAccept=false;
         applications.push(a);return ok(a,201);
       }
       return ok(applications);

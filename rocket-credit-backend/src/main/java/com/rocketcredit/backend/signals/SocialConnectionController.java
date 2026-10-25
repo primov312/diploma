@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SocialConnectionController {
     private static final Logger log = LoggerFactory.getLogger(SocialConnectionController.class);
     private static final String STATE_ATTRIBUTE = "facebook.oauth.state";
-    private static final String RETURN_PATH = "/account-dashboard";
+    private static final String RETURN_PATH = "/account-dashboard?section=activity";
 
     private final SocialConnectionService connections;
     private final SecureRandom random = new SecureRandom();
@@ -55,6 +55,8 @@ public class SocialConnectionController {
                                          @RequestParam(required = false) String code,
                                          @RequestParam(required = false) String state,
                                          @RequestParam(required = false) String error) {
+        // The route is public so an expired session gets a friendly redirect (and a login) instead of a bare 401.
+        if (user == null) return back("session");
         String expected = (String) session.getAttribute(STATE_ATTRIBUTE);
         session.removeAttribute(STATE_ATTRIBUTE);
         if (error != null) return back("denied");
@@ -66,7 +68,11 @@ public class SocialConnectionController {
             connections.connect(user.getId(), code);
             return back("connected");
         } catch (ApiException e) {
-            return back(e.getCode().equals("SOCIAL_ACCOUNT_ALREADY_LINKED") ? "linked" : "error");
+            return back(switch (e.getCode()) {
+                case "SOCIAL_ACCOUNT_ALREADY_LINKED" -> "linked";
+                case "SOCIAL_PERMISSION_REQUIRED" -> "permission";
+                default -> "error";
+            });
         } catch (RuntimeException e) {
             log.warn("Facebook connect failed: {}", e.getClass().getSimpleName());
             return back("error");
@@ -81,6 +87,6 @@ public class SocialConnectionController {
 
     private static ResponseEntity<Void> back(String outcome) {
         return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, URI.create(RETURN_PATH + "?social=" + outcome).toString()).build();
+                .header(HttpHeaders.LOCATION, URI.create(RETURN_PATH + "&social=" + outcome).toString()).build();
     }
 }

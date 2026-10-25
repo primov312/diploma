@@ -114,7 +114,7 @@ def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiPrediction] = None
             monthlyObligations=req.finance.monthlyObligations, partnerCap=req.partnerCap,
         )
     if v2_inputs is not None:
-        estimate = calculate_affordability(v2_inputs, policy.version)
+        estimate = calculate_affordability(v2_inputs, policy.version, req.repaymentTerms)
         formula_version = estimate.formulaVersion
         reasons.extend(estimate.reasons)
         factors["affordability"] = FactorResult(score=None, weight=0.0, reasons=estimate.reasons,
@@ -127,6 +127,15 @@ def combine(req: ScoreRequest, policy: Policy, ai: Optional[AiPrediction] = None
         else:
             possible = estimate.partnerAmount
             within = req.requestedAmount <= possible and possible > 0
+            if within and req.repaymentTerms is not None:
+                from app.rules.repayment_terms import maximum_payment
+                payment = maximum_payment(req.requestedAmount, req.repaymentTerms)
+                capacity = estimate.monthlyPaymentCapacity
+                if req.repaymentTerms.termUnit == "WEEK":
+                    capacity = capacity * Decimal(12) / 52
+                if payment is None or payment > capacity:
+                    within = False
+                    reasons.append("INSTALLMENT_ABOVE_CAPACITY")
             if possible <= 0:
                 reasons.append("ZERO_CAPACITY")
             elif req.requestedAmount > possible:

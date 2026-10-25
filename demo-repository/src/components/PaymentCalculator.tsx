@@ -1,184 +1,21 @@
-import { useMemo, useState } from "react";
-import { LinkButton, SyntheticTag } from "./app/Ui";
-import { Icon } from "./common/Icon";
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { cn } from '../utils/cn';
+import { formatHuf } from '../utils/format';
 
-import { cn } from "../utils/cn";
-import { formatHuf } from "../utils/format";
-import LocalDropdown from "./common/LocalDropdown";
-
-const PAYMENT_PLANS = [
-  {
-    id: "4x",
-    label: "4 payments (6 weeks)",
-    installments: 4,
-    interestRate: 0,
-  },
-  {
-    id: "6x",
-    label: "6 payments (3 months)",
-    installments: 6,
-    interestRate: 0.1,
-  },
-  {
-    id: "12x",
-    label: "12 payments (6 months)",
-    installments: 12,
-    interestRate: 0.15,
-  },
-] as const;
-
-type PaymentPlan = (typeof PAYMENT_PLANS)[number];
-type PaymentPlanId = PaymentPlan["id"];
-
-const PAYMENT_PLAN_BY_ID = PAYMENT_PLANS.reduce<Record<PaymentPlanId, PaymentPlan>>(
-  (lookup, plan) => {
-    lookup[plan.id] = plan;
-    return lookup;
-  },
-  {} as Record<PaymentPlanId, PaymentPlan>,
-);
-
-const parsePurchaseAmount = (rawValue: string): number => {
-  const parsed = Number.parseFloat(rawValue);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-};
-
-type PaymentBreakdown = {
-  todayDue: number;
-  recurringPayment: number;
-  recurringCount: number;
-  totalWithInterest: number;
-  interestDescription: string;
-  formattedTodayDue: string;
-  formattedRecurringPayment: string;
-  formattedTotal: string;
-};
-
-const createBreakdown = (
-  plan: PaymentPlan,
-  purchaseAmount: number,
-): PaymentBreakdown => {
-  if (plan.installments <= 0) {
-    const formattedZero = formatHuf(0);
-    return {
-      todayDue: 0,
-      recurringPayment: 0,
-      recurringCount: 0,
-      totalWithInterest: 0,
-      interestDescription: "—",
-      formattedTodayDue: formattedZero,
-      formattedRecurringPayment: formattedZero,
-      formattedTotal: formattedZero,
-    };
-  }
-
-  const sanitizedAmount = Math.max(purchaseAmount, 0);
-  const totalWithInterest = sanitizedAmount * (1 + plan.interestRate);
-  const installment = plan.installments > 0 ? totalWithInterest / plan.installments : totalWithInterest;
-  const recurringCount = Math.max(plan.installments - 1, 0);
-  const interestAmount = Math.max(totalWithInterest - sanitizedAmount, 0);
-  const interestDescription =
-    plan.interestRate > 0
-      ? `${Math.round(plan.interestRate * 100)}% interest applied (${formatHuf(interestAmount)})`
-      : "No interest, no fees";
-
-  return {
-    todayDue: installment,
-    recurringPayment: installment,
-    recurringCount,
-    totalWithInterest,
-    interestDescription,
-    formattedTodayDue: formatHuf(installment),
-    formattedRecurringPayment: formatHuf(installment),
-    formattedTotal: formatHuf(totalWithInterest),
-  };
-};
-
-type PaymentCalculatorProps = {
-  className?: string;
-};
-
-const PaymentCalculator = ({ className = "" }: PaymentCalculatorProps) => {
-  const [amountInput, setAmountInput] = useState("180000");
-  const [selectedPlanId, setSelectedPlanId] = useState<PaymentPlanId>(PAYMENT_PLANS[0].id);
-
-  const plan = PAYMENT_PLAN_BY_ID[selectedPlanId] ?? PAYMENT_PLANS[0];
-  const purchaseAmount = useMemo(() => parsePurchaseAmount(amountInput), [amountInput]);
-  const {
-    formattedTodayDue,
-    formattedRecurringPayment,
-    formattedTotal,
-    interestDescription,
-    recurringCount,
-  } = useMemo(() => createBreakdown(plan, purchaseAmount), [plan, purchaseAmount]);
-
-  return (
-    <div className={cn("rounded-lg bg-white p-6", className)}>
-      <h3 className="mb-2 flex items-center gap-2 text-xl font-semibold text-gray-800">
-        <Icon name="wallet" />Payment example
-      </h3>
-      <div className="mb-5"><SyntheticTag>Illustrative calculation</SyntheticTag></div>
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="purchase-amount" className="mb-2 block text-sm font-medium text-gray-700">
-            Purchase amount
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-3 text-gray-500">Ft</span>
-            <input
-              type="number"
-              id="purchase-amount"
-              className="form-input w-full pl-10"
-              placeholder="180000"
-              value={amountInput}
-              onChange={(event) => setAmountInput(event.target.value)}
-              min="0"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Payment Plan
-          </label>
-          <LocalDropdown
-            aria-label="Payment plan"
-            className="w-full"
-            value={selectedPlanId}
-            onValueChange={(value) => setSelectedPlanId(value as (typeof PAYMENT_PLANS)[number]["id"])}
-            options={PAYMENT_PLANS.map(({ id, label }) => ({ value: id, label }))}
-          />
-        </div>
-        <div className="mt-6 rounded-lg border border-gray-200 bg-secondary-50 p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-gray-600">Today</span>
-            <span className="font-semibold text-gray-800">{formattedTodayDue}</span>
-          </div>
-          {recurringCount > 0 ? (
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                {`${recurringCount} payments of`}
-              </span>
-              <span className="font-semibold text-gray-800">{formattedRecurringPayment}</span>
-            </div>
-          ) : (
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm text-gray-600">No future payments</span>
-              <span className="font-semibold text-gray-800">—</span>
-            </div>
-          )}
-          <div className="mt-2 border-t border-gray-200 pt-2">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-gray-800">Total</span>
-              <span className="text-lg font-bold text-primary">{formattedTotal}</span>
-            </div>
-            <p className="mt-1 text-xs text-gray-500">{interestDescription}</p>
-          </div>
-        </div>
-        <LinkButton to="/apply" className="mt-4 w-full">Start application</LinkButton>
-        <p className="text-xs text-gray-500">Example amounts and terms only. Your saved decision is calculated separately.</p>
-      </div>
-    </div>
-  );
-};
-
-export default PaymentCalculator;
+/** Public entry point: a rough monthly figure here, the exact quote after sign-in. */
+export default function PaymentCalculator({ className }: { className?: string }) {
+  const [amount, setAmount] = useState('36000');
+  const [months, setMonths] = useState(6);
+  const perMonth = Number(amount) > 0 ? Number(amount) / months : 0;
+  return <section className={cn('rounded-lg border border-gray-200 bg-white p-6', className)}>
+    <h2 className="text-2xl font-semibold text-gray-800">Plan your payments</h2>
+    <label className="mt-5 block text-sm font-medium">Purchase (HUF)<input className="form-input mt-2 w-full" type="number" min="2" step="1" value={amount} onChange={e => setAmount(e.target.value)} /></label>
+    <fieldset className="mt-4"><legend className="text-sm font-medium">Months</legend>
+      <div className="mt-2 flex flex-wrap gap-2">{[3, 6, 12, 24].map(n => <button key={n} type="button" aria-pressed={months === n} onClick={() => setMonths(n)}
+        className={cn('min-h-11 min-w-14 rounded-full border px-4 text-sm font-medium', months === n ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white hover:border-primary')}>{n}</button>)}</div>
+    </fieldset>
+    <p className="mt-5 text-sm text-gray-600">About <strong className="text-2xl text-gray-900">{formatHuf(Math.round(perMonth))}</strong> / month + interest</p>
+    <Link className="btn-primary mt-5 w-full" to={`/apply?partner=markethub&amount=${encodeURIComponent(amount)}`}>See my exact offer</Link>
+  </section>;
+}

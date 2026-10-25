@@ -30,6 +30,8 @@ public class AffordabilityJobWorker {
     private static final BigDecimal MAX_MONEY = new BigDecimal("9999999999.99");
     private static final TypeReference<Map<String, BigDecimal>> BREAKDOWN = new TypeReference<>() {};
     private final JdbcTemplate jdbc;
+    private final com.rocketcredit.backend.payments.LoanObligations obligations;
+    private final com.rocketcredit.backend.payments.RepaymentCalculator pricing;
     private final com.rocketcredit.backend.address.MonthlyCostResolver costs;
     private final FinancialInputsService inputs;
     private final PartnerRepository partners;
@@ -39,7 +41,8 @@ public class AffordabilityJobWorker {
 
     public AffordabilityJobWorker(JdbcTemplate jdbc, FinancialInputsService inputs,
                                   PartnerRepository partners, AnalysisClient analysis, ObjectMapper mapper,
-                                  TransactionTemplate transactions, com.rocketcredit.backend.address.MonthlyCostResolver costs) {
+                                  TransactionTemplate transactions, com.rocketcredit.backend.address.MonthlyCostResolver costs, com.rocketcredit.backend.payments.LoanObligations obligations, com.rocketcredit.backend.payments.RepaymentCalculator pricing) {
+        this.obligations=obligations;this.pricing=pricing;
         this.jdbc = jdbc;
         this.costs = costs;
         this.inputs = inputs;
@@ -94,10 +97,10 @@ public class AffordabilityJobWorker {
             AffordabilityRequest.Inputs requestInputs = new AffordabilityRequest.Inputs(
                     input.monthlyNetIncome(), input.housingSituation(), input.expenseMode(), input.housingCost(),
                     input.groceriesCost(), input.utilitiesCost(), input.transportCost(), input.otherLivingCosts(),
-                    input.legacyLivingExpenses(), input.monthlyObligations(), reference.rent(), reference.groceries(), reference.other(),
+                    input.legacyLivingExpenses(), input.monthlyObligations().add(obligations.monthly(job.userId())), reference.rent(), reference.groceries(), reference.other(),
                     reference.eligible(), MAX_MONEY,
                     input.revision(), job.generation());
-            var result = analysis.affordability(new AffordabilityRequest(requestInputs));
+            var result = analysis.affordability(new AffordabilityRequest(requestInputs,pricing.terms("MONTH",6)));
             if (result.baseAmount() != null && result.baseAmount().compareTo(MAX_MONEY) > 0) {
                 fail(job.id(), "CALCULATED_AMOUNT_OVERFLOW", false);
                 return;

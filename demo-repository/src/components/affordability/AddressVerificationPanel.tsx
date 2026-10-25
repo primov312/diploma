@@ -52,7 +52,7 @@ export function AddressVerificationPanel({ onUpdated, refreshKey = 0 }: { onUpda
         city: selected.city, districtId: selected.districtId, postalCode, street, building, unit: unit || null };
       const saved = await meApi.saveAddress(body);
       setRevision(saved.address.revision);
-      setNotice('Address saved. Verification is reset and the estimate is recalculating without district references.');
+      setNotice('Address saved. Verify it below to use local prices.');
       addressState.reload(); onUpdated();
     } catch (cause) {
       setError(cause instanceof ApiError && cause.code === 'REVISION_CONFLICT'
@@ -77,19 +77,16 @@ export function AddressVerificationPanel({ onUpdated, refreshKey = 0 }: { onUpda
     } finally { setVerifying(false); }
   };
 
-  return <Card icon="pin" title="Living address and local cost context" className="lg:col-span-3">
-    {addressState.status === 'loading' ? <Loading label="Loading address and Budapest district references…" /> :
+  return <Card icon="pin" title="Address and living costs">
+    {addressState.status === 'loading' ? <Loading label="Loading your address…" /> :
       addressState.status === 'error' ? <Notice tone="error">{errorMessage(addressState.error)}</Notice> :
       <>
         <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
           <div>
-            <p className="mb-4 text-sm text-gray-600">Save your Budapest address. Changes reset verification.</p>
             <form onSubmit={save} className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700">District determined by postal code
-                <input readOnly value={selected?.postalCode === postalCode ? selected.displayName : resolving ? 'Looking up postcode…' : 'Enter a postal code'} className="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600" />
-              </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-sm font-medium text-gray-700">Postal code<input required maxLength={4} pattern="[0-9]{4}" inputMode="numeric" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} className="mt-1 w-full rounded-lg min-h-11 border border-gray-400 px-3 py-2" /></label>
+                <div><label className="text-sm font-medium text-gray-700">Postal code<input required maxLength={4} pattern="[0-9]{4}" inputMode="numeric" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} aria-describedby="district-hint" className="mt-1 w-full rounded-lg min-h-11 border border-gray-400 px-3 py-2" /></label>
+                  <p id="district-hint" className="mt-1 text-xs text-gray-500" aria-live="polite">{selected?.postalCode === postalCode ? selected.displayName : resolving ? 'Looking up…' : 'Budapest, 4 digits'}</p></div>
                 <label className="text-sm font-medium text-gray-700">Street<input required maxLength={160} value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1 w-full rounded-lg min-h-11 border border-gray-400 px-3 py-2" /></label>
                 <label className="text-sm font-medium text-gray-700">Building<input required maxLength={40} value={building} onChange={(e) => setBuilding(e.target.value)} className="mt-1 w-full rounded-lg min-h-11 border border-gray-400 px-3 py-2" /></label>
                 <label className="text-sm font-medium text-gray-700">Unit (optional)<input maxLength={40} value={unit} onChange={(e) => setUnit(e.target.value)} className="mt-1 w-full rounded-lg min-h-11 border border-gray-400 px-3 py-2" /></label>
@@ -97,22 +94,22 @@ export function AddressVerificationPanel({ onUpdated, refreshKey = 0 }: { onUpda
               {postalError && <Notice tone="error">{postalError}</Notice>}
               <div className="flex flex-wrap items-center gap-3">
                 <button disabled={saving || resolving || !selected || selected.postalCode !== postalCode} className="btn-primary px-4 py-2 text-sm disabled:opacity-60"><Icon name="check" />{saving ? 'Saving…' : 'Save address'}</button>
-                <span className="text-sm text-gray-600">Status: <strong>{({UNVERIFIED:'Not verified',VERIFIED_DEMO:'Verified demo',NEEDS_REVIEW:'Needs review',MISMATCH:'Address mismatch'} as const)[current?.verificationStatus ?? 'UNVERIFIED']}</strong></span>
+                <span className="text-sm text-gray-600"><strong>{({UNVERIFIED:'Not verified',VERIFIED_DEMO:'Verified demo',NEEDS_REVIEW:'Needs review',MISMATCH:'Address mismatch'} as const)[current?.verificationStatus ?? 'UNVERIFIED']}</strong></span>
               </div>
             </form>
       {current?.available && <div className="mt-5 rounded-md border border-dashed border-gray-300 p-4">
-          <h3 className="font-semibold text-gray-800">Address evidence image</h3>
-          <p className="mt-1 text-sm text-gray-600">PNG/JPEG, maximum 5 MB. Use the synthetic sample to explore verification.</p>
+          <h3 className="font-semibold text-gray-800">Verify your address</h3>
+          <p className="mt-1 text-sm text-gray-600">Upload an address card (PNG or JPEG, up to 5 MB), or use the prepared sample.</p>
           <div className="mt-3 space-y-4">
-            <details><summary>View synthetic sample</summary><img src={sampleAddressCard} alt="Synthetic address card for Riley Review, Minta utca 12, Budapest 1051, District V. It is marked sample only and not a real document." className="w-full max-w-sm rounded-md border border-gray-200" /><p className="mt-2 text-xs text-gray-500">Only the prepared synthetic sample can be sent to Gemini. Other images use a temporary private copy, deleted after review.</p></details>
+            <details><summary>View synthetic sample</summary><img src={sampleAddressCard} alt="Synthetic address card for Riley Review, Minta utca 12, Budapest 1051, District V. It is marked sample only and not a real document." className="w-full max-w-sm rounded-md border border-gray-200" /><p className="mt-2 text-xs text-gray-500">Only this synthetic sample is sent to the AI model. Other images are checked locally and deleted.</p></details>
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700">Choose image
                 <input type="file" accept="image/png,image/jpeg" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="mt-1 block w-full min-w-0 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2" />
               </label>
               {evidenceFile && <p className="text-xs text-gray-500">Selected: {evidenceFile.name} · {(evidenceFile.size / 1024).toFixed(0)} KB</p>}
               <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={verifying} onClick={() => void fetch(sampleAddressCard).then((response) => response.blob()).then((blob) => verify(new File([blob], 'synthetic-address-card.png', { type: 'image/png' })))} className="btn-secondary px-4 py-2 text-sm disabled:opacity-60">{verifying ? 'Reviewing…' : 'Review prepared sample'}</button>
-                <button type="button" disabled={verifying || !evidenceFile} onClick={() => verify()} className="btn-secondary px-4 py-2 text-sm disabled:opacity-50">Review selected image</button>
+                <button type="button" disabled={verifying} onClick={() => void fetch(sampleAddressCard).then((response) => response.blob()).then((blob) => verify(new File([blob], 'synthetic-address-card.png', { type: 'image/png' })))} className="btn-secondary px-4 py-2 text-sm disabled:opacity-60">{verifying ? 'Checking…' : 'Use the sample card'}</button>
+                <button type="button" disabled={verifying || !evidenceFile} onClick={() => verify()} className="btn-secondary px-4 py-2 text-sm disabled:opacity-50">Check my image</button>
               </div>
             </div>
           </div>

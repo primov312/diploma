@@ -1,0 +1,81 @@
+import { expect, test } from '@playwright/test';
+
+/** Live tests: run against an isolated seeded stack; all money is simulated. */
+test('balance top-up, direct checkout, reused history and responsive charts', async ({ page }, testInfo) => {
+  await page.goto('/register');
+  await page.getByLabel('Name').fill('Wallet Browser Test');
+  await page.getByLabel('Email').fill(`wallet-${Date.now()}@example.test`);
+  await page.getByLabel('Password').fill('password-123');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page).toHaveURL(/account-dashboard/);
+  await page.goto('/marketplace');
+  await page.getByPlaceholder('Search products or sellers').fill('Linen shirt');
+  await page.locator('li', { hasText: 'Linen shirt' }).getByRole('button', { name: 'Pay now', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Pay for Linen shirt' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Confirm payment from balance' })).toBeDisabled();
+  await page.getByRole('link', { name: 'Add demo money', exact: true }).click();
+  await page.getByLabel('Amount (HUF)', { exact: true }).fill('36000');
+  await page.getByRole('button', { name: 'Add money', exact: true }).click();
+  await expect(page.getByText('Money added.', { exact: false })).toBeVisible();
+  await page.getByRole('link', { name: 'Back to your purchase' }).click();
+  await page.getByRole('button', { name: 'Confirm payment from balance' }).click();
+  await expect(page.getByText(/Purchase #\d+ completed/)).toBeVisible();
+  await page.getByRole('link', { name: 'View activity', exact: true }).click();
+  await expect(page.getByRole('navigation', { name: 'Wallet' }).getByRole('link', { name: 'Activity' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('cell', { name: 'Demo top-up', exact: false })).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: 'Linen shirt' })).toHaveCount(1);
+  const wallet = await (await page.request.get('/api/wallet')).json();
+  expect(wallet.balance).toBe('41.00');
+  await page.goto('/balance');
+  await expect(page.getByRole('img', { name: /Balance over time/ })).toBeVisible();
+  await page.getByRole('button', { name: '90 days', exact: true }).click();
+  await page.getByRole('button', { name: '1 year', exact: true }).click();
+  await page.getByText('Daily balance values', { exact: true }).click();
+  for (const width of [390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByRole('heading', { name: 'Available balance', exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`balance-${width}.png`), fullPage: true });
+  }
+});
+
+test('weekly quote, explicit acceptance and early settlement use the real ledger', async ({ page }, testInfo) => {
+  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('avery@demo.rocket.local');
+  await page.getByLabel('Password').fill('rocket-demo-123');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(/account-dashboard/);
+  await page.goto('/apply?partner=threadly&amount=7200');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('Weekly', { exact: true }).check();
+  await page.getByLabel('Number of payments').selectOption('3');
+  await page.getByRole('button', { name: 'See my payments' }).click();
+  await expect(page.getByRole('table', { name: '3 weekly installments' })).toBeVisible();
+  await page.getByRole('button', { name: 'Get my decision', exact: true }).click();
+  await expect(page).toHaveURL(/applications\/\d+/);
+  await expect(page.getByRole('button', { name: 'Accept and pay seller' })).toBeVisible();
+  const before = await (await page.request.get('/api/wallet')).json();
+  await page.getByRole('button', { name: 'Accept and pay seller' }).click();
+  await expect(page).toHaveURL(/repayments\?loanId=\d+/);
+  const after = await (await page.request.get('/api/wallet')).json(); expect(after.balance).toBe(before.balance);
+  await expect(page.getByRole('region', { name: 'Repayment installments' }).getByRole('row')).toHaveCount(4);
+  await page.screenshot({ path: testInfo.outputPath('repayment-schedule.png'), fullPage: true });
+  const scheduleUrl = page.url();
+  await page.goto('/balance');
+  await page.getByLabel('Amount (HUF)', { exact: true }).fill('36000');
+  await page.getByRole('button', { name: 'Add money', exact: true }).click();
+  await expect(page.getByText('Money added.', { exact: false })).toBeVisible();
+  await page.goto(scheduleUrl);
+  await page.getByRole('button', { name: 'Pay off early', exact: true }).click();
+  await expect(page.getByText(/You save/)).toBeVisible();
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await expect(page.getByText('Credit closed. Nothing more will be collected.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay off early', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show all payments' }).click();
+  await expect(page.getByRole('region', { name: 'Repayment installments' }).getByRole('row')).toHaveCount(4);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('settled-mobile.png'), fullPage: true });
+  expect(errors).toEqual([]);
+});

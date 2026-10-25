@@ -51,7 +51,7 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler({NoResourceFoundException.class, HttpRequestMethodNotSupportedException.class,
-            MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class,
+            MissingServletRequestParameterException.class, org.springframework.web.bind.MissingRequestHeaderException.class, MethodArgumentTypeMismatchException.class,
             ErrorResponseException.class})
     ResponseEntity<ApiError> framework(Exception e) {
         HttpStatus status = e instanceof NoResourceFoundException ? HttpStatus.NOT_FOUND

@@ -1,5 +1,9 @@
 # Rocket Credit — Simple Diploma Architecture
 
+> Marketplace update (2026-10-22): the three separate store pages were merged into one marketplace at `/marketplace`, backed by `GET /api/catalog`. Each product still belongs to one seller (partner), because credit limits and purchase history are kept per seller. Old `/stores/...` links redirect to the marketplace.
+
+> Payment scope update: the application now supports simulated balances, purchases, interest-bearing credit schedules and repayments. See [Balance and repayments](BALANCE_AND_REPAYMENTS.md) for the current behavior; earlier exclusions of simulated payments below are historical. Real payment providers remain outside scope.
+
 Updated: 2026-09-16. Scope comes from [README](../README.md). Related documents: [completion plan](DIPLOMA_COMPLETION_PLAN.md) and [diploma topic](DIPLOMA_PROJECT_TOPIC.md).
 
 This design replaces the earlier distributed-platform proposal. It is a target for the simplification work; the repository still contains the original microservices. This document update does not merge services, remove data or start applications.
@@ -37,7 +41,7 @@ The backend owns persistence. Python receives a small JSON feature bundle and re
 
 | Part | Responsibility | Existing code to reuse |
 | --- | --- | --- |
-| React app | Login, dashboard, history, request/result screens and three store pages | `demo-repository` |
+| React app | Login, dashboard, history, request/result screens and one marketplace for all sellers | `demo-repository` |
 | Java backend | Spring Security, users, history, catalog, feature preparation, application API and saving decisions | Built from the former `rocket-credit-user-data` foundation (legacy services removed after Step 7; see git history) |
 | Python analysis | Rule modules, affordability, model inference and explainable result | `rocket-credit-analysis` pure scoring functions |
 | PostgreSQL | Users, partner/product fixtures, transactions and applications | Adapt useful User Data schema and seed concepts |
@@ -49,7 +53,7 @@ Proposed Java packages: `auth`, `users`, `partners`, `transactions`, `applicatio
 
 1. The customer registers or logs in.
 2. The dashboard shows their seeded transactions across the three partners.
-3. They choose a partner and amount directly, or follow “Apply with Rocket Credit” from a demo store page.
+3. They choose a product in the marketplace and press “Apply for credit”, or enter an amount and a seller directly.
 4. The backend derives the user ID from the session and validates the partner, amount and optional product.
 5. The backend collects profile, partner-history and synthetic financial features.
 6. Python runs the rule modules and, when enabled for that request, the trained model.
@@ -62,9 +66,9 @@ An application does not become a purchase transaction. Store transactions are se
 
 ### Demo partners
 
-Use routes such as `/stores/streambox`, `/stores/markethub` and `/stores/threadly` in the same React app. Each has its own branding, a small catalog and a financing button. No partner backend, merchant account, API credentials, webhook or partner portal is required.
+All three partner catalogs (StreamBox/Netflix, MarketHub/Amazon, Threadly/Zara) are shown together on `/marketplace`, grouped into departments (Entertainment, Electronics & home, Fashion) with search, category filters and sorting. Every card names its seller. No partner backend, merchant account, API credentials, webhook or partner portal is required.
 
-Pass a partner slug/product ID through the link and resolve its price on the backend. A direct application accepts the customer's requested amount with validation; a product-based application uses the stored product price. Query-string prices are not authoritative. The flow is a demonstration of store navigation, not a commercial integration.
+Pass only the product ID through the link (`/apply?product=<id>`); the seller and price are resolved from the catalog on the backend. A direct application accepts the customer's requested amount with validation; a product-based application uses the stored product price. Query-string prices are not authoritative. The flow is a demonstration of store navigation, not a commercial integration.
 
 ## 4. Authentication research
 
@@ -165,7 +169,7 @@ Store all request/result fields atomically. Do not return a successful saved dec
 | Kafka, outbox, webhook delivery, saga recovery | Outside the simplified scope. |
 | Dedicated bank connector / scraper | Replace with synthetic fixtures; no external integration. The only live source is the owner's own Facebook account via OAuth, see [SOCIAL_ACCOUNT_ANALYSIS.md](SOCIAL_ACCOUNT_ANALYSIS.md). |
 | Operator and merchant portals | Outside scope. |
-| Multiple branded frontend deployments | Three store pages in the existing React app. |
+| Multiple branded frontend deployments | One marketplace page in the existing React app. |
 
 Add a clearly named diploma Compose file containing `backend`, `analysis` and `db`. The built React app can be served by Java; Vite is a separate process only during frontend development. Keep the original Compose setup as a labeled legacy reference until the simplified path works.
 
@@ -173,4 +177,4 @@ The migration plan must preserve existing source changes and database volumes. C
 
 ## 9. Completion boundary
 
-The project is complete when a customer can log in, inspect partner history, request credit directly or from any store page, receive and revisit an explained decision, and the repository contains measured demonstrations of the five research topics. Additional commerce workflows are optional future work.
+The project is complete when a customer can log in, inspect partner history, request credit directly or from the marketplace, receive and revisit an explained decision, and the repository contains measured demonstrations of the five research topics. Additional commerce workflows are optional future work.

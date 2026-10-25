@@ -3,136 +3,186 @@ import { useSearchParams } from 'react-router-dom';
 import { meApi } from '../../api/rocket';
 import type { DemoSignalReport } from '../../api/types';
 import { errorMessage, useApi } from '../../hooks/useApi';
-import { Card, Notice, Loading, SyntheticTag } from '../app/Ui';
+import { Card, Notice, Loading } from '../app/Ui';
 import { Icon } from '../common/Icon';
 import LocalDropdown from '../common/LocalDropdown';
+import { BudapestDistrictMap, countVisits, districtId } from '../map/BudapestDistrictMap';
 import { LocationPricingSummary, LocationVisitBenchmark } from './LocationBenchmarkPrices';
 
-const locations = ['budapest-priced-month', 'budapest-priced-week', 'regular-week', 'sparse', 'contradictory'];
-const socialScenarios = ['ordinary', 'repetitive', 'inconsistent', 'sparse', 'injection'];
+const PROVIDER_NAMES: Record<string, string> = { TYPESAFE: 'Jev', ANTHROPIC: 'Claude', GEMINI: 'Gemini' };
+
+const LOCATION_SCENARIOS = [
+  { value: 'budapest-priced-month', label: 'A month in Budapest' },
+  { value: 'budapest-priced-week', label: 'A week in Budapest' },
+  { value: 'regular-week', label: 'Regular week' },
+  { value: 'sparse', label: 'Very few visits' },
+  { value: 'contradictory', label: 'Mixed signals' },
+];
+const SOCIAL_SCENARIOS = [
+  { value: 'ordinary', label: 'Ordinary posting' },
+  { value: 'repetitive', label: 'Repetitive posting' },
+  { value: 'inconsistent', label: 'Inconsistent dates' },
+  { value: 'sparse', label: 'Very few posts' },
+  { value: 'injection', label: 'Prompt-injection test' },
+];
 const LIVE_SCENARIO = 'facebook-live';
-const connectOutcomes: Record<string, { tone: 'info' | 'error' | 'warning'; text: string }> = {
-  connected: { tone: 'info', text: 'Facebook account connected. You can now analyze it.' },
+const COMPARISON: Record<string, { text: string; tone: string }> = {
+  MATCHES_DECLARED_DISTRICT: { text: 'Matches your address', tone: 'border-success-100 bg-success-50 text-success-700' },
+  DOES_NOT_MATCH_DECLARED_DISTRICT: { text: 'Differs from your address', tone: 'border-warning-100 bg-warning-50 text-warning-700' },
+  NO_DECLARED_DISTRICT: { text: 'No address saved', tone: 'border-gray-200 bg-gray-50 text-gray-700' },
+  INSUFFICIENT_HISTORY: { text: 'Not enough visits yet', tone: 'border-gray-200 bg-gray-50 text-gray-700' },
+};
+const CONNECT_OUTCOMES: Record<string, { tone: 'info' | 'error' | 'warning'; text: string }> = {
+  connected: { tone: 'info', text: 'Facebook connected. You can analyze your posts now.' },
   denied: { tone: 'warning', text: 'Facebook login was cancelled. Nothing was connected.' },
+  permission: { tone: 'warning', text: 'Facebook was not connected because access to posts was not allowed. Try again and keep “posts” selected.' },
+  session: { tone: 'warning', text: 'Your session ended during Facebook login. Please connect again.' },
   linked: { tone: 'error', text: 'That Facebook account is already linked to another user.' },
   error: { tone: 'error', text: 'Facebook connection failed. Please try again.' },
 };
+const KEY_METRICS: [string, string][] = [['postCount', 'Posts'], ['reactionCount', 'Reactions'], ['repeatedTextCount', 'Repeated posts'], ['distinctLocations', 'Places']];
 
-export function DemoSignalsPanel({ onUpdated = () => {} }: { onUpdated?: () => void }) {
-  const locationReports = useApi(() => meApi.demoSignalReports('LOCATION'), []);
-  const socialReports = useApi(() => meApi.demoSignalReports('SOCIAL'), []);
-  const [locationScenario, setLocationScenario] = useState(locations[0]);
-  const connection = useApi(() => meApi.socialConnection(), []);
-  const [params, setParams] = useSearchParams();
-  const outcome = connectOutcomes[params.get('social') ?? ''];
-  const [socialChoice, setSocialChoice] = useState('');
-  const connected = connection.status === 'ready' && connection.data.connected;
-  const socialScenario = socialChoice || (connected ? LIVE_SCENARIO : socialScenarios[0]);
-  const setSocialScenario = setSocialChoice;
-  const [locationResult, setLocationResult] = useState<DemoSignalReport | null>(null);
-  const [socialResult, setSocialResult] = useState<DemoSignalReport | null>(null);
-  const [busy, setBusy] = useState('');
+const asError = (cause: unknown) => errorMessage(cause instanceof Error ? cause : new Error(String(cause)));
+const asList = (value: unknown) => (Array.isArray(value) ? value : []) as Record<string, unknown>[];
+
+function LocationCard({ onUpdated }: { onUpdated: () => void }) {
+  const reports = useApi(() => meApi.demoSignalReports('LOCATION'), []);
+  const address = useApi(() => meApi.address(), []);
+  const [scenario, setScenario] = useState(LOCATION_SCENARIOS[0].value);
+  const [fresh, setFresh] = useState<DemoSignalReport | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const connectFacebook = async () => {
-    setBusy('CONNECT'); setError('');
-    try { window.location.assign((await meApi.startFacebookConnect()).authorizeUrl); }
-    catch (cause) { setError(errorMessage(cause instanceof Error ? cause : new Error(String(cause)))); setBusy(''); }
+  const run = async () => {
+    setBusy(true); setError('');
+    try { setFresh((await meApi.runLocation(scenario)).report); setSelected(null); reports.reload(); onUpdated(); }
+    catch (cause) { setError(asError(cause)); }
+    finally { setBusy(false); }
   };
 
-  const disconnectFacebook = async () => {
-    setBusy('CONNECT'); setError('');
-    try { await meApi.disconnectSocial(); connection.reload(); setSocialChoice(''); setSocialResult(null); }
-    catch (cause) { setError(errorMessage(cause instanceof Error ? cause : new Error(String(cause)))); }
-    finally { setBusy(''); }
-  };
+  const report = fresh ?? (reports.status === 'ready' ? reports.data[0] ?? null : null);
+  const visits = asList(report?.visits);
+  const counts = countVisits(visits.map((visit) => visit.district));
+  const ranking = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const home = address.status === 'ready' && address.data.available ? districtId(address.data.districtId) : null;
+  const shown = selected ? visits.filter((visit) => districtId(visit.district) === selected) : visits;
+  const comparison = COMPARISON[String(report?.declaredDistrictComparison ?? '')];
 
-  const run = async (kind: 'LOCATION' | 'SOCIAL') => {
-    setBusy(kind); setError('');
-    try {
-      const result = kind === 'LOCATION' ? await meApi.runLocation(locationScenario) : await meApi.runSocial(socialScenario);
-      if (kind === 'LOCATION') { setLocationResult(result.report); locationReports.reload(); onUpdated(); }
-      else { setSocialResult(result.report); socialReports.reload(); }
-    } catch (cause) { setError(errorMessage(cause instanceof Error ? cause : new Error(String(cause)))); }
-    finally { setBusy(''); }
-  };
-
-  const location = locationResult ?? (locationReports.status === 'ready' ? locationReports.data[0] : null);
-  const social = socialResult ?? (socialReports.status === 'ready' ? socialReports.data[0] : null);
-  const visits = Array.isArray(location?.visits) ? location.visits as Record<string, unknown>[] : [];
-  const findings = Array.isArray(social?.findings) ? social.findings as Record<string, unknown>[] : [];
-  const evidence = new Map((Array.isArray(social?.evidence) ? social.evidence as Record<string, unknown>[] : []).map((item) => [String(item.id), item]));
-  const metrics = social?.metrics && typeof social.metrics === 'object' ? social.metrics as Record<string, unknown> : {};
-
-  return <Card title="Activity analysis" icon="activity" className="lg:col-span-3">
-    {outcome && <div className="mb-4"><Notice tone={outcome.tone}>{outcome.text} <button type="button" className="underline" onClick={() => setParams(current => {
-      const next = new URLSearchParams(current);
-      next.delete('social');
-      next.set('section', 'activity');
-      return next;
-    }, { replace: true })}>Dismiss</button></Notice></div>}
-    <div className="grid gap-6 xl:grid-cols-2">
-      <section className="rounded-md border border-gray-200 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h3 className="flex items-center gap-2 font-semibold text-gray-800"><Icon name="pin" />Location history</h3><p className="text-xs text-gray-500">Synthetic visits · district price estimates</p></div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <LocalDropdown value={locationScenario} onValueChange={setLocationScenario} aria-label="Location scenario" className="w-full min-w-0 sm:w-56" options={locations.map((id) => ({ value: id, label: id.replace('-', ' ') }))} />
-          <button onClick={() => run('LOCATION')} disabled={busy !== ''} className="btn-secondary px-4 py-2 text-sm"><Icon name="pin" />{busy === 'LOCATION' ? 'Analyzing…' : 'Run location analysis'}</button>
-        </div>
-        {locationReports.status === 'loading' && <Loading label="Loading location reports…" />}
-        {locationReports.status === 'error' && <Notice tone="error">{errorMessage(locationReports.error)}</Notice>}
-        {location && <div className="mt-4 space-y-3">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 text-center text-sm">
-            {[['Visits', location.visitCount], ['Districts', location.distinctDistricts], ['Most visited', location.mostVisitedDistrict]].map(([label, value]) => <div key={String(label)} className="rounded-lg bg-gray-50 p-3"><div className="text-xs text-gray-500">{String(label)}</div><strong>{String(value ?? '—')}</strong></div>)}
-          </div>
-          <div className="rounded-lg bg-primary-50 p-3" aria-label="Schematic map of synthetic visit districts">
-            <div className="text-xs font-semibold uppercase tracking-wide text-primary-900">Observed visits · schematic</div>
-            <div className="mt-2 flex flex-wrap gap-2">{Array.from(new Set(visits.map((visit) => String(visit.district ?? '')))).filter(Boolean).map((district) => <span key={district} className="rounded-full bg-white px-3 py-1 text-xs text-primary-900">{district}</span>)}</div>
-          </div>
-          <LocationPricingSummary value={location.pricing} />
-          <ol className="max-h-80 space-y-3 overflow-auto text-sm">{visits.map((visit) => <li key={String(visit.id)} className="border-b border-gray-100 pb-3">
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span className="font-medium">{String(visit.place)} · {String(visit.district)}</span><time className="text-xs text-gray-500">{new Date(String(visit.arrival)).toLocaleString()}</time></div>
-            <LocationVisitBenchmark value={visit.pricing} status={visit.pricingStatus} />
-          </li>)}</ol>
-          <details><summary>Location analysis limitations</summary><p>{String(location.limitation ?? '')}</p></details>
-        </div>}
-      </section>
-
-      <section className="rounded-md border border-gray-200 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h3 className="flex items-center gap-2 font-semibold text-gray-800"><Icon name="activity" />Social activity</h3><p className="text-xs text-gray-500">Connected Facebook posts or synthetic scenarios</p></div>
-        </div>
-        {connection.status === 'ready' && <div className="mt-4 rounded-lg bg-primary-50 p-3 text-sm">
-          {!connection.data.configured && <p className="text-primary-900">Facebook login is not configured on this server, so only synthetic scenarios are available.</p>}
-          {connection.data.configured && !connection.data.connected && <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-primary-900">Sign in with Facebook to analyze your own recent posts. Your password is never shared with this app.</span>
-            <button onClick={connectFacebook} disabled={busy !== ''} className="btn-secondary px-4 py-2 text-sm">{busy === 'CONNECT' ? 'Opening Facebook…' : 'Connect Facebook'}</button>
-          </div>}
-          {connection.data.connected && <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-primary-900">Connected as <strong>{connection.data.displayName ?? 'Facebook user'}</strong></span>
-            <button onClick={disconnectFacebook} disabled={busy !== ''} className="text-sm text-primary-900 underline">Disconnect</button>
-          </div>}
-        </div>}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <LocalDropdown value={socialScenario} onValueChange={setSocialScenario} aria-label="Social activity source" className="w-full min-w-0 sm:w-56" options={[...(connected ? [{ value: LIVE_SCENARIO, label: 'My Facebook account (live)' }] : []), ...socialScenarios.map((id) => ({ value: id, label: `${id} (synthetic)` }))]} />
-          <button onClick={() => run('SOCIAL')} disabled={busy !== ''} className="btn-secondary px-4 py-2 text-sm"><Icon name="activity" />{busy === 'SOCIAL' ? 'Analyzing…' : 'Run social analysis'}</button>
-        </div>
-        {connection.status === 'error' && <Notice tone="error">{errorMessage(connection.error)}</Notice>}
-        {socialReports.status === 'loading' && <Loading label="Loading social reports…" />}
-        {socialReports.status === 'error' && <Notice tone="error">{errorMessage(socialReports.error)}</Notice>}
-        {social && <div className="mt-4 space-y-3">
-          <SyntheticTag>{social.dataSource === 'OWNER_ACCOUNT' ? 'Your Facebook account' : 'Synthetic data'}</SyntheticTag>
-          <details><summary>Analysis details</summary><p>{String(social.analysisMode ?? 'FIXTURE')} · {String(social.provider ?? 'FIXTURE')} · {String(social.modelVersion ?? 'no model call')}</p>{Array.isArray(social.limitations) && <p className="mt-2">{(social.limitations as string[]).join(' ')}</p>}</details>
-          {social.status === 'AI_UNAVAILABLE' && <Notice tone="warning">AI unavailable; fixture metrics remain visible.</Notice>}
-          <p className="text-sm text-gray-700">{String(social.summary ?? 'No report yet.')}</p>
-          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 text-center text-sm">{Object.entries(metrics).map(([label, value]) => <div key={label} className="rounded-lg bg-gray-50 p-3"><dt className="text-xs text-gray-500">{label.replace(/[A-Z]/g, (c) => ` ${c.toLowerCase()}`)}</dt><dd className="font-semibold">{String(value)}</dd></div>)}</dl>
-          <ul className="space-y-2">{findings.map((finding, index) => <li key={index} className="rounded-lg border border-gray-100 p-3 text-sm"><strong>{String(finding.label)}</strong><p className="mt-1 text-gray-600">{String(finding.observation)}</p><details className="mt-2"><summary>Evidence and confidence</summary><p className="mt-1 text-xs text-gray-500">Evidence: {Array.isArray(finding.evidenceIds) ? finding.evidenceIds.join(', ') : '—'} · {String(finding.confidence)}</p>
-            {Array.isArray(finding.evidenceIds) ? <ul className="mt-1 space-y-0.5 text-xs text-gray-500">{(finding.evidenceIds as string[]).slice(0, 4).map((id) => <li key={id}><code>{id}</code> {String(evidence.get(id)?.excerpt ?? '')}</li>)}</ul> : null}</details></li>)}</ul>
-
-        </div>}
-      </section>
+  return <Card title="Where you spend time" icon="pin">
+    <div className="flex flex-wrap items-center gap-2">
+      <LocalDropdown value={scenario} onValueChange={setScenario} aria-label="Visit history sample" className="w-full min-w-0 sm:w-60" options={LOCATION_SCENARIOS} />
+      <button onClick={run} disabled={busy} className="btn-primary px-4 py-2 text-sm"><Icon name="pin" />{busy ? 'Analyzing…' : 'Analyze visits'}</button>
     </div>
     {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
+    {reports.status === 'loading' && <Loading label="Loading your last analysis…" />}
+    {reports.status === 'error' && <div className="mt-4"><Notice tone="error">{errorMessage(reports.error)}</Notice></div>}
+    {reports.status === 'ready' && !report && <p className="mt-6 text-sm text-gray-600">Pick a sample and press <strong>Analyze visits</strong> to see your most visited districts.</p>}
+    {report && <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,34rem)_minmax(16rem,1fr)] lg:gap-10">
+      <BudapestDistrictMap counts={counts} home={home} selected={selected} onSelect={setSelected} />
+      <div className="space-y-5">
+        <dl className="grid grid-cols-3 gap-2 text-center">
+          {[['Visits', report.visitCount], ['Districts', report.distinctDistricts], ['Top', ranking[0] ? `${ranking[0][0]}.` : '—']].map(([label, value]) =>
+            <div key={String(label)} className="rounded-md bg-gray-50 p-3"><dt className="text-xs text-gray-500">{String(label)}</dt><dd className="text-xl font-semibold">{String(value ?? '—')}</dd></div>)}
+        </dl>
+        {comparison && <p className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium ${comparison.tone}`}><Icon name="home" className="h-4 w-4" />{comparison.text}</p>}
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-gray-800">Most visited districts</h3>
+          <ol className="space-y-1">{ranking.map(([id, count]) => <li key={id}>
+            <button type="button" onClick={() => setSelected(selected === id ? null : id)} aria-pressed={selected === id}
+              className={`flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-sm hover:bg-gray-50 ${selected === id ? 'bg-primary-50 font-semibold' : ''}`}>
+              <span className="w-12 shrink-0 font-medium">{id}.</span>
+              <span className="h-2 flex-1 rounded-full bg-gray-100" aria-hidden="true"><span className="block h-2 rounded-full bg-accent" style={{ width: `${(count / ranking[0][1]) * 100}%` }} /></span>
+              <span className="w-16 shrink-0 text-right tabular-nums text-gray-600">{count} visit{count === 1 ? '' : 's'}</span>
+            </button>
+          </li>)}</ol>
+        </div>
+      </div>
+    </div>}
+    {report && <details className="mt-6" open={selected != null || undefined}>
+      <summary>{selected ? `Visits in district ${selected} (${shown.length})` : `All visits (${visits.length})`}</summary>
+      {selected && <button type="button" className="mb-3 text-sm underline" onClick={() => setSelected(null)}>Show all districts</button>}
+      <ol className="max-h-96 space-y-3 overflow-auto pr-1">{shown.map((visit) => <li key={String(visit.id)} className="border-b border-gray-100 pb-3">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1"><span className="font-medium text-gray-800">{String(visit.place)} · {String(visit.district)}</span><time className="text-xs text-gray-500">{new Date(String(visit.arrival)).toLocaleString()}</time></div>
+        <LocationVisitBenchmark value={visit.pricing} status={visit.pricingStatus} />
+      </li>)}</ol>
+      <div className="mt-4"><LocationPricingSummary value={report.pricing} /></div>
+      <p className="mt-3 text-xs text-gray-500">{String(report.limitation ?? '')}</p>
+    </details>}
   </Card>;
+}
+
+function SocialCard() {
+  const reports = useApi(() => meApi.demoSignalReports('SOCIAL'), []);
+  const connection = useApi(() => meApi.socialConnection(), []);
+  const [params, setParams] = useSearchParams();
+  const outcome = CONNECT_OUTCOMES[params.get('social') ?? ''];
+  const [choice, setChoice] = useState('');
+  const [fresh, setFresh] = useState<DemoSignalReport | null>(null);
+  const [busy, setBusy] = useState('');
+  const [error, setError] = useState('');
+  const connected = connection.status === 'ready' && connection.data.connected;
+  const scenario = choice || (connected ? LIVE_SCENARIO : SOCIAL_SCENARIOS[0].value);
+
+  const act = async (kind: string, work: () => Promise<void>) => {
+    setBusy(kind); setError('');
+    try { await work(); } catch (cause) { setError(asError(cause)); } finally { setBusy(''); }
+  };
+  const connect = () => act('CONNECT', async () => { window.location.assign((await meApi.startFacebookConnect()).authorizeUrl); });
+  const disconnect = () => act('CONNECT', async () => { await meApi.disconnectSocial(); connection.reload(); setChoice(''); setFresh(null); });
+  const run = () => act('RUN', async () => { setFresh((await meApi.runSocial(scenario)).report); reports.reload(); });
+  const dismiss = () => setParams((current) => { const next = new URLSearchParams(current); next.delete('social'); next.set('section', 'activity'); return next; }, { replace: true });
+
+  const report = fresh ?? (reports.status === 'ready' ? reports.data[0] ?? null : null);
+  const findings = asList(report?.findings);
+  const evidence = new Map(asList(report?.evidence).map((item) => [String(item.id), item]));
+  const metrics = (report?.metrics && typeof report.metrics === 'object' ? report.metrics : {}) as Record<string, unknown>;
+  const ai = report?.analysisMode === 'AI' && report.status === 'COMPLETE';
+
+  return <Card title="Social activity" icon="activity">
+    {outcome && <div className="mb-4"><Notice tone={outcome.tone}>{outcome.text} <button type="button" className="underline" onClick={dismiss}>Dismiss</button></Notice></div>}
+    {connection.status === 'ready' && <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-200 p-3 text-sm">
+      {!connection.data.configured && <span className="text-gray-600">Facebook login is not set up on this server. Samples are available.</span>}
+      {connection.data.configured && !connected && <><span className="text-gray-700">Analyze your own recent Facebook posts.</span>
+        <button onClick={connect} disabled={busy !== ''} className="btn-secondary px-4 py-2 text-sm">{busy === 'CONNECT' ? 'Opening Facebook…' : 'Connect Facebook'}</button></>}
+      {connected && <><span className="text-gray-700">Connected as <strong>{connection.data.displayName ?? 'Facebook user'}</strong></span>
+        <button onClick={disconnect} disabled={busy !== ''} className="text-sm underline">Disconnect</button></>}
+    </div>}
+    {connection.status === 'error' && <div className="mb-4"><Notice tone="error">{errorMessage(connection.error)}</Notice></div>}
+    <div className="flex flex-wrap items-center gap-2">
+      <LocalDropdown value={scenario} onValueChange={setChoice} aria-label="Posts to analyze" className="w-full min-w-0 sm:w-60"
+        options={[...(connected ? [{ value: LIVE_SCENARIO, label: 'My Facebook posts' }] : []), ...SOCIAL_SCENARIOS.map((item) => ({ ...item, label: `${item.label} (sample)` }))]} />
+      <button onClick={run} disabled={busy !== ''} className="btn-primary px-4 py-2 text-sm"><Icon name="activity" />{busy === 'RUN' ? 'Analyzing…' : 'Analyze posts'}</button>
+    </div>
+    {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
+    {reports.status === 'loading' && <Loading label="Loading your last analysis…" />}
+    {reports.status === 'error' && <div className="mt-4"><Notice tone="error">{errorMessage(reports.error)}</Notice></div>}
+    {report && <div className="mt-5 space-y-4">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-700">{report.dataSource === 'OWNER_ACCOUNT' ? 'Your Facebook posts' : 'Sample posts'}</span>
+        <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-700">{ai ? `${PROVIDER_NAMES[String(report.provider)] ?? 'AI'} · ${String(report.modelVersion)}` : 'Rule-based'}</span>
+      </div>
+      {report.status === 'AI_UNAVAILABLE' && <Notice tone="warning">AI analysis is unavailable right now, so only the counts are shown.</Notice>}
+      <p className="text-gray-800">{String(report.summary ?? '')}</p>
+      <dl className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">{KEY_METRICS.filter(([key]) => key in metrics).map(([key, label]) =>
+        <div key={key} className="rounded-md bg-gray-50 p-3"><dt className="text-xs text-gray-500">{label}</dt><dd className="text-lg font-semibold">{String(metrics[key])}</dd></div>)}</dl>
+      {findings.length > 0 && <ul className="space-y-2">{findings.map((finding, index) => <li key={index} className="rounded-md border border-gray-100 p-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2"><strong>{String(finding.label).replaceAll('_', ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}</strong>
+          <span className="text-xs text-gray-500">{String(finding.confidence).toLowerCase()} confidence</span></div>
+        <p className="mt-1 text-gray-600">{String(finding.observation)}</p>
+        {Array.isArray(finding.evidenceIds) && finding.evidenceIds.length > 0 && <details className="mt-2"><summary>Evidence ({finding.evidenceIds.length})</summary>
+          <ul className="space-y-1 text-xs">{(finding.evidenceIds as string[]).slice(0, 5).map((id) => <li key={id}><code>{id}</code> {String(evidence.get(id)?.excerpt ?? '')}</li>)}</ul>
+        </details>}
+      </li>)}</ul>}
+      {Array.isArray(report.limitations) && <p className="text-xs text-gray-500">{(report.limitations as string[]).join(' ')}</p>}
+    </div>}
+  </Card>;
+}
+
+/** Location and social demo analyses. Neither changes a credit decision directly; location visits feed the spending forecast. */
+export function DemoSignalsPanel({ onUpdated = () => {} }: { onUpdated?: () => void }) {
+  return <div className="grid gap-6">
+    <LocationCard onUpdated={onUpdated} />
+    <SocialCard />
+  </div>;
 }

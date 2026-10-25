@@ -1,6 +1,6 @@
 # Demo Scenarios
 
-Updated 2026-10-04. Financial profiles and visits are synthetic diploma data; researched price references are documented in `LOCATION_PRICING.md`. Older v1/v2 examples below describe historical policies. Fixture source: `rocket-credit-backend/src/main/resources/fixtures/demo-customers.json`.
+Updated 2026-10-22 (marketplace, district map and `rules-v4` outcomes). Earlier update 2026-10-04. Financial profiles and visits are synthetic diploma data; researched price references are documented in `LOCATION_PRICING.md`. Older v1/v2 examples below describe historical policies. Fixture source: `rocket-credit-backend/src/main/resources/fixtures/demo-customers.json`.
 
 ## Demo accounts
 
@@ -29,7 +29,25 @@ Possible amount = min(partner cap, disposable income × 3.0) (policy `rules-v1`)
 
 See [automatic methodology](LOCATION_PRICING.md#automatic-budgets-and-activity-forecasts--4-october-2026). Income and debt are demo data, not independently verified finances. Older expected outcomes below describe prior policies.
 
-## Expected outcomes (policy `rules-v1`, review band 0.40–0.65; verified live 2026-09-19)
+## Expected outcomes today (policy `rules-v4`; verified 2026-10-22 on a fresh stack)
+
+Six monthly payments, no verified address (so the supplied demo expense baseline applies). Reproduce with
+`python3 research/demo/persona_matrix.py http://localhost:8080`; raw output in [`research/demo/persona-matrix.md`](../research/demo/persona-matrix.md).
+
+| Scenario | Request | Expected | Why (shown to the user) |
+| --- | --- | --- | --- |
+| Avery at Amazon | 108,000 HUF | **APPROVED** (score 0.77), possible 540,000 HUF | long, clean history; amount within budget and the seller limit |
+| Avery at Amazon, AI on | 108,000 HUF | **APPROVED** (0.81), `aiStatus = APPLIED`, model `logreg-v1` | the model's low risk lifts the score |
+| Avery at Amazon | 576,000 HUF | **REJECTED** (`AMOUNT_ABOVE_POSSIBLE`), possible 540,000 HUF | above the Amazon limit; the page offers “Try 540 000 Ft instead” |
+| Riley at Amazon | 18,000 HUF | **REVIEW** (0.47) | incomplete profile and refunds put the score in the review band |
+| Riley at Amazon, AI on | 18,000 HUF | **REVIEW** (0.56) | AI lifts the score, but not over the approval line |
+| Drew at Zara | 54,000 HUF | **REJECTED** (`ZERO_CAPACITY`, 0.13) | new, unverified account with no money left after costs |
+| Drew at Zara, AI on | 54,000 HUF | **REJECTED** (0.11, `AI_RISK_ELEVATED`) | zero capacity still decides; the model agrees |
+| Casey at Netflix / Amazon | 36,000 / 252,000 HUF | **REJECTED** (`ZERO_CAPACITY`) | under `rules-v4` the 10 % reserve and debt limit leave Casey no monthly capacity |
+
+`REVIEW` means the automatic result is inconclusive; there is no operator queue. Only an accepted approval moves (simulated) money.
+
+## Historical expected outcomes (policy `rules-v1`, review band 0.40–0.65; verified live 2026-09-19)
 
 | Scenario | Request | Expected | Why |
 | --- | --- | --- | --- |

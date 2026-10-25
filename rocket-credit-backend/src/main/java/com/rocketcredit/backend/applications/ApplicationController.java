@@ -19,8 +19,9 @@ public class ApplicationController {
 
     @PostMapping
     public ResponseEntity<ApplicationDtos.ApplicationDto> submit(@AuthenticationPrincipal AuthenticatedUser user,
-                                                                 @Valid @RequestBody ApplicationDtos.SubmitRequest body) {
-        var dto = service.submit(user.getId(), body);
+                                                                 @Valid @RequestBody ApplicationDtos.SubmitRequest body,
+                                                                 @RequestHeader("Idempotency-Key") String key) {
+        var dto = service.submit(user.getId(), body, key);
         return ResponseEntity.created(URI.create("/api/applications/" + dto.id())).body(dto);
     }
 

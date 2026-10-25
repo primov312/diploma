@@ -9,7 +9,7 @@ CENT = Decimal("0.01")
 ZERO = Decimal("0")
 
 
-def calculate_affordability(inputs: AffordabilityInputs, policy_version: str) -> AffordabilityResponse:
+def calculate_affordability(inputs: AffordabilityInputs, policy_version: str, terms=None) -> AffordabilityResponse:
     reasons: list[str] = []
     v3 = policy_version in ("rules-v3", "rules-v4")
     formula_version = "affordability-v4" if policy_version == "rules-v4" else "affordability-v3" if v3 else "affordability-v2"
@@ -73,6 +73,10 @@ def calculate_affordability(inputs: AffordabilityInputs, policy_version: str) ->
     by_debt_limit = max(ZERO, income * Decimal("0.30") - inputs.monthlyObligations)
     monthly = min(by_disposable, by_debt_limit).quantize(CENT, rounding=ROUND_DOWN)
     base = (monthly * 6).quantize(CENT, rounding=ROUND_DOWN)
+    if terms is not None:
+        from app.rules.repayment_terms import affordable_principal
+        base = affordable_principal(monthly, terms)
+        formula_version += "-credit-v1"
     partner = min(base, inputs.partnerCap).quantize(CENT, rounding=ROUND_DOWN)
     breakdown = {
         "income": income.quantize(CENT, rounding=ROUND_DOWN),
@@ -83,7 +87,7 @@ def calculate_affordability(inputs: AffordabilityInputs, policy_version: str) ->
         "paymentFromDebtLimit": by_debt_limit.quantize(CENT, rounding=ROUND_DOWN),
     }
     return AffordabilityResponse(
-        formulaVersion=formula_version, policyVersion=policy_version, termMonths=6,
+        formulaVersion=formula_version, policyVersion=policy_version, termMonths=(terms.installmentCount if terms.termUnit == "MONTH" else 0) if terms else 6,
         baseAmount=base, partnerAmount=partner, monthlyPaymentCapacity=monthly,
         breakdown=breakdown, reasons=list(dict.fromkeys(reasons)),
     )

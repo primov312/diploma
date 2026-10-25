@@ -43,7 +43,7 @@ const RegisterPage = () => {
   return (
     <AuthForm
       title="Create your account"
-      subtitle="Demo account: you will receive a clearly labelled synthetic starter history."
+      subtitle="You start with a small sample purchase history."
       error={error}
       submitting={submitting}
       submitLabel="Create account"

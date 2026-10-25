@@ -34,6 +34,11 @@ public class FacebookClient {
         public TokenRejectedException() { super("Facebook rejected the access token"); }
     }
 
+    /** The token is valid but the user declined a permission the request needs (Graph error 10 or 200–299). */
+    public static class PermissionMissingException extends RuntimeException {
+        public PermissionMissingException() { super("Facebook permission missing"); }
+    }
+
     public record TokenResult(String accessToken, Instant expiresAt) {}
     public record Profile(String id, String name) {}
 
@@ -69,7 +74,9 @@ public class FacebookClient {
                 + "&redirect_uri=" + enc(props.redirectUri())
                 + "&state=" + enc(state)
                 + "&scope=" + enc(SCOPES)
-                + "&response_type=code";
+                + "&response_type=code"
+                // ask again for permissions the user declined last time instead of silently skipping them
+                + "&auth_type=rerequest";
     }
 
     public TokenResult exchangeCode(String code) {
@@ -84,6 +91,16 @@ public class FacebookClient {
     public Profile me(String token) {
         JsonNode body = get("/me", Map.of("fields", "id,name", "access_token", token));
         return new Profile(body.path("id").asText(), body.path("name").asText(null));
+    }
+
+    /** Permissions the user actually granted; the consent dialog lets them untick {@code user_posts}. */
+    public java.util.Set<String> grantedPermissions(String token) {
+        JsonNode body = get("/me/permissions", Map.of("access_token", token));
+        java.util.Set<String> granted = new java.util.HashSet<>();
+        for (JsonNode item : body.path("data")) {
+            if ("granted".equals(item.path("status").asText())) granted.add(item.path("permission").asText());
+        }
+        return granted;
     }
 
     public List<ObjectNode> fetchPosts(String token) {
@@ -160,7 +177,9 @@ public class FacebookClient {
             if (body == null) throw new AnalysisUnavailableException("Facebook returned an empty body");
             return body;
         } catch (RestClientResponseException e) {
-            if (isTokenError(e)) throw new TokenRejectedException();
+            int code = graphErrorCode(e);
+            if (code == 190 || code == 102 || isTokenError(e)) throw new TokenRejectedException();
+            if (code == 10 || code >= 200 && code <= 299) throw new PermissionMissingException();
             log.warn("Facebook Graph call failed: HTTP {}", e.getStatusCode().value());
             throw new AnalysisUnavailableException("Facebook Graph call failed: HTTP " + e.getStatusCode().value(), e);
         } catch (ResourceAccessException e) {
@@ -169,10 +188,18 @@ public class FacebookClient {
         }
     }
 
+    private int graphErrorCode(RestClientResponseException e) {
+        try {
+            return mapper.readTree(e.getResponseBodyAsString()).path("error").path("code").asInt(0);
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
     private boolean isTokenError(RestClientResponseException e) {
         try {
             JsonNode error = mapper.readTree(e.getResponseBodyAsString()).path("error");
-            return error.path("code").asInt() == 190 || error.path("type").asText().equals("OAuthException") && e.getStatusCode().value() == 401;
+            return error.path("type").asText().equals("OAuthException") && e.getStatusCode().value() == 401;
         } catch (Exception ignored) {
             return false;
         }

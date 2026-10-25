@@ -27,14 +27,16 @@ async function financialInputs(page: Page, housingSituation = 'RENTING') {
   await page.reload();
 }
 
+const saveCosts = (page: Page) => page.getByRole('complementary', { name: 'Monthly living costs' }).getByRole('button', { name: 'Save', exact: true });
+
 async function saveAddress(page: Page) {
-  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Address & costs' }).click();
+  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Budget' }).click();
   await page.getByLabel('Postal code', { exact: true }).fill('1051');
-  await expect(page.getByLabel('District determined by postal code')).toHaveValue('Budapest District V');
+  await expect(page.locator('#district-hint')).toHaveText('Budapest District V');
   await page.getByLabel('Street', { exact: true }).fill('Minta utca');
   await page.getByLabel('Building', { exact: true }).fill('12');
   await page.getByRole('button', { name: 'Save address', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Review prepared sample' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Use the sample card' })).toBeVisible();
   await expect(page.getByTestId('monthly-living-cost-table')).toBeVisible();
 }
 
@@ -50,34 +52,34 @@ test('automatic budget removes amount inputs, saves size and sharing, and foreca
   await expect(page.getByLabel('Net income', { exact: true })).toHaveCount(0);
   await page.getByText('Monthly grocery basket · 12 products').click();
   await expect(page.getByLabel('Milk (litres / month)', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Save size and sharing', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: 'Save size and sharing', exact: true }).click();
-  await expect(page.getByText('Housing details saved. Your automatic estimate is recalculating.')).toBeVisible();
+  await expect(saveCosts(page)).toBeEnabled();
+  await saveCosts(page).click();
+  await expect(page.getByText('Saved. Your amount is being recalculated.')).toBeVisible();
   await page.reload();
   await expect(page.getByLabel('People sharing rent', { exact: true })).toHaveValue('2');
   await expect(page.getByLabel('Other spending (HUF / month)', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Review prepared sample' }).click();
+  await page.getByRole('button', { name: 'Use the sample card' }).click();
   await expect.poll(async () => (await (await page.request.get('/api/me/address')).json()).verificationStatus, { timeout: 40_000 }).toBe('VERIFIED_DEMO');
   await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).status, { timeout: 15_000 }).toBe('READY');
   let monthly = await (await page.request.get('/api/me/monthly-living-costs')).json();
   expect(monthly.eligible).toBe(true); expect(monthly.monthlyRent).toBe(175000); expect(monthly.monthlyOther).toBeGreaterThan(0);
   let estimate = await (await page.request.get('/api/me/affordability')).json();
-  expect(estimate.formulaVersion).toBe('affordability-v4'); expect(estimate.policyVersion).toBe('rules-v4');
+  expect(estimate.formulaVersion).toBe('affordability-v4-credit-v1'); expect(estimate.policyVersion).toBe('rules-v4');
   expect(estimate.localCostContext.datasetVersion).toBe(monthly.datasetVersion);
   const usd = (value: number) => Math.round(value / 360 * 100) / 100;
   expect(estimate.breakdown.effectiveExpenses).toBeCloseTo(Math.max(usd(monthly.suppliedExpenseFloorHuf), usd(monthly.monthlyRent) + usd(monthly.monthlyGroceries) + usd(monthly.monthlyOther)), 2);
   await page.getByLabel('Apartment size (m²)', { exact: true }).fill('40');
-  await expect(page.getByRole('button', { name: 'Save size and sharing', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: 'Save size and sharing', exact: true }).click();
+  await expect(saveCosts(page)).toBeEnabled();
+  await saveCosts(page).click();
   await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).localCostContext?.monthlyRent, { timeout: 15_000 }).toBe(140000);
   expect((await (await page.request.get('/api/me/address')).json()).verificationStatus).toBe('VERIFIED_DEMO');
   await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
-  await page.getByRole('button', { name: 'Run location analysis' }).click();
+  await page.getByRole('button', { name: 'Analyze visits' }).click();
   await expect.poll(async () => (await (await page.request.get('/api/me/monthly-living-costs')).json()).activityForecast.historySufficient).toBe(true);
   monthly = await (await page.request.get('/api/me/monthly-living-costs')).json();
   expect(monthly.activityForecast.method).toBe('MEAN_OF_BASELINE_AND_HISTORY');
   await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).localCostContext?.activityForecast?.reportId).toBe(monthly.activityForecast.reportId);
-  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Address & costs' }).click();
+  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Budget' }).click();
   await page.getByText('How activity spending is forecast').click();
   await expect(page.getByText(/Sufficient history: average/)).toBeVisible();
   await page.getByText('Sources and calculation dates').click();
@@ -99,9 +101,9 @@ test('postcode changes clear previous prices, reject special codes, and owner bu
   await page.getByLabel('Postal code', { exact: true }).fill('1007');
   await expect(page.getByText('This code is not a supported residential Budapest postcode.')).toBeVisible();
   await page.getByLabel('Postal code', { exact: true }).fill('1239');
-  await expect(page.getByLabel('District determined by postal code')).toHaveValue('Budapest District XXIII');
+  await expect(page.locator('#district-hint')).toHaveText('Budapest District XXIII');
   await expect(page.getByTestId('monthly-living-cost-table')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Save size and sharing', exact: true })).toBeDisabled();
+  await expect(saveCosts(page)).toBeDisabled();
 });
 
 test('missing reference data is displayed as unavailable', async ({ page }) => {
@@ -109,7 +111,7 @@ test('missing reference data is displayed as unavailable', async ({ page }) => {
     ? route.fulfill({ json: { available: false, unavailableReason: 'NO_DATASET', eligible: false, currency: 'HUF', hufPerUsd: 360 } })
     : route.continue());
   await register(page);
-  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Address & costs' }).click();
-  await expect(page.getByText('Monthly price references are unavailable. Import the researched dataset to calculate costs.')).toBeVisible();
+  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Budget' }).click();
+  await expect(page.getByText('Price data is not loaded on this server yet.')).toBeVisible();
   await expect(page.getByTestId('monthly-living-cost-table')).toHaveCount(0);
 });

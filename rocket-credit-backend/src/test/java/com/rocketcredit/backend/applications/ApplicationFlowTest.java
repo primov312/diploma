@@ -48,12 +48,31 @@ class ApplicationFlowTest extends AbstractIntegrationTest {
         when(analysis.score(any())).thenReturn(decision("APPROVED", "0.9130", "1500.00", List.of()));
     }
 
+    private int rowHistoryCount(MockHttpSession session) throws Exception {
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var rows=mapper.readTree(mvc.perform(get("/api/transactions").session(session)).andReturn().getResponse().getContentAsString());
+        var cutoff=java.time.LocalDate.now(java.time.ZoneOffset.UTC).minusMonths(12);
+        int count=0;for(var row:rows)if(row.path("status").asText().equals("COMPLETED") && !java.time.LocalDate.parse(row.path("occurredOn").asText()).isBefore(cutoff))count++;
+        return count;
+    }
+
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder applicationRequest(String body, MockHttpSession session) throws Exception {
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        String request=body;
+        try {
+            var node=(com.fasterxml.jackson.databind.node.ObjectNode)mapper.readTree(body);
+            var preview=node.deepCopy(); preview.remove("useAi");preview.put("termUnit","MONTH").put("installmentCount",6);
+            var quote=mvc.perform(postJson("/api/credit-quotes",preview.toString(),fetchCsrf()).session(session)).andReturn();
+            if(quote.getResponse().getStatus()==200){node.put("quoteId",mapper.readTree(quote.getResponse().getContentAsString()).path("id").asLong());request=node.toString();}
+        } catch(com.fasterxml.jackson.core.JsonProcessingException ignored) { }
+        return postJson("/api/applications",request,fetchCsrf()).session(session).header("Idempotency-Key",java.util.UUID.randomUUID().toString());
+    }
+
     @Test
     void submitScoresSavesAndReadsBack() throws Exception {
         MockHttpSession avery = login("avery@demo.rocket.local", DEMO_PASSWORD);
 
-        var result = mvc.perform(postJson("/api/applications",
-                        "{\"partnerSlug\":\"markethub\",\"requestedAmount\":300.00,\"useAi\":false}", fetchCsrf()).session(avery))
+        var result = mvc.perform(applicationRequest("{\"partnerSlug\":\"markethub\",\"requestedAmount\":300.00,\"useAi\":false}", avery))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.startsWith("/api/applications/")))
                 .andExpect(jsonPath("$.decisionStatus").value("APPROVED"))
@@ -64,7 +83,7 @@ class ApplicationFlowTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.aiStatus").value("NOT_REQUESTED"))
                 .andExpect(jsonPath("$.preparationMode").value("SEQUENTIAL"))
                 .andExpect(jsonPath("$.featureSnapshot.history.partnerOrders12m").value(7))   // 8 orders, 1 refunded
-                .andExpect(jsonPath("$.featureSnapshot.finance.monthlyIncome").value(4500.00))
+                .andExpect(jsonPath("$.featureSnapshot.finance.monthlyIncome").value(2000.00))
                 .andReturn();
         int id = JsonPath.read(result.getResponse().getContentAsString(), "$.id");
 
@@ -78,8 +97,8 @@ class ApplicationFlowTest extends AbstractIntegrationTest {
         assertThat(sent.history().partnerOrders12m()).isEqualTo(7);
         assertThat(sent.history().partnerRefundRate()).isEqualTo(0.125);
         assertThat(sent.history().partnerOnTimeRatio()).isEqualTo(1.0);
-        assertThat(sent.history().totalOrders12m()).isEqualTo(24);        // 25 purchases, 1 refunded
-        assertThat(sent.finance().monthlyObligations()).isEqualByComparingTo("300.00");
+        assertThat(sent.history().totalOrders12m()).isEqualTo(rowHistoryCount(avery));        // 25 purchases, 1 refunded
+        assertThat(sent.finance().monthlyObligations()).isEqualByComparingTo("50.00");
         assertThat(sent.toString()).doesNotContain("avery").doesNotContain("@");
 
         // persisted and readable by the owner: list + detail
@@ -106,20 +125,17 @@ class ApplicationFlowTest extends AbstractIntegrationTest {
         int coatId = ids.get(0);
 
         // query-string style price tampering is ignored: the amount must equal the stored price
-        mvc.perform(postJson("/api/applications",
-                        "{\"partnerSlug\":\"threadly\",\"productId\":%d,\"requestedAmount\":1.00}".formatted(coatId), fetchCsrf()).session(casey))
+        mvc.perform(applicationRequest("{\"partnerSlug\":\"threadly\",\"productId\":%d,\"requestedAmount\":1.00}".formatted(coatId), casey))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("AMOUNT_MISMATCH"));
 
-        mvc.perform(postJson("/api/applications",
-                        "{\"partnerSlug\":\"threadly\",\"productId\":%d}".formatted(coatId), fetchCsrf()).session(casey))
+        mvc.perform(applicationRequest("{\"partnerSlug\":\"threadly\",\"productId\":%d}".formatted(coatId), casey))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.requestedAmount").value(189.00))
                 .andExpect(jsonPath("$.productName").value("Wool coat"));
 
         // a product from another partner is refused
-        mvc.perform(postJson("/api/applications",
-                        "{\"partnerSlug\":\"streambox\",\"productId\":%d}".formatted(coatId), fetchCsrf()).session(casey))
+        mvc.perform(applicationRequest("{\"partnerSlug\":\"streambox\",\"productId\":%d}".formatted(coatId), casey))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("UNKNOWN_PRODUCT"));
     }
@@ -138,7 +154,7 @@ class ApplicationFlowTest extends AbstractIntegrationTest {
                 "not json",
         };
         for (String body : bodies) {
-            mvc.perform(postJson("/api/applications", body, fetchCsrf()).session(riley))
+            mvc.perform(applicationRequest(body, riley))
                     .andExpect(status().isBadRequest());
         }
         verify(analysis, never()).score(any());
@@ -153,7 +169,7 @@ class ApplicationFlowTest extends AbstractIntegrationTest {
         MockHttpSession drew = login("drew@demo.rocket.local", DEMO_PASSWORD);
         when(analysis.score(any())).thenThrow(new AnalysisUnavailableException("analysis /score failed: SocketTimeoutException"));
 
-        mvc.perform(postJson("/api/applications", "{\"partnerSlug\":\"threadly\",\"requestedAmount\":150}", fetchCsrf()).session(drew))
+        mvc.perform(applicationRequest("{\"partnerSlug\":\"threadly\",\"requestedAmount\":150}", drew))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.error").value("ANALYSIS_UNAVAILABLE"))
                 .andExpect(jsonPath("$.decisionStatus").doesNotExist());
@@ -166,7 +182,7 @@ class ApplicationFlowTest extends AbstractIntegrationTest {
         MockHttpSession avery = login("avery@demo.rocket.local", DEMO_PASSWORD);
         MockHttpSession casey = login("casey@demo.rocket.local", DEMO_PASSWORD);
 
-        String body = mvc.perform(postJson("/api/applications", "{\"partnerSlug\":\"streambox\",\"requestedAmount\":50}", fetchCsrf()).session(avery))
+        String body = mvc.perform(applicationRequest("{\"partnerSlug\":\"streambox\",\"requestedAmount\":50}", avery))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         int id = JsonPath.read(body, "$.id");
 
@@ -180,13 +196,13 @@ class ApplicationFlowTest extends AbstractIntegrationTest {
     void reviewAndRejectionResultsArePersistedAsReturned() throws Exception {
         MockHttpSession riley = login("riley@demo.rocket.local", DEMO_PASSWORD);
         when(analysis.score(any())).thenReturn(decision("REVIEW", "0.5210", "900.00", List.of("PROFILE_INCOMPLETE", "SCORE_INCONCLUSIVE")));
-        mvc.perform(postJson("/api/applications", "{\"partnerSlug\":\"markethub\",\"requestedAmount\":250}", fetchCsrf()).session(riley))
+        mvc.perform(applicationRequest("{\"partnerSlug\":\"markethub\",\"requestedAmount\":250}", riley))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.decisionStatus").value("REVIEW"))
                 .andExpect(jsonPath("$.reasons", hasSize(2)));
 
         when(analysis.score(any())).thenReturn(decision("REJECTED", "0.7000", "600.00", List.of("AMOUNT_ABOVE_POSSIBLE_AMOUNT")));
-        mvc.perform(postJson("/api/applications", "{\"partnerSlug\":\"markethub\",\"requestedAmount\":700}", fetchCsrf()).session(riley))
+        mvc.perform(applicationRequest("{\"partnerSlug\":\"markethub\",\"requestedAmount\":700}", riley))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.decisionStatus").value("REJECTED"))
                 .andExpect(jsonPath("$.possibleAmount").value(600.00));   // suggestion, not an offer

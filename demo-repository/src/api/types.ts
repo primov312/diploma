@@ -20,6 +20,9 @@ export type Product = {
 
 export type PartnerDetail = Partner & { products: Product[] };
 
+/** One marketplace entry; the seller is kept because financing limits and history are per seller. */
+export type CatalogItem = Omit<Product, 'fixtureId'> & { partnerSlug: string; partnerName: string; partnerAmountCap: number };
+
 export type Transaction = {
   id: number;
   partnerSlug: string;
@@ -181,6 +184,10 @@ export type Factor = {
 };
 
 export type Application = {
+  quote?: import('./payments').CreditQuote | null;
+  loanId?: number | null;
+  canAccept?: boolean;
+  acceptanceUnavailableReason?: string | null;
   id: number;
   partnerSlug: string;
   partnerName: string;
@@ -204,6 +211,7 @@ export type Application = {
 };
 
 export type SubmitApplication = {
+  quoteId: number;
   partnerSlug: string;
   requestedAmount?: number;
   productId?: number;

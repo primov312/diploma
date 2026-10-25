@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { DecisionStatus } from '../../api/types';
 import { cn } from '../../utils/cn';
@@ -21,7 +21,7 @@ export const Page = ({ title, subtitle, actions, children }: { title: string; su
 );
 
 export const Card = ({ title, children, className, footer, icon }: { title?: ReactNode; children: ReactNode; className?: string; footer?: ReactNode; icon?: IconName }) => (
-  <section className={cn('rounded-lg border border-gray-200 bg-white p-4 md:p-6', className)}>
+  <section className={cn('min-w-0 rounded-lg border border-gray-200 bg-white p-4 md:p-6', className)}>
     {title && <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-800">{icon && <Icon name={icon} />}{title}</h2>}
     {children}
     {footer && <div className="mt-4 border-t border-gray-100 pt-4 text-sm">{footer}</div>}
@@ -69,3 +69,19 @@ export const LinkButton = ({ to, children, variant = 'primary', className, icon 
     <Icon name={icon} />{children}
   </Link>
 );
+
+/** Centered dialog: Escape or the backdrop closes it, focus moves inside and returns afterwards. */
+export const Modal = ({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) => {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    box.current?.querySelector<HTMLElement>('button, a, input, select')?.focus();
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; previous?.focus(); };
+  }, []);
+  return <div className="fixed inset-0 z-[60] flex items-end justify-center bg-primary/40 p-4 sm:items-center" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div ref={box} role="dialog" aria-modal="true" aria-label={label} className="max-h-[90dvh] w-full max-w-lg overflow-y-auto">{children}</div>
+  </div>;
+};
