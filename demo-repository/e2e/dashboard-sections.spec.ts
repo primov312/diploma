@@ -1,9 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { formatCurrency } from '../src/utils/format';
 
-async function register(page: Page) {
+async function register(page: Page, name = 'Dashboard Tester') {
   await page.goto('/register');
-  await page.getByLabel('Name').fill('Dashboard Tester');
+  await page.getByLabel('Name').fill(name);
   await page.getByLabel('Email').fill(`dashboard-${Date.now()}-${Math.random().toString(36).slice(2)}@example.test`);
   await page.getByLabel('Password').fill('password-123');
   await page.getByRole('button', { name: 'Create account' }).click();
@@ -63,20 +63,17 @@ test('Facebook return opens activity and dismissing its message keeps the tab', 
   await expect(page.getByRole('heading', { name: 'Social activity' })).toBeVisible();
 });
 
-test('saved financial and address changes are reflected when Overview reopens', async ({ page }) => {
-  await register(page);
+test('saved address and documented housing changes are reflected when Overview reopens', async ({ page }) => {
+  await register(page, 'Riley Review');   // the synthetic housing samples are made out to Riley Review
   const nav = page.getByRole('navigation', { name: 'Dashboard sections' });
   const before = await (await page.request.get('/api/me/affordability')).json();
 
   await nav.getByRole('link', { name: 'Budget' }).click();
-  const housing = page.getByLabel('Housing situation', { exact: true });
-  await housing.click();
-  const choice = (await housing.textContent())?.includes('Renting') ? 'Owner' : 'Renting';
-  await page.getByRole('option', { name: choice, exact: true }).click();
-  await page.locator('section', { has: page.getByRole('heading', { name: 'Income and housing' }) }).getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText('Saved. Your amount is being recalculated.')).toBeVisible();
-  await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).financialRevision).toBeGreaterThan(before.financialRevision);
-  const afterFinancial = await (await page.request.get('/api/me/affordability')).json();
+  const income = page.locator('section', { has: page.getByRole('heading', { name: 'Income and housing' }) });
+  await expect(income.getByText('Other', { exact: true })).toBeVisible();
+  await expect(income.getByRole('button')).toHaveCount(0);
+  const housing = page.getByRole('region', { name: 'Housing situation' });
+  await expect(housing.getByRole('button', { name: 'Edit', exact: true })).toBeDisabled();
 
   await page.getByLabel('Postal code', { exact: true }).fill('1051');
   await expect(page.locator('#district-hint')).toHaveText('Budapest District V');
@@ -84,7 +81,22 @@ test('saved financial and address changes are reflected when Overview reopens', 
   await page.getByLabel('Building', { exact: true }).fill('12');
   await page.getByRole('button', { name: 'Save address', exact: true }).click();
   await expect(page.getByText('Address saved. Verify it below to use local prices.')).toBeVisible();
-  await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).generation).toBeGreaterThan(afterFinancial.generation);
+  await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).generation).toBeGreaterThan(before.generation);
+
+  // The wrong document is refused and changes nothing; the matching sample changes the situation.
+  await housing.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByLabel('New housing situation', { exact: true }).click();
+  await page.getByRole('option', { name: 'Owner', exact: true }).click();
+  await housing.getByLabel('Choose document').setInputFiles('src/assets/sample-housing-renting.png');
+  await housing.getByRole('button', { name: 'Check and save' }).click();
+  await expect(housing.getByText('The document does not support this change.')).toBeVisible();
+  await expect(housing.getByText(/a rental agreement, which does not support "Owner"/)).toBeVisible();
+  expect((await (await page.request.get('/api/me/housing')).json()).housingSituation).toBe('OTHER');
+  await housing.getByRole('button', { name: 'Use the sample document' }).click();
+  await expect(housing.getByText('Housing situation changed to Owner. Your amount is being recalculated.')).toBeVisible();
+  await expect(income.getByText('Owner', { exact: true })).toBeVisible();
+  await expect(housing.getByText(/verified with a document on/)).toBeVisible();
+  await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).financialRevision).toBeGreaterThan(before.financialRevision);
 
   await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).status, { timeout: 15_000 }).toBe('READY');
   const estimate = await (await page.request.get('/api/me/affordability')).json();

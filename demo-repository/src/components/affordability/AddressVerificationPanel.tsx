@@ -5,6 +5,7 @@ import type { Address, AddressSaveRequest, PostalCodeDistrict } from '../../api/
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { Card, Loading, Notice } from '../app/Ui';
 import { Icon } from '../common/Icon';
+import { HousingSituationPanel } from './HousingSituationPanel';
 import { MonthlyLivingCosts } from './MonthlyLivingCosts';
 import sampleAddressCard from '../../assets/sample-address-card-riley.png';
 
@@ -63,7 +64,7 @@ export function AddressVerificationPanel({ onUpdated, refreshKey = 0 }: { onUpda
 
   const verify = async (file: File | null = evidenceFile) => {
     if (!current?.available) return;
-    if (!file) { setError('Choose an address-card image first.'); return; }
+    if (!file) { setError('Choose a document image first.'); return; }
     if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) {
       setError('Choose a PNG or JPEG image smaller than 5 MB.'); return;
     }
@@ -99,9 +100,10 @@ export function AddressVerificationPanel({ onUpdated, refreshKey = 0 }: { onUpda
             </form>
       {current?.available && <div className="mt-5 rounded-md border border-dashed border-gray-300 p-4">
           <h3 className="font-semibold text-gray-800">Verify your address</h3>
-          <p className="mt-1 text-sm text-gray-600">Upload an address card (PNG or JPEG, up to 5 MB), or use the prepared sample.</p>
+          <p className="mt-1 text-sm text-gray-600">Upload a photo or scan of a document that shows your name and this address, such as an address card, utility bill or bank statement (PNG or JPEG, up to 5 MB), or use the prepared sample. Your name, street, building number and postal code must be readable; the postal code confirms your district.</p>
+          <p className="mt-2 text-xs text-gray-500">The image is sent to the Jev AI model (TypeSafe) only to check these details, then deleted. Only the result is kept.</p>
           <div className="mt-3 space-y-4">
-            <details><summary>View synthetic sample</summary><img src={sampleAddressCard} alt="Synthetic address card for Riley Review, Minta utca 12, Budapest 1051, District V. It is marked sample only and not a real document." className="w-full max-w-sm rounded-md border border-gray-200" /><p className="mt-2 text-xs text-gray-500">Only this synthetic sample is sent to the AI model. Other images are checked locally and deleted.</p></details>
+            <details><summary>View synthetic sample</summary><img src={sampleAddressCard} alt="Synthetic address card for Riley Review, Minta utca 12, Budapest 1051, District V. It is marked sample only and not a real document." className="w-full max-w-sm rounded-md border border-gray-200" /><p className="mt-2 text-xs text-gray-500">A synthetic sample for Riley Review; it is checked the same way as your own document.</p></details>
             <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-700">Choose image
                 <input type="file" accept="image/png,image/jpeg" onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)} className="mt-1 block w-full min-w-0 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2" />
@@ -114,6 +116,7 @@ export function AddressVerificationPanel({ onUpdated, refreshKey = 0 }: { onUpda
             </div>
           </div>
         </div>}
+            <HousingSituationPanel addressSaved={!!current?.available} refreshKey={`${revision}:${refreshKey}`} onUpdated={onUpdated} />
           </div>
           <MonthlyLivingCosts postalCode={postalCode} resolved={!!selected && selected.postalCode === postalCode}
             savedAddressMatches={!!current?.available && current.postalCode === postalCode && current.districtId === selected?.districtId}

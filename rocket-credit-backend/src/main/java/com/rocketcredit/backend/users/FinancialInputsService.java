@@ -49,6 +49,11 @@ public class FinancialInputsService {
         }
 
         validate(request);
+        String housing = jdbc.queryForObject("SELECT housing_situation FROM financial_input_revisions WHERE user_id = ? AND revision = ?",
+                String.class, userId, current);
+        if (!request.housingSituation().name().equals(housing)) {
+            throw ApiException.badRequest("HOUSING_EVIDENCE_REQUIRED", "Changing the housing situation needs a supporting document.");
+        }
         var trusted = profiles.findById(userId).orElseThrow(() -> ApiException.notFound("Financial profile"));
         int revision = current + 1;
         String source = "AUTOMATIC";
@@ -67,6 +72,28 @@ public class FinancialInputsService {
                 revision, nextGeneration, userId);
         long jobId = jobs.enqueue(userId, nextGeneration, revision);
         return new FinancialInputsSaveResult(current(userId), nextGeneration, jobId);
+    }
+
+    /**
+     * Copies the current revision with a new housing situation. Only for a change whose supporting document
+     * was verified: the caller holds the financial_input_state lock and has checked {@code expectedRevision}.
+     */
+    public int applyVerifiedHousing(long userId, int expectedRevision, SaveFinancialInputsRequest.HousingSituation housing) {
+        int revision = expectedRevision + 1;
+        jdbc.update("""
+                INSERT INTO financial_input_revisions (
+                    user_id, revision, monthly_net_income, housing_situation, expense_mode,
+                    housing_cost, groceries_cost, utilities_cost, transport_cost,
+                    other_living_costs, legacy_living_expenses, monthly_obligations, source)
+                SELECT user_id, ?, monthly_net_income, ?, expense_mode, housing_cost, groceries_cost, utilities_cost,
+                       transport_cost, other_living_costs, legacy_living_expenses, monthly_obligations, source
+                FROM financial_input_revisions WHERE user_id = ? AND revision = ?
+                """, revision, housing.name(), userId, expectedRevision);
+        Long generation = jdbc.queryForObject(
+                "UPDATE financial_input_state SET current_revision = ?, generation = generation + 1 WHERE user_id = ? RETURNING generation",
+                Long.class, revision, userId);
+        jobs.enqueue(userId, generation, revision);
+        return revision;
     }
 
     private void ensureInitial(long userId) {

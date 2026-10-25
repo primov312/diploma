@@ -213,20 +213,23 @@ class MonthlyLivingCostsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void preparedSampleMatchesDistrictAliasAndFailedReverificationRemovesFloors() throws Exception {
+    void anyUploadedDocumentIsCheckedAndFailedReverificationRemovesFloors() throws Exception {
         long user = user(true);
         jdbc.update("UPDATE users SET display_name='Riley Review' WHERE id=?", user);
         ObjectNode extraction = (ObjectNode) mapper.readTree("""
-                {"status":"EXTRACTED","documentType":"ADDRESS_CARD","confidence":1,
-                 "addressee":"Riley Review","countryCode":"HU","city":"Budapest","districtName":"District V",
-                 "postalCode":"1051","street":"Minta utca","building":"12","unit":null,"evidenceQuotes":["Sample"]}
+                {"status":"EXTRACTED","analysisMode":"AI","documentType":"ADDRESS_DOCUMENT","confidence":0.97,
+                 "addressee":"Riley Review","postalCode":"1051","street":"Minta utca","building":"12","evidenceQuotes":["Minta utca"],
+                 "fieldChecks":{"addressee":0.98,"postalCode":0.99,"street":0.99,"building":0.97}}
                 """);
-        when(analysis.extractDemoAddress(any(), any(), any())).thenReturn(extraction);
-        byte[] image = java.nio.file.Files.readAllBytes(Path.of("../demo-repository/src/assets/sample-address-card-riley.png"));
-        var file = new org.springframework.mock.web.MockMultipartFile("file", "sample.png", "image/png", image);
-        assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("VERIFIED_DEMO");
+        when(analysis.extractAddressDocument(any(), any(), any())).thenReturn(extraction);
+        byte[] bill = "\u00ff\u00d8\u00ff a customer's photo of a utility bill".getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        var file = new org.springframework.mock.web.MockMultipartFile("file", "bill.jpg", "image/jpeg", bill);
+        var verified = addresses.verifyUpload(user, 1, file);
+        assertThat(verified.status()).isEqualTo("VERIFIED_DEMO");
+        assertThat(verified.dataSource()).isEqualTo("USER_UPLOAD");
+        assertThat(verified.checks()).anyMatch(c -> c.contains("postal code 1051 places the address in Budapest District V"));
         assertThat(costs.references(costs.currentContext(user, generation(user))).eligible()).isTrue();
-        extraction.put("postalCode", "1239");
+        ((ObjectNode) extraction.path("fieldChecks")).put("postalCode", 0.03);
         long verifiedGeneration = generation(user);
         assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("MISMATCH");
         assertThat(generation(user)).isGreaterThan(verifiedGeneration);
@@ -239,26 +242,31 @@ class MonthlyLivingCostsIntegrationTest extends AbstractIntegrationTest {
         long user = user(true);
         jdbc.update("UPDATE users SET display_name='Riley Review' WHERE id=?", user);
         ObjectNode extraction = (ObjectNode) mapper.readTree("""
-                {"status":"EXTRACTED","provider":"TYPESAFE","documentType":"ADDRESS_CARD","confidence":0.93,
-                 "addressee":"Riley Review","countryCode":"HU","city":"Budapest","districtName":"District V",
-                 "postalCode":"1051","street":"Minta utca","building":"12","unit":null,"evidenceQuotes":["Minta utca"],
-                 "fieldChecks":{"addressee":0.97,"countryCode":0.9,"city":0.98,"districtName":0.95,
-                                "postalCode":0.96,"street":0.97,"building":0.94,"unit":0.91}}
+                {"status":"EXTRACTED","provider":"TYPESAFE","documentType":"ADDRESS_DOCUMENT","confidence":0.93,
+                 "addressee":"Riley Review","postalCode":"1051","street":"Minta utca","building":"12","evidenceQuotes":["Minta utca"],
+                 "fieldChecks":{"addressee":0.97,"postalCode":0.96,"street":0.97,"building":0.94}}
                 """);
         var claim = org.mockito.ArgumentCaptor.forClass(Map.class);
-        when(analysis.extractDemoAddress(any(), any(), claim.capture())).thenReturn(extraction);
+        when(analysis.extractAddressDocument(any(), any(), claim.capture())).thenReturn(extraction);
         byte[] image = java.nio.file.Files.readAllBytes(Path.of("../demo-repository/src/assets/sample-address-card-riley.png"));
         var file = new org.springframework.mock.web.MockMultipartFile("file", "sample.png", "image/png", image);
 
         assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("VERIFIED_DEMO");
         Map<String, Object> sent = claim.getValue();
         assertThat(sent).containsEntry("addressee", "Riley Review").containsEntry("postalCode", "1051")
-                .containsEntry("districtName", "District V").containsEntry("unit", null);
+                .containsEntry("street", "Minta utca").containsEntry("building", "12").containsEntry("unit", null)
+                .doesNotContainKeys("districtName", "city", "countryCode");
 
         ((ObjectNode) extraction.path("fieldChecks")).put("postalCode", 0.5);
         assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("NEEDS_REVIEW");
         ((ObjectNode) extraction.path("fieldChecks")).put("postalCode", 0.04);
         assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("MISMATCH");
+        ((ObjectNode) extraction.path("fieldChecks")).put("postalCode", 0.96);
+        extraction.put("documentType", "OTHER");
+        assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("NEEDS_REVIEW");
+        when(analysis.extractAddressDocument(any(), any(), any()))
+                .thenThrow(new com.rocketcredit.backend.analysis.AnalysisUnavailableException("down"));
+        assertThat(addresses.verifyUpload(user, 1, file).status()).isEqualTo("NEEDS_REVIEW");
     }
 
     @Test

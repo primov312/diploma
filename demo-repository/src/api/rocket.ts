@@ -1,6 +1,6 @@
 import { api, apiMultipart } from './client';
 import type { MonthlyCostDraft, MonthlyLivingCosts, PostalCodeDistrict } from './types';
-import type { Address, AddressSaveRequest, CatalogItem, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, SocialConnection, FinancialInputs, FinancialInputsSaveResult, FinancialProfile, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SaveFinancialInputs, SubmitApplication, Transaction } from './types';
+import type { Address, AddressSaveRequest, CatalogItem, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, SocialConnection, FinancialInputs, FinancialProfile, HousingSituation, HousingState, HousingVerification, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SubmitApplication, Transaction } from './types';
 
 export const partnersApi = {
   list: () => api<Partner[]>('/api/partners'),
@@ -14,8 +14,6 @@ export const catalogApi = {
 export const meApi = {
   profile: () => api<FinancialProfile>('/api/me/profile'),
   financialInputs: () => api<FinancialInputs>('/api/me/financial-inputs'),
-  saveFinancialInputs: (body: SaveFinancialInputs) =>
-    api<FinancialInputsSaveResult>('/api/me/financial-inputs', { method: 'PUT', body }),
   affordability: () => api<AffordabilityEstimate>('/api/me/affordability'),
   affordabilityHistory: (months = 12) =>
     api<AffordabilityHistoryPoint[]>(`/api/me/affordability/history?months=${months}`),
@@ -30,6 +28,9 @@ export const meApi = {
   districts: () => api<DistrictCost[]>('/api/local-costs'),
   researchLocalCosts: (districtId: string) =>
     api<LocalCostExtraction>(`/api/me/local-costs/research?districtId=${encodeURIComponent(districtId)}`, { method: 'POST' }),
+  housing: () => api<HousingState>('/api/me/housing'),
+  changeHousing: (expectedRevision: number, housingSituation: HousingSituation, file: File) =>
+    apiMultipart<HousingVerification>('/api/me/housing/verifications', file, { expectedRevision: String(expectedRevision), housingSituation }),
   uploadAddressEvidence: (addressRevision: number, file: File) =>
     apiMultipart<AddressVerification>('/api/me/address/verifications', file, { addressRevision: String(addressRevision) }),
   demoSignalSettings: () => api<DemoSignalSettings>('/api/me/demo-signals/settings'),

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 
 test.beforeAll(async ({ request }) => {
@@ -16,14 +17,18 @@ async function register(page: Page) {
   await expect(page).toHaveURL(/account-dashboard/);
 }
 
-async function financialInputs(page: Page, housingSituation = 'RENTING') {
-  const current = await (await page.request.get('/api/me/financial-inputs')).json();
+/** Housing changes need a verified document: upload the matching synthetic sample (needs the saved address). */
+async function setHousing(page: Page, housingSituation: 'RENTING' | 'OWNER') {
+  const current = await (await page.request.get('/api/me/housing')).json();
   const csrf = await (await page.request.get('/api/csrf')).json();
-  const response = await page.request.put('/api/me/financial-inputs', {
-    headers: { [csrf.headerName]: csrf.token }, data: { expectedRevision: current.revision,
-      housingSituation, expenseMode: 'AUTOMATIC' },
+  const name = housingSituation.toLowerCase();
+  const response = await page.request.post('/api/me/housing/verifications', {
+    headers: { [csrf.headerName]: csrf.token }, multipart: {
+      expectedRevision: String(current.financialRevision), housingSituation,
+      image: { name: `${name}.png`, mimeType: 'image/png', buffer: readFileSync(`src/assets/sample-housing-${name}.png`) } },
   });
   expect(response.ok()).toBe(true);
+  expect((await response.json()).status).toBe('VERIFIED_DEMO');
   await page.reload();
 }
 
@@ -42,7 +47,7 @@ async function saveAddress(page: Page) {
 
 test('automatic budget removes amount inputs, saves size and sharing, and forecasts from location history', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await register(page); await financialInputs(page); await saveAddress(page);
+  await register(page); await saveAddress(page); await setHousing(page, 'RENTING');
   await expect(page.getByTestId('monthly-living-cost-table').getByRole('row', { name: /Rent benchmark/ })).toContainText(/350.*000/);
   const before = await (await page.request.get('/api/me/monthly-living-costs')).json();
   expect(before.eligible).toBe(false); expect(before.profile.apartmentSize).toBe(50);
@@ -91,7 +96,7 @@ test('automatic budget removes amount inputs, saves size and sharing, and foreca
 });
 
 test('postcode changes clear previous prices, reject special codes, and owner budgets exclude rent', async ({ page }) => {
-  await register(page); await financialInputs(page, 'OWNER'); await saveAddress(page);
+  await register(page); await saveAddress(page); await setHousing(page, 'OWNER');
   await expect(page.getByText('Excluded: you are not renting')).toBeVisible();
   const monthly = await (await page.request.get('/api/me/monthly-living-costs')).json();
   expect(monthly.monthlyTotal).toBeCloseTo(monthly.monthlyGroceries + monthly.monthlyOther,2);

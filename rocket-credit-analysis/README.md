@@ -20,6 +20,22 @@ estimate enters the score as `0.8 * rules + 0.2 * (1 - risk)` and per-feature co
 Without the flag the model is never invoked; without the artifact (or on inference failure) the result is
 rules-only with `aiStatus: UNAVAILABLE`.
 
+## Customer analyses
+
+`POST /demo-analysis/*` (X-Analysis-Token), one module each in [`app/analyses/`](app/analyses/):
+
+| Module | Endpoint | What it does |
+|---|---|---|
+| `address.py` | `/address` | Checks that an uploaded PNG/JPEG shows the account name, postal code, street and building (and the saved flat). The district follows from the postal code. |
+| `housing.py` | `/housing` | Checks the same details on a housing document, and whether it shows the home as rented, owned or being bought, shared with family, or provided accommodation. |
+| `local_costs.py` | `/local-costs` | Picks rent, groceries and salary from a synthetic source sheet; every pick is checked against the source. |
+| `social.py` | `/social`, `/social-account` | Deterministic post metrics, with Jev findings on top. |
+| `location.py` | `/location` | Summarises synthetic visit records by district. No model. |
+
+`jev.py` is the only AI client (Jev, TypeSafe System One); `documents.py` holds the upload check shared by
+`address` and `housing`. With `ANALYSIS_DEMO_PROVIDER_MODE=FIXTURE` (the default) no model is called and only
+the prepared sample documents are answered. Jev never decides: the backend applies the thresholds.
+
 ## Run locally
 
 ```bash

@@ -64,13 +64,6 @@ export type FinancialInputs = {
 export type HousingSituation = FinancialInputs['housingSituation'];
 export type ExpenseMode = FinancialInputs['expenseMode'];
 
-export type SaveFinancialInputs = { expectedRevision: number; housingSituation: HousingSituation; expenseMode: 'AUTOMATIC' };
-
-export type FinancialInputsSaveResult = {
-  inputs: FinancialInputs;
-  generation: number;
-  recalculationJobId: number;
-};
 
 export type AffordabilityPartner = { slug: string; cap: number; possibleAmount: number | null };
 export type AffordabilityEstimate = {
@@ -127,6 +120,15 @@ export type LocalCostExtraction = {
 };
 export type AddressSaveRequest = { expectedRevision: number; countryCode: string; city: string; districtId: string; postalCode: string; street: string; building: string; unit: string | null };
 export type AddressSaveResult = { address: Address; generation: number; recalculationJobId: number };
+export type HousingVerificationStatus = 'VERIFIED_DEMO' | 'NEEDS_REVIEW' | 'MISMATCH';
+export type HousingState = {
+  housingSituation: HousingSituation;
+  financialRevision: number;
+  verified: boolean;
+  verifiedAt: string | null;
+  lastAttempt: { id: number; claimedSituation: HousingSituation; status: HousingVerificationStatus; checks: string[]; createdAt: string } | null;
+};
+export type HousingVerification = { id: number; status: HousingVerificationStatus; claimedSituation: HousingSituation; housingSituation: HousingSituation; financialRevision: number; scenarioId: string; dataSource: string; checks: string[]; createdAt: string };
 export type AddressVerification = { id: number; addressRevision: number; status: string; scenarioId: string; dataSource: string; checks: string[]; createdAt: string; recalculationJobId: number };
 export type PostalCodeDistrict = { postalCode: string; districtId: string; displayName: string; city: string; countryCode: string; sourceUrl: string; retrievedAt: string; datasetVersion: string };
 export type MonthlyCostProfile = { revision: number; datasetVersion: string; apartmentSize: number; rentSharers: number; groceryQuantities: Record<string, number | string>; otherSpending: number; source: 'DEMO_DEFAULT' | 'USER_DECLARED' };

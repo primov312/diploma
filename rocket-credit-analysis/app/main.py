@@ -18,7 +18,12 @@ from typing import Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 
 from app.ai import Model, load_model, predict
-from app.demo_analysis import _ai_key, AddressExtraction, AddressImageRequest, LocalCostExtraction, LocalCostRequest, LocationRequest, LocationReport, ScenarioRequest, SocialAccountRequest, SocialReport, analyze_location, analyze_posts, analyze_social, extract_address_image, extract_local_costs
+from app.analyses import jev
+from app.analyses.address import AddressExtraction, AddressImageRequest, extract_address_image
+from app.analyses.housing import HousingDocumentExtraction, HousingDocumentRequest, extract_housing_document
+from app.analyses.local_costs import LocalCostExtraction, LocalCostRequest, extract_local_costs
+from app.analyses.location import LocationReport, LocationRequest, analyze_location
+from app.analyses.social import ScenarioRequest, SocialAccountRequest, SocialReport, analyze_posts, analyze_social
 from app.logging import get_logger, log_decision
 from app.models import AffordabilityRequest, AffordabilityResponse, ScoreRequest, ScoreResponse
 from app.policy import Policy, load_policy
@@ -76,9 +81,9 @@ def health(policy: Policy = Depends(get_policy), model: Optional[Model] = Depend
         "modelVersion": model.version if model else None,
         "modelLoaded": model is not None,
         "demoProviderMode": cfg.demo_provider_mode.upper(),
-        "geminiConfigured": bool(cfg.gemini_api_key),
-        "aiProvider": cfg.ai_provider.upper(),
-        "aiConfigured": bool(_ai_key(cfg)),
+        "aiProvider": "JEV",
+        "aiModel": cfg.typesafe_model,
+        "aiConfigured": jev.configured(cfg),
     }
 
 
@@ -151,9 +156,17 @@ def social_account_analysis(req: SocialAccountRequest, cfg: Settings = Depends(g
 @app.post("/demo-analysis/address", response_model=AddressExtraction, dependencies=[Depends(require_token)])
 def address_analysis(req: AddressImageRequest, cfg: Settings = Depends(get_settings)) -> AddressExtraction:
     try:
-        return extract_address_image(req.imageData, req.mimeType, cfg, req.claimed)
+        return extract_address_image(req.imageData, req.mimeType, req.claimed, cfg)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported address evidence fixture") from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@app.post("/demo-analysis/housing", response_model=HousingDocumentExtraction, dependencies=[Depends(require_token)])
+def housing_document_analysis(req: HousingDocumentRequest, cfg: Settings = Depends(get_settings)) -> HousingDocumentExtraction:
+    try:
+        return extract_housing_document(req.imageData, req.mimeType, req.claimed, cfg)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @app.post("/demo-analysis/local-costs", response_model=LocalCostExtraction, dependencies=[Depends(require_token)])

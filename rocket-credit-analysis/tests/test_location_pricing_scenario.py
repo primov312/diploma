@@ -1,4 +1,4 @@
-from app.demo_analysis import analyze_location
+from app.analyses.location import analyze_location
 
 
 def test_priced_week_has_all_five_categories_across_budapest_districts():

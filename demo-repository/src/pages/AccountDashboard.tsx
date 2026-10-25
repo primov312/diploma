@@ -4,7 +4,7 @@ import { applicationsApi, meApi, transactionsApi } from '../api/rocket';
 import { useAuth } from '../auth/AuthContext';
 import { Card, Empty, LinkButton, Loading, Notice, Page, StatusBadge } from '../components/app/Ui';
 import { AffordabilityDashboardCard } from '../components/affordability/AffordabilityDashboardCard';
-import { FinancialInputsForm } from '../components/affordability/FinancialInputsForm';
+import { IncomeAndHousingCard } from '../components/affordability/IncomeAndHousingCard';
 import { AddressVerificationPanel } from '../components/affordability/AddressVerificationPanel';
 import { DemoSignalsPanel } from '../components/affordability/DemoSignalsPanel';
 import { BudapestDistrictMap, countVisits, districtId } from '../components/map/BudapestDistrictMap';
@@ -103,7 +103,7 @@ const AccountDashboard = () => {
         </div>
       </div>}
       {activeSection === 'budget' && <div className="grid gap-6">
-        <FinancialInputsForm onSaved={refreshFinancials} />
+        <IncomeAndHousingCard refreshKey={financialRefresh} />
         <AddressVerificationPanel refreshKey={financialRefresh} onUpdated={refreshFinancials} />
       </div>}
       {activeSection === 'activity' && <DemoSignalsPanel onUpdated={refreshFinancials} />}

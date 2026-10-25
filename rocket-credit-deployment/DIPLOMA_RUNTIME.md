@@ -54,15 +54,17 @@ The diploma Compose file activates `app/policy-v4.json` so estimates and new app
 application snapshots and decisions. See [monthly pricing setup](../docs/LOCATION_PRICING.md#monthly-living-costs-and-postal-code-lookup) for the manual V11 dataset import and V12 automatic-budget rollout.
 
 Demo analysis defaults to `ANALYSIS_DEMO_PROVIDER_MODE=FIXTURE`. For live model extraction, set
-`ANALYSIS_DEMO_PROVIDER_MODE=AI` and the key of the chosen `AI_PROVIDER` in the ignored `.env`; the key is passed only to the
-private analysis container. AI mode accepts repository-owned synthetic address/cost evidence. For social analysis it also accepts posts from the account owner's own connected Facebook profile (see `docs/SOCIAL_ACCOUNT_ANALYSIS.md`); those posts are sent to Gemini only when the user runs that analysis in AI mode.
+`ANALYSIS_DEMO_PROVIDER_MODE=AI` and `TYPESAFE_API_KEY` in the ignored `.env`; the key is passed only to the
+private analysis container. In AI mode every uploaded address or housing document is sent to Jev, together with the
+account name and saved address it must show. For social analysis it also accepts posts from the account owner's own connected Facebook profile (see `docs/SOCIAL_ACCOUNT_ANALYSIS.md`); those posts are sent to Jev only when the user runs that analysis in AI mode.
 Model, timeout, prompt version, source passages, and evidence IDs are included in returned reports. Without
 a key or on provider failure, estimates remain available and reports say `AI_UNAVAILABLE`.
 
 Address image uploads are limited to 5 MB and checked against PNG/JPEG file signatures. Processing copies
 are stored in the private `rocket-credit-diploma-address-evidence` volume and removed after processing; no
-image is served from the static web root. Only the prepared synthetic card is sent to the AI provider. Other images
-receive `NEEDS_REVIEW` in this demo build. Monthly district rent and grocery references use the researched
+image is served from the static web root. In AI mode any PNG or JPEG is sent to Jev, which checks that it shows the
+account name, postal code, street and building (and the saved flat); the postal code also fixes the district. In
+fixture mode only the prepared synthetic samples are checked, and other images receive `NEEDS_REVIEW`. Monthly district rent and grocery references use the researched
 HUF snapshot described in `docs/LOCATION_PRICING.md`. Legacy salary comparison references remain synthetic
 USD data.
 
@@ -96,54 +98,25 @@ cd rocket-credit-backend && DB_URL=jdbc:postgresql://localhost:5438/rocketcredit
 cd demo-repository && npm run dev
 ```
 
-## Turning on AI mode (Jev, Gemini or Claude) and testing it
+## Turning on AI mode (Jev) and testing it
 
-AI mode calls TypeSafe's Jev by default (`AI_PROVIDER=JEV`), or Google Gemini or Anthropic's Claude Haiku 5.5
-(`claude-haiku-5-5`, the cheapest Claude model, about $0.10 / $0.50 per million input / output tokens). Gemini and
-Claude run the same prompts, schemas and checks. Jev returns typed answers only, so its adapters ask narrow
-questions and code writes the results (see the thesis, section 7.2).
-
-**Jev:** in `diploma/.env` set `ANALYSIS_DEMO_PROVIDER_MODE=AI`, `AI_PROVIDER=JEV` and `TYPESAFE_API_KEY=<key from
-console.typesafe.ai>`; the model is pinned to `TYPESAFE_MODEL=jev-1.13.0`. Then run `docker compose ... up -d --build analysis`
-(the image needs the new `typesafe-sdk` dependency). Live test:
+Jev (TypeSafe System One) is the only AI model. It returns typed answers only (yes/no probabilities, choices
+and scores), so each analysis asks narrow questions and code writes every value and sentence (see the thesis,
+section 7.2). In `diploma/.env` set `ANALYSIS_DEMO_PROVIDER_MODE=AI` and `TYPESAFE_API_KEY=<key from
+console.typesafe.ai>`; the model is pinned to `TYPESAFE_MODEL=jev-1.13.0`. Then run `docker compose ... up -d --build analysis`.
+`docker compose ... exec backend curl -s http://analysis:8000/health` shows `"aiConfigured": true`. Live test:
 
 ```bash
 cd rocket-credit-analysis
-set -a; . ../rocket-credit-deployment/diploma/.env; set +a
-ANALYSIS_TYPESAFE_API_KEY=$TYPESAFE_API_KEY .venv/bin/python -m pytest tests/test_jev.py -k live -v
+export ANALYSIS_TYPESAFE_API_KEY="$(grep '^TYPESAFE_API_KEY=' ../rocket-credit-deployment/diploma/.env | cut -d= -f2-)"
+.venv/bin/python -m pytest tests/test_jev_live.py -v
 ```
 
-The address card is an image, which TypeSafe offers as a preview; the adapter sends the required
-`TypeSafe-Danger-Zone-Images: true` header for that request only.
-
-**Claude:** in `diploma/.env` set `ANALYSIS_DEMO_PROVIDER_MODE=AI`, `AI_PROVIDER=ANTHROPIC` and `ANTHROPIC_API_KEY=<key from
-console.anthropic.com>` (the account needs credits), then `docker compose ... up -d analysis`. Live test:
-
-```bash
-cd rocket-credit-analysis
-set -a; . ../rocket-credit-deployment/diploma/.env; set +a
-ANALYSIS_ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY .venv/bin/python -m pytest tests/test_anthropic.py -k live -v
-```
-
-**Gemini:**
-
-
-1. In `diploma/.env` set `ANALYSIS_DEMO_PROVIDER_MODE=AI`, `GEMINI_API_KEY=<your key>` and a model your key can use
-   (`GEMINI_MODEL=gemini-3.8-flash`; on 2026-10-22 Google no longer offered `gemini-2.5-flash` to new keys), then restart:
-   `docker compose ... up -d analysis`. The Google AI Studio project behind the key needs credits or billing:
-   HTTP 402 `RESOURCE_EXHAUSTED` (“prepayment credits are depleted”) means the key is valid but the project cannot pay.
-2. `docker compose ... exec backend curl -s http://analysis:8000/health` shows `"geminiConfigured": true`.
-3. Live test of all three Gemini features (social posts, local-cost extraction, address card) from the host:
-
-```bash
-cd rocket-credit-analysis
-set -a; . ../rocket-credit-deployment/diploma/.env; set +a
-ANALYSIS_GEMINI_API_KEY=$GEMINI_API_KEY ANALYSIS_GEMINI_MODEL=$GEMINI_MODEL .venv/bin/python -m pytest tests/test_gemini.py -k live -v
-```
-
-Without a key that test is skipped; the mocked Gemini tests in the same file always run. In the app, a successful
-AI report shows the badge “Gemini · <model>”; a failed call shows “AI analysis is unavailable right now” and the
-analysis logs an `ai call failed` line with the provider, model and HTTP status or stop reason (never the content).
+Without a key those tests are skipped; the mocked tests in `tests/test_*.py` always run. Documents are images,
+which TypeSafe offers as a preview; the document checks send the required `TypeSafe-Danger-Zone-Images: true`
+header for those requests only. In the app, a successful AI report shows the badge “Jev · <model>”; a failed call
+shows “AI analysis is unavailable right now” and the analysis logs an `ai call failed` line with the model and
+HTTP status or error type (never the content).
 
 ## Facebook login
 

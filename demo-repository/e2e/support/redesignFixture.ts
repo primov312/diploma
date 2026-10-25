@@ -44,15 +44,12 @@ export async function mockCustomerApi(page: Page, signedIn = true) {
     if (path === '/api/partners') return ok(partners);
     if (path.startsWith('/api/partners/')) return ok({...partners.find(p => p.slug === path.split('/').pop()),products});
     if (path === '/api/me/profile') return ok({monthlyIncome:2500,monthlyExpenses:600,monthlyObligations:100,profileComplete:false,emailVerified:true,syntheticSource:'FIXTURE',accountAgeMonths:9});
-    if (path === '/api/me/financial-inputs') {
-      if (method === 'PUT') {
-        expect(body.expectedRevision).toBe(inputs.revision);
-        expect(body.expenseMode).toBe('AUTOMATIC');
-        inputs = {...inputs,housingSituation:body.housingSituation,revision:inputs.revision+1};
-        baseAmount += 100; generation++;
-        return ok({inputs,generation,recalculationJobId:generation});
-      }
-      return ok(inputs);
+    if (path === '/api/me/financial-inputs') return ok(inputs);
+    if (path === '/api/me/housing') return ok({housingSituation:inputs.housingSituation,financialRevision:inputs.revision,verified:inputs.revision>1,verifiedAt:inputs.revision>1?'2026-10-25T10:00:00Z':null,lastAttempt:null});
+    if (path === '/api/me/housing/verifications') {
+      inputs = {...inputs,housingSituation:'OWNER',revision:inputs.revision+1};
+      baseAmount += 100; generation++;
+      return ok({id:1,status:'VERIFIED_DEMO',claimedSituation:'OWNER',housingSituation:'OWNER',financialRevision:inputs.revision,scenarioId:'prepared-ownership-record-v1',dataSource:'SYNTHETIC',checks:['File checked','Document type, holder and address match the requested housing situation','Housing situation changed to Owner','Sample only'],createdAt:'2026-10-25T10:00:00Z'});
     }
     if (path === '/api/me/affordability') return ok({status:'READY',baseAmount,monthlyPaymentCapacity:baseAmount/6,generation,financialRevision:inputs.revision,formulaVersion:'affordability-v4',policyVersion:'rules-v4',currency:'USD',termMonths:6,stale:false,calculatedAt:'2026-10-05T10:00:00Z',breakdown:{monthlyNetIncome:2500,effectiveExpenses:600,monthlyObligations:100},partners:partners.map(p => ({slug:p.slug,cap:p.amountCap,possibleAmount:Math.min(baseAmount,p.amountCap)})),reasons:[]});
     if (path === '/api/me/affordability/history') return ok(Array.from({length:12},(_,i) => ({month:'2026-'+String(i+1).padStart(2,'0'),calculatedAt:'2026-10-05T10:00:00Z',amount:i===2?null:baseAmount-200+i*10,partnerAmounts:{threadly:baseAmount-200+i*10},formulaVersion:'affordability-v4',policyVersion:'rules-v4',dataSource:'FIXTURE'})).slice(-Number(url.searchParams.get('months'))));

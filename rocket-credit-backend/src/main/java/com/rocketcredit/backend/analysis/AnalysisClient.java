@@ -110,8 +110,8 @@ public class AnalysisClient {
         }
     }
 
-    /** {@code claimed} is the saved address; Jev checks each of its fields against the image. */
-    public JsonNode extractDemoAddress(String imageData, String mimeType, java.util.Map<String, Object> claimed) {
+    /** {@code claimed} is the account name and saved address; Jev checks each detail against the uploaded document. */
+    public JsonNode extractAddressDocument(String imageData, String mimeType, java.util.Map<String, Object> claimed) {
         try {
             JsonNode response = longHttp.post().uri("/demo-analysis/address")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -122,6 +122,21 @@ public class AnalysisClient {
         } catch (ResourceAccessException | RestClientResponseException e) {
             log.warn("analysis address extraction failed: {}", describe(e));
             throw new AnalysisUnavailableException("analysis address extraction failed: " + describe(e), e);
+        }
+    }
+
+    /** {@code claimed} is the requested situation, the account name and the saved address. */
+    public JsonNode extractHousingDocument(String imageData, String mimeType, java.util.Map<String, Object> claimed) {
+        try {
+            JsonNode response = longHttp.post().uri("/demo-analysis/housing")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(java.util.Map.of("imageData", imageData, "mimeType", mimeType, "claimed", claimed))
+                    .retrieve().body(JsonNode.class);
+            if (response == null) throw new AnalysisUnavailableException("analysis housing extraction returned an empty body");
+            return response;
+        } catch (ResourceAccessException | RestClientResponseException e) {
+            log.warn("analysis housing extraction failed: {}", describe(e));
+            throw new AnalysisUnavailableException("analysis housing extraction failed: " + describe(e), e);
         }
     }
 

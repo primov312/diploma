@@ -34,7 +34,9 @@ public class AddressService {
     private final AnalysisClient analysis;
     private final Path evidenceDirectory;
     private final TransactionTemplate transactions;
+    /** SHA-256 of demo-repository/src/assets/sample-address-card-riley.png; it is checked like any other upload. */
     private static final String PREPARED_CARD_SHA256 = "1f4e3b44df56c1d17fee529e0f0592c1fd234537acccee5ca05c4d7b7e3918ed";
+    private static final List<String> ADDRESS_DETAILS = List.of("addressee", "postalCode", "street", "building");
     public AddressService(JdbcTemplate jdbc, ObjectMapper mapper, FinancialInputsService financialInputs,
                           AnalysisClient analysis,
                           @Value("${rocket.address.evidence-directory:${java.io.tmpdir}/rocket-credit-private}") Path evidenceDirectory,
@@ -138,11 +140,9 @@ public class AddressService {
             temporary = Files.createTempFile(evidenceDirectory, "address-", ".processing");
             Files.write(temporary, bytes);
             String digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
-            JsonNode extraction = null;
-            if (PREPARED_CARD_SHA256.equals(digest)) {
-                extraction = analysis.extractDemoAddress(Base64.getEncoder().encodeToString(bytes), mime,
-                        claimedAddress(userId, addressRevision));
-            }
+            Map<String, Object> claimed = claimedAddress(userId, addressRevision);
+            JsonNode extraction = DocumentChecks.extract(() ->
+                    analysis.extractAddressDocument(Base64.getEncoder().encodeToString(bytes), mime, claimed));
             return recordUploadVerification(userId, addressRevision, fileId, digest, extraction);
         } catch (ApiException e) {
             throw e;
@@ -153,17 +153,16 @@ public class AddressService {
         }
     }
 
-    /** The saved address as the analysis service expects it; the locked re-read below still checks the revision. */
+    /**
+     * The details the document must show: the account name, postal code, street, building and any saved flat.
+     * The district is not asked for: it follows from the postal code. The locked re-read below still checks the revision.
+     */
     private Map<String, Object> claimedAddress(long userId, int revision) {
         AddressDtos.Current address = current(userId);
         if (!address.available()) throw ApiException.badRequest("ADDRESS_REQUIRED", "Save a living address before verification.");
         if (address.revision() != revision) throw ApiException.conflict("REVISION_CONFLICT", "The address changed while the document was reviewed.");
         Map<String, Object> claim = new java.util.HashMap<>();
         claim.put("addressee", jdbc.queryForObject("SELECT display_name FROM users WHERE id=?", String.class, userId));
-        claim.put("countryCode", address.countryCode());
-        claim.put("city", address.city());
-        claim.put("districtName", jdbc.queryForObject("SELECT display_name FROM demo_districts WHERE district_id=?",
-                String.class, address.districtId()).replaceFirst("(?i)^Budapest\\s+", ""));
         claim.put("postalCode", address.postalCode());
         claim.put("street", address.street());
         claim.put("building", address.building());
@@ -188,40 +187,28 @@ public class AddressService {
         if (addresses.isEmpty()) throw ApiException.badRequest("ADDRESS_REQUIRED", "Save a living address before verification.");
         AddressValue address = addresses.getFirst();
         if (address.revision() != revision) throw ApiException.conflict("REVISION_CONFLICT", "The address changed while the document was reviewed.");
-        String name = jdbc.queryForObject("SELECT display_name FROM users WHERE id=?", String.class, userId);
         String districtName = jdbc.queryForObject("SELECT display_name FROM demo_districts WHERE district_id=?", String.class, address.districtId());
-        boolean aiUnavailable = extraction != null && "AI_UNAVAILABLE".equals(extraction.path("status").asText());
-        boolean recognized = extraction != null && "EXTRACTED".equals(extraction.path("status").asText());
-        boolean addressCard = recognized && extraction.path("documentType").asText().equals("ADDRESS_CARD")
-                && extraction.path("confidence").asDouble(0) >= 0.85;
-        JsonNode fieldChecks = extraction == null ? null : extraction.path("fieldChecks");
-        boolean complete, matches;
-        if (fieldChecks != null && fieldChecks.isObject() && !fieldChecks.isEmpty()) {
-            // Jev answered "does the card show this saved field?" with a probability per field; the policy is here.
-            boolean allShown = true, anyContradicted = false;
-            for (JsonNode probability : fieldChecks) {
-                allShown &= probability.asDouble(0) >= 0.85;
-                anyContradicted |= probability.asDouble(1) <= 0.15;
-            }
-            matches = addressCard && allShown;
-            complete = matches || addressCard && anyContradicted;
+        String outcome, finding;
+        if (!DocumentChecks.extracted(extraction)) {
+            outcome = "NEEDS_REVIEW"; finding = DocumentChecks.uncheckedReason(extraction);
+        } else if (!DocumentChecks.recognized(extraction, "ADDRESS_DOCUMENT")) {
+            outcome = "NEEDS_REVIEW"; finding = "The image was not recognized as a document that shows a name and home address";
         } else {
-            complete = addressCard && !extraction.path("evidenceQuotes").isEmpty();
-            matches = complete && name.equalsIgnoreCase(extraction.path("addressee").asText())
-                    && address.countryCode().equalsIgnoreCase(extraction.path("countryCode").asText())
-                    && address.city().equalsIgnoreCase(extraction.path("city").asText())
-                    && districtName.replaceFirst("(?i)^Budapest\\s+", "").equalsIgnoreCase(extraction.path("districtName").asText().replaceFirst("(?i)^Budapest\\s+", ""))
-                    && address.postalCode().equalsIgnoreCase(extraction.path("postalCode").asText())
-                    && address.street().equalsIgnoreCase(extraction.path("street").asText())
-                    && address.building().equalsIgnoreCase(extraction.path("building").asText())
-                    && same(address.unit(), extraction.path("unit").asText(null));
+            List<String> details = new java.util.ArrayList<>(ADDRESS_DETAILS);
+            if (address.unit() != null) details.add("unit");
+            DocumentChecks checked = DocumentChecks.of(extraction, details);
+            outcome = checked.allShown() ? "VERIFIED_DEMO" : checked.anyContradicted() ? "MISMATCH" : "NEEDS_REVIEW";
+            finding = checked.allShown()
+                    ? "Your name, street, building number and postal code are on the document; postal code "
+                      + address.postalCode() + " places the address in " + districtName
+                    : checked.anyContradicted() ? "The name or address on the document does not match your account"
+                    : "Not every detail could be confirmed on the document";
         }
-        String outcome = matches ? "VERIFIED_DEMO" : aiUnavailable || !complete ? "NEEDS_REVIEW" : "MISMATCH";
         List<String> checks = List.of(
                 "PNG or JPEG file signature validated; temporary copy removed after processing",
-                matches ? "Addressee and submitted address fields matched" : "The extracted content did not pass all deterministic checks",
-                "A sample document is not proof of authenticity or physical residence");
-        String scenario = PREPARED_CARD_SHA256.equals(digest) ? "prepared-address-card-v1" : "unrecognized-upload";
+                finding,
+                "An automatic document check is not proof of authenticity or physical residence");
+        String scenario = PREPARED_CARD_SHA256.equals(digest) ? "prepared-address-card-v1" : "user-upload";
         String dataSource = PREPARED_CARD_SHA256.equals(digest) ? "SYNTHETIC" : "USER_UPLOAD";
         String evidenceJson = toJson(Map.of(
                 "fileId", fileId, "sha256", digest, "temporaryCopyDeleted", true,
@@ -237,11 +224,7 @@ public class AddressService {
         return new AddressDtos.Verification(verificationId, revision, outcome, scenario, dataSource, checks, OffsetDateTime.now(), jobId);
     }
 
-    private static boolean same(String left, String right) {
-        return (left == null || left.isBlank()) ? right == null || right.isBlank() : right != null && left.equalsIgnoreCase(right);
-    }
-
-    private static String detectMime(byte[] bytes) {
+    static String detectMime(byte[] bytes) {
         if (bytes.length >= 8 && bytes[0] == (byte) 0x89 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G'
                 && bytes[4] == 0x0D && bytes[5] == 0x0A && bytes[6] == 0x1A && bytes[7] == 0x0A) return "image/png";
         if (bytes.length >= 3 && bytes[0] == (byte) 0xFF && bytes[1] == (byte) 0xD8 && bytes[2] == (byte) 0xFF) return "image/jpeg";

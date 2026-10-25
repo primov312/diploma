@@ -100,9 +100,15 @@ test('dashboard tabs, saves, analyses with the district map and Facebook return'
   await page.goto('/account-dashboard?section=unknown');
   await expect(page.getByRole('heading',{name:'What you can afford'})).toBeVisible();
   await nav.getByRole('link',{name:'Budget',exact:true}).click();
-  await choose(page,'Housing situation','Owner');
-  await page.locator('section',{has:page.getByRole('heading',{name:'Income and housing'})}).getByRole('button',{name:'Save',exact:true}).click();
-  await expect(page.getByText('Saved. Your amount is being recalculated.')).toBeVisible();
+  const income=page.locator('section',{has:page.getByRole('heading',{name:'Income and housing'})});
+  await expect(income.getByRole('button')).toHaveCount(0);
+  await expect(page.getByLabel('New housing situation',{exact:true})).toHaveCount(0);
+  await page.getByRole('region',{name:'Housing situation'}).getByRole('button',{name:'Edit',exact:true}).click();
+  await choose(page,'New housing situation','Owner');
+  await expect(page.getByText(/upload an ownership certificate/)).toBeVisible();
+  await page.getByRole('button',{name:'Use the sample document'}).click();
+  await expect(page.getByText('Housing situation changed to Owner. Your amount is being recalculated.')).toBeVisible();
+  await expect(income.getByText('Owner',{exact:true})).toBeVisible();
   await nav.getByRole('link',{name:'Overview',exact:true}).click();
   await expect(page.locator('#dashboard-content').getByText(formatCurrency(1000),{exact:true}).first()).toBeVisible();
   await nav.getByRole('link',{name:'Budget',exact:true}).click();

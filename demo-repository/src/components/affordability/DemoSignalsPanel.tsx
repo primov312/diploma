@@ -9,7 +9,7 @@ import LocalDropdown from '../common/LocalDropdown';
 import { BudapestDistrictMap, countVisits, districtId } from '../map/BudapestDistrictMap';
 import { LocationPricingSummary, LocationVisitBenchmark } from './LocationBenchmarkPrices';
 
-const PROVIDER_NAMES: Record<string, string> = { TYPESAFE: 'Jev', ANTHROPIC: 'Claude', GEMINI: 'Gemini' };
+const PROVIDER_NAMES: Record<string, string> = { TYPESAFE: 'Jev' };
 
 const LOCATION_SCENARIOS = [
   { value: 'budapest-priced-month', label: 'A month in Budapest' },
