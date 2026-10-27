@@ -47,6 +47,8 @@ public final class ApplicationDtos {
             /** present on the detail view only */
             Map<String, Object> featureSnapshot,
             com.rocketcredit.backend.payments.CreditQuotes.Quote quote,
-            Long loanId, boolean canAccept, String acceptanceUnavailableReason
+            Long loanId, boolean canAccept, String acceptanceUnavailableReason,
+            /** consents in force when the decision was made; detail view only, null for older applications */
+            Map<String, Object> consent
     ) {}
 }

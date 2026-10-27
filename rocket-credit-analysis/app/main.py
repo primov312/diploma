@@ -149,8 +149,10 @@ def social_analysis(req: ScenarioRequest, cfg: Settings = Depends(get_settings))
 
 @app.post("/demo-analysis/social-account", response_model=SocialReport, dependencies=[Depends(require_token)])
 def social_account_analysis(req: SocialAccountRequest, cfg: Settings = Depends(get_settings)) -> SocialReport:
-    """Analyze posts the backend fetched from the owner's connected account. Nothing is stored here."""
-    return analyze_posts("facebook-live", [post.model_dump() for post in req.posts], cfg, "OWNER_ACCOUNT")
+    """Analyze posts the backend fetched from the owner's connected account or from an allowed public page.
+    Nothing is stored here."""
+    scenario = "public-page" if req.dataSource == "PUBLIC_PAGE" else "facebook-live"
+    return analyze_posts(scenario, [post.model_dump() for post in req.posts], cfg, req.dataSource)
 
 
 @app.post("/demo-analysis/address", response_model=AddressExtraction, dependencies=[Depends(require_token)])

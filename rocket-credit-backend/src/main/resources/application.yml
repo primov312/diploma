@@ -66,6 +66,12 @@ rocket:
     connect-timeout: ${ANALYSIS_CONNECT_TIMEOUT:2s}
     read-timeout: ${ANALYSIS_READ_TIMEOUT:5s}
 
+  collector:
+    base-url: ${COLLECTOR_URL:http://localhost:8100}
+    shared-secret: ${COLLECTOR_SHARED_SECRET:}
+    connect-timeout: ${COLLECTOR_CONNECT_TIMEOUT:2s}
+    read-timeout: ${COLLECTOR_READ_TIMEOUT:15s}
+
   social:
     meta-app-id: ${META_APP_ID:}
     meta-app-secret: ${META_APP_SECRET:}

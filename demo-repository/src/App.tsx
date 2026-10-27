@@ -9,6 +9,7 @@ import ApplicationDetailPage from './pages/app/ApplicationDetailPage';
 import ApplicationsPage from './pages/app/ApplicationsPage';
 import ApplyPage from './pages/app/ApplyPage';
 import BalancePage from './pages/app/BalancePage';
+import ConsentsPage from './pages/app/ConsentsPage';
 import RepaymentsPage from './pages/app/RepaymentsPage';
 import HistoryPage from './pages/app/HistoryPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -44,6 +45,7 @@ const App = () => (
         <Route path="balance" element={<BalancePage />} />
         <Route path="repayments" element={<RepaymentsPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="consents" element={<ConsentsPage />} />
         <Route path="apply" element={<ApplyPage />} />
         <Route path="applications" element={<ApplicationsPage />} />
         <Route path="applications/:id" element={<ApplicationDetailPage />} />

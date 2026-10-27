@@ -35,6 +35,8 @@ public abstract class AbstractIntegrationTest {
     }
 
     @Autowired protected MockMvc mvc;
+    @Autowired protected com.rocketcredit.backend.consents.ConsentService consentService;
+    @Autowired protected org.springframework.jdbc.core.JdbcTemplate testJdbc;
 
     /** The React client's CSRF material: XSRF-TOKEN cookie plus its value for the X-XSRF-TOKEN header. */
     protected record Csrf(Cookie cookie, String headerName, String token) {}
@@ -66,7 +68,16 @@ public abstract class AbstractIntegrationTest {
         return "{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password);
     }
 
+    /**
+     * Registers an account and records every consent, like a customer who accepted all three boxes on the consent
+     * screen. Use {@link #registerWithoutConsent} to test what happens before consent is given.
+     */
     protected void register(String email, String password) throws Exception {
+        registerWithoutConsent(email, password);
+        consentService.grantAll(testJdbc.queryForObject("SELECT id FROM users WHERE email=?", Long.class, email));
+    }
+
+    protected void registerWithoutConsent(String email, String password) throws Exception {
         mvc.perform(postJson("/api/auth/register", registerJson(email, password, "Test User"), fetchCsrf()))
                 .andExpect(status().isCreated());
     }

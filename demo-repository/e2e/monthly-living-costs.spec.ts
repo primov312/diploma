@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { agreeToFootprint } from './support/consent';
 
 test.beforeAll(async ({ request }) => {
   await expect.poll(async () => {
@@ -79,6 +80,7 @@ test('automatic budget removes amount inputs, saves size and sharing, and foreca
   await expect.poll(async () => (await (await page.request.get('/api/me/affordability')).json()).localCostContext?.monthlyRent, { timeout: 15_000 }).toBe(140000);
   expect((await (await page.request.get('/api/me/address')).json()).verificationStatus).toBe('VERIFIED_DEMO');
   await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
+  await agreeToFootprint(page);
   await page.getByRole('button', { name: 'Analyze visits' }).click();
   await expect.poll(async () => (await (await page.request.get('/api/me/monthly-living-costs')).json()).activityForecast.historySufficient).toBe(true);
   monthly = await (await page.request.get('/api/me/monthly-living-costs')).json();

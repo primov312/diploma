@@ -2,6 +2,7 @@
 #
 #   backend  : Java 21 / Spring Boot 3 - auth, data, applications; serves the React build on :8080
 #   analysis : Python / FastAPI       - stateless rule scoring (+ AI later); internal port only
+#   collector: Python / FastAPI       - consent-based reader of allowed public pages (the scraping module); internal port only
 #   db       : PostgreSQL 16          - the single database, new named volume
 #
 # Start:  docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build -d
@@ -53,6 +54,25 @@ services:
       retries: 20
       start_period: 10s
 
+  collector:
+    build:
+      context: ..
+      dockerfile: rocket-credit-collector/Dockerfile
+    image: rocket-credit-collector:diploma
+    environment:
+      COLLECTOR_PORT: "8100"
+      COLLECTOR_SHARED_SECRET: ${COLLECTOR_SHARED_SECRET:?set COLLECTOR_SHARED_SECRET in diploma/.env}
+      # Only these hosts can ever be fetched. The default is the collector's own demo source.
+      COLLECTOR_ALLOWED_HOSTS: ${COLLECTOR_ALLOWED_HOSTS:-collector}
+    expose:
+      - "8100"          # reachable from backend only; no host port
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health').read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
   backend:
     build:
       context: ..
@@ -63,12 +83,16 @@ services:
         condition: service_healthy
       analysis:
         condition: service_healthy
+      collector:
+        condition: service_healthy
     environment:
       DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-rocketcredit}
       DB_USER: ${DB_APP_USER:-rocket_app}
       DB_PASSWORD: ${DB_APP_PASSWORD}
       ANALYSIS_URL: http://analysis:8000
       ANALYSIS_SHARED_SECRET: ${ANALYSIS_SHARED_SECRET}
+      COLLECTOR_URL: http://collector:8100
+      COLLECTOR_SHARED_SECRET: ${COLLECTOR_SHARED_SECRET}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ADDRESS_EVIDENCE_DIR: /var/lib/rocket-credit/address-evidence
       META_APP_ID: ${META_APP_ID:-}

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { agreeIfAsked, agreeToFootprint } from './support/consent';
 
 /**
  * 8.2 — one browser scenario: register, see history, hand off from the marketplace,
@@ -53,6 +54,7 @@ test('register → history → marketplace handoff → decision → logout', asy
 
   // Submit; we land on the saved decision.
   await reviewTerms(page);
+  await agreeIfAsked(page);
   await page.getByRole('button', { name: 'Get my decision' }).click();
   await expect(page).toHaveURL(/\/applications\/\d+/);
   await expect(page.getByText(/Approved|Not approved|Needs review/).first()).toBeVisible();
@@ -76,6 +78,7 @@ test('register → history → marketplace handoff → decision → logout', asy
   await page.getByLabel('Amount (HUF)').fill('43200');
   await reviewTerms(page);
   await page.getByLabel(/Also use AI analysis/).check();
+  await agreeIfAsked(page);
   await page.getByRole('button', { name: 'Get my decision' }).click();
   await expect(page).toHaveURL(/\/applications\/\d+/);
   await expect(page.getByText('Rules + AI')).toBeVisible();
@@ -101,6 +104,7 @@ test('demo persona sees seeded history, the district map and a review outcome', 
 
   // Activity: the Budapest map shades districts by visits and outlines the most visited one.
   await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
+  await agreeToFootprint(page);
   await page.getByRole('button', { name: 'Analyze visits' }).click();
   await expect(page.getByRole('heading', { name: 'Most visited districts' })).toBeVisible();
   await expect(page.getByRole('button', { name: /District XIII: 6 visits · most visited/ })).toBeVisible();
@@ -111,6 +115,7 @@ test('demo persona sees seeded history, the district map and a review outcome', 
   await page.goto('/apply?partner=markethub&amount=18000');
   await expect(page.getByLabel('Amount (HUF)')).toHaveValue('18000');
   await reviewTerms(page);
+  await agreeIfAsked(page);
   await page.getByRole('button', { name: 'Get my decision' }).click();
   await expect(page).toHaveURL(/\/applications\/\d+/);
   await expect(page.getByText('Needs review').first()).toBeVisible();

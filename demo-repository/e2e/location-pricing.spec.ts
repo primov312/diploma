@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { agreeToFootprint } from './support/consent';
 
 test.beforeAll(async ({ request }) => {
   await expect.poll(async () => {
@@ -9,6 +10,7 @@ test.beforeAll(async ({ request }) => {
 
 async function openActivity(page: Page) {
   await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
+  await agreeToFootprint(page);
   await expect(page.getByRole('button', { name: 'Analyze visits' })).toBeEnabled();
 }
 

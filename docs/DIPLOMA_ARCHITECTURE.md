@@ -133,7 +133,7 @@ Scores are normalized to 0–1. The multiplier, weights and thresholds are illus
 
 Reject invalid inputs before scoring. Missing required evidence gives `REVIEW`; known zero capacity or a request above the cap gives `REJECTED`. Otherwise compare final score with configured approval/review thresholds. An approved request must be within the cap. Optional AI opt-out or inference failure uses rules alone and is recorded explicitly. If the entire Python service is unavailable, return a retryable technical error.
 
-The form includes “Use AI analysis for this request.” Store that choice and the displayed explanation version with the decision. No external account collection, scraping or consent-management service is required. The AI analyzes existing synthetic app data.
+The form includes “Use AI analysis for this request.” Store that choice and the displayed explanation version with the decision. The AI analyzes existing synthetic app data. Later additions, to match the registered topic: customer consent is recorded per purpose and enforced in the backend, and a small separate collector service reads allowed public pages for the consent-based digital footprint (see [Consent and the collector](CONSENT_AND_COLLECTOR.md)).
 
 Evaluate rules versus rules-plus-AI on the same held-out synthetic customers. Record a confusion matrix, precision/recall and ROC-AUC where meaningful. Do not generate labels simply by copying the exact rule decision being evaluated; describe the generator and the limitations of synthetic labels. Training is separate from serving.
 

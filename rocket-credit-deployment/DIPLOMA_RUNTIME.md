@@ -2,7 +2,7 @@
 
 > Payment scope update: the application now supports simulated balances, purchases, interest-bearing credit schedules and repayments. See [Balance and repayments](../docs/BALANCE_AND_REPAYMENTS.md) for the current behavior; earlier exclusions of simulated payments below are historical. Real payment providers remain outside scope.
 
-Three containers: `backend` (Java, serves the React build), `analysis` (Python, stateless) and `db` (PostgreSQL 16).
+Four containers: `backend` (Java, serves the React build), `analysis` (Python, stateless), `collector` (Python, stateless reader of allowed public pages) and `db` (PostgreSQL 16).
 No Redis, MinIO, Kafka or the old Gateway/User Data/Payment/Repayment services.
 
 ## First time
@@ -10,6 +10,7 @@ No Redis, MinIO, Kafka or the old Gateway/User Data/Payment/Repayment services.
 ```bash
 cd rocket-credit-deployment
 cp diploma/.env.example diploma/.env     # then change every password/secret in diploma/.env
+# Upgrading an existing .env? Add COLLECTOR_SHARED_SECRET (and optionally COLLECTOR_ALLOWED_HOSTS); Compose refuses to start without it.
 ```
 
 `diploma/.env` is git-ignored. The database gets two roles: `rocket_admin` (superuser, used only by the
@@ -42,6 +43,7 @@ visit prices are missing.
 | Backend + analysis | `curl -s localhost:8080/api/health` | `{"backend":"ok","analysis":"ok","policyVersion":"rules-v4"}` |
 | Detailed health | `curl -s localhost:8080/actuator/health` | `status: UP`, components `db` and `analysis` UP |
 | Web app | http://localhost:8080 | React app |
+| Collector directly | not published; from inside: `docker compose ... exec backend curl -s http://collector:8100/health` | `{"status":"ok","allowedHosts":["collector"],...}` |
 | Analysis directly | not published; from inside: `docker compose ... exec backend curl -s http://analysis:8000/health` | `{"status":"ok",...}` |
 
 The analysis service is only reachable on the Compose network and requires the `X-Analysis-Token`

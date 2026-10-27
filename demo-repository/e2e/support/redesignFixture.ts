@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import type { Application, FinancialInputs, MonthlyLivingCosts } from '../../src/api/types';
 
-export async function mockCustomerApi(page: Page, signedIn = true) {
+export async function mockCustomerApi(page: Page, signedIn = true, options: { consented?: boolean } = {}) {
   let authenticated = signedIn;
   let user = { id: 1, email: 'customer@example.test', displayName: 'Alex Customer', createdAt: '2026-01-01T12:00:00Z' };
   const partners = [
@@ -17,6 +17,10 @@ export async function mockCustomerApi(page: Page, signedIn = true) {
   let address = { available: true, revision: 1, countryCode: 'HU', city: 'Budapest', districtId: 'V', postalCode: '1051', street: 'Minta utca', building: '12', unit: null, verificationStatus: 'UNVERIFIED', verifiedAt: null };
   const district = { postalCode: '1051', districtId: 'V', displayName: 'Budapest District V', city: 'Budapest', countryCode: 'HU', sourceUrl: 'https://www.posta.hu/', retrievedAt: '2026-10-01T12:00:00Z', datasetVersion: 'demo-2026' };
   let monthly: MonthlyLivingCosts = { available: true, eligible: false, currency: 'HUF', hufPerUsd: 360, profile: { revision: 1, datasetVersion: 'demo-2026', apartmentSize: 50, rentSharers: 1, groceryQuantities: { milk: 4 }, otherSpending: 10000, source: 'DEMO_DEFAULT' }, groceries: [{ id: 'milk', label: 'Milk', description: 'Demo price reference', unit: 'LITRE', packageQuantity: '1', packagePrice: '400', unitPrice: '400', sourceUrl: 'https://www.tesco.hu/', retrievedAt: '2026-10-01T12:00:00Z', observedAt: null }], district, housing: { observedAt: '2026-09-30', retrievedAt: '2026-10-01T12:00:00Z', sourceUrl: 'https://www.ksh.hu/' }, datasetVersion: 'demo-2026', coff: 1.1, rentPerM2: 7000, monthlyRent: 350000, monthlyGroceries: 30000, monthlyOther: 10000, monthlyTotal: 390000, rentApplies: true, suppliedExpenseFloorHuf: 216000 };
+  // A customer who is already signed in has accepted the consent screen; a new registration has not.
+  const consentTitles: Record<string, [string, boolean]> = { DATA_PROCESSING: ['Processing my data for credit decisions', true], AI_ANALYSIS: ['AI-assisted analysis', false], DIGITAL_FOOTPRINT: ['Digital footprint signals', false] };
+  const consent: Record<string, boolean> = Object.fromEntries(Object.keys(consentTitles).map(purpose => [purpose, options.consented ?? signedIn]));
+  const consentView = () => ({ policyVersion: 'consent-v1', consents: Object.entries(consentTitles).map(([purpose, [title, requiredForCredit]]) => ({ purpose, title, text: `Mock wording: ${title}.`, requiredForCredit, granted: consent[purpose], current: true, source: consent[purpose] ? 'USER' : null, decidedAt: consent[purpose] ? '2026-10-01T10:00:00Z' : null })) });
   let baseAmount = 900;
   let generation = 1;
   const applications: Application[] = [];
@@ -73,11 +77,17 @@ export async function mockCustomerApi(page: Page, signedIn = true) {
       }
       return ok(monthly);
     }
+    if(path === '/api/me/consents') return ok(consentView());
+    if(path.startsWith('/api/me/consents/') && method === 'PUT') { consent[path.split('/').pop()!] = !!body.granted; return ok(consentView()); }
+    if((path.endsWith('/location-runs') || path.endsWith('/social-runs')) && !consent.DIGITAL_FOOTPRINT) return ok({error:'CONSENT_REQUIRED',message:'Your consent is needed first: Digital footprint signals.'},403);
+    if(path === '/api/applications' && method === 'POST' && !consent.DATA_PROCESSING) return ok({error:'CONSENT_REQUIRED',message:'Your consent is needed first: Processing my data for credit decisions.'},403);
     if(path === '/api/me/social-connection') return ok({configured:false,connected:false,provider:null,displayName:null,connectedAt:null,expiresAt:null});
     if(path === '/api/me/demo-signals/reports') return ok(reports[url.searchParams.get('kind')!]);
     if(path.endsWith('/location-runs') || path.endsWith('/social-runs')) {
       const kind = path.endsWith('/location-runs') ? 'LOCATION':'SOCIAL';
-      const report = kind === 'LOCATION' ? {scenarioId:body.scenarioId,status:'COMPLETE',dataSource:'SYNTHETIC',visitCount:3,distinctDistricts:1,mostVisitedDistrict:'Budapest V',visits:[{id:'cafe',place:'Café',district:'Budapest V',arrival:'2026-10-01T12:00:00Z'}],limitation:'Synthetic visits do not prove purchases.'} : {scenarioId:body.scenarioId,status:'COMPLETE',analysisMode:'FIXTURE',provider:'FIXTURE',modelVersion:null,dataSource:'SYNTHETIC',summary:'Synthetic activity report ready.',metrics:{postCount:12},findings:[{label:'Consistent activity',observation:'Activity is consistent in this scenario.',confidence:'medium',evidenceIds:['post-1']}],evidence:[{id:'post-1',excerpt:'Synthetic example post.'}],limitations:['Synthetic analysis is illustrative.']};
+      const page_run = kind === 'SOCIAL' && body.scenarioId === 'public-page';
+      const report0 = kind === 'LOCATION' ? {scenarioId:body.scenarioId,status:'COMPLETE',dataSource:'SYNTHETIC',visitCount:3,distinctDistricts:1,mostVisitedDistrict:'Budapest V',visits:[{id:'cafe',place:'Café',district:'Budapest V',arrival:'2026-10-01T12:00:00Z'}],limitation:'Synthetic visits do not prove purchases.'} : {scenarioId:body.scenarioId,status:'COMPLETE',analysisMode:'FIXTURE',provider:'FIXTURE',modelVersion:null,dataSource:'SYNTHETIC',summary:'Synthetic activity report ready.',metrics:{postCount:12},findings:[{label:'Consistent activity',observation:'Activity is consistent in this scenario.',confidence:'medium',evidenceIds:['post-1']}],evidence:[{id:'post-1',excerpt:'Synthetic example post.'}],limitations:['Synthetic analysis is illustrative.']};
+      const report = page_run ? {...report0, dataSource:'PUBLIC_PAGE', collection:{url:body.sourceUrl,host:'collector',format:'rocket-profile-v1',robots:'ALLOWED',fetchedAt:'2026-10-27T10:00:00Z'}} : report0;
       reports[kind]=[report];
       return ok({jobId:1,state:'SUCCEEDED',report},202);
     }

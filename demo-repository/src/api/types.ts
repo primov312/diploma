@@ -173,6 +173,12 @@ export type LocationReportPricing = {
   currency?: 'HUF';
 };
 export type SocialConnection = { configured: boolean; connected: boolean; provider: string | null; displayName: string | null; connectedAt: string | null; expiresAt: string | null };
+export type ConsentPurpose = 'DATA_PROCESSING' | 'AI_ANALYSIS' | 'DIGITAL_FOOTPRINT';
+export type ConsentItem = {
+  purpose: ConsentPurpose; title: string; text: string; requiredForCredit: boolean;
+  granted: boolean; current: boolean; source: 'USER' | 'DEMO_FIXTURE' | null; decidedAt: string | null;
+};
+export type ConsentView = { policyVersion: string; consents: ConsentItem[] };
 export type DemoSignalRun = { jobId: number; state: string; report: DemoSignalReport | null };
 
 export type DecisionStatus = 'APPROVED' | 'REJECTED' | 'REVIEW';
@@ -210,6 +216,8 @@ export type Application = {
   observedAt: string;
   createdAt: string;
   featureSnapshot?: Record<string, unknown>;
+  /** consents in force when the decision was made (detail view only; absent on older applications) */
+  consent?: Record<string, unknown> | null;
 };
 
 export type SubmitApplication = {

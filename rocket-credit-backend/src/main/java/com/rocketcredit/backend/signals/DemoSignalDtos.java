@@ -7,6 +7,7 @@ public final class DemoSignalDtos {
     private DemoSignalDtos() {}
     public record Settings(boolean locationEnabled, boolean socialEnabled, long permissionGeneration) {}
     public record UpdateRequest(@NotNull Boolean locationEnabled, @NotNull Boolean socialEnabled) {}
-    public record RunRequest(@jakarta.validation.constraints.NotBlank String scenarioId) {}
+    public record RunRequest(@jakarta.validation.constraints.NotBlank String scenarioId,
+                             @jakarta.validation.constraints.Size(max = 300) String sourceUrl) {}
     public record RunAccepted(long jobId, String state, JsonNode report) {}
 }

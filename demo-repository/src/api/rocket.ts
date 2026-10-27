@@ -1,6 +1,6 @@
 import { api, apiMultipart } from './client';
 import type { MonthlyCostDraft, MonthlyLivingCosts, PostalCodeDistrict } from './types';
-import type { Address, AddressSaveRequest, CatalogItem, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, SocialConnection, FinancialInputs, FinancialProfile, HousingSituation, HousingState, HousingVerification, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SubmitApplication, Transaction } from './types';
+import type { ConsentPurpose, ConsentView, Address, AddressSaveRequest, CatalogItem, AddressSaveResult, AddressVerification, AffordabilityEstimate, AffordabilityHistoryPoint, AnalysisJob, Application, DemoSignalReport, DemoSignalRun, DemoSignalSettings, DistrictCost, SocialConnection, FinancialInputs, FinancialProfile, HousingSituation, HousingState, HousingVerification, LocalCostExtraction, Partner, PartnerDetail, RecalculationAccepted, SubmitApplication, Transaction } from './types';
 
 export const partnersApi = {
   list: () => api<Partner[]>('/api/partners'),
@@ -37,12 +37,17 @@ export const meApi = {
   updateDemoSignalSettings: (body: Pick<DemoSignalSettings, 'locationEnabled' | 'socialEnabled'>) =>
     api<DemoSignalSettings>('/api/me/demo-signals/settings', { method: 'PUT', body }),
   runLocation: (scenarioId: string) => api<DemoSignalRun>('/api/me/demo-signals/location-runs', { method: 'POST', body: { scenarioId } }),
-  runSocial: (scenarioId: string) => api<DemoSignalRun>('/api/me/demo-signals/social-runs', { method: 'POST', body: { scenarioId } }),
+  runSocial: (scenarioId: string, sourceUrl?: string) => api<DemoSignalRun>('/api/me/demo-signals/social-runs', { method: 'POST', body: sourceUrl ? { scenarioId, sourceUrl } : { scenarioId } }),
   socialConnection: () => api<SocialConnection>('/api/me/social-connection'),
   startFacebookConnect: () => api<{ authorizeUrl: string }>('/api/me/social-connection/facebook/start', { method: 'POST' }),
   disconnectSocial: () => api<void>('/api/me/social-connection', { method: 'DELETE' }),
   demoSignalReports: (kind: 'LOCATION' | 'SOCIAL') =>
     api<DemoSignalReport[]>(`/api/me/demo-signals/reports?kind=${kind}`),
+};
+
+export const consentsApi = {
+  get: () => api<ConsentView>('/api/me/consents'),
+  set: (purpose: ConsentPurpose, granted: boolean) => api<ConsentView>(`/api/me/consents/${purpose}`, { method: 'PUT', body: { granted } }),
 };
 
 export const transactionsApi = {

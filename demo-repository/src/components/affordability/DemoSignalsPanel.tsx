@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { meApi } from '../../api/rocket';
+import { Link } from 'react-router-dom';
+import { consentsApi, meApi } from '../../api/rocket';
 import type { DemoSignalReport } from '../../api/types';
 import { errorMessage, useApi } from '../../hooks/useApi';
 import { Card, Notice, Loading } from '../app/Ui';
+import { ConsentText } from '../consent/ConsentText';
 import { Icon } from '../common/Icon';
 import LocalDropdown from '../common/LocalDropdown';
 import { BudapestDistrictMap, countVisits, districtId } from '../map/BudapestDistrictMap';
@@ -26,6 +28,8 @@ const SOCIAL_SCENARIOS = [
   { value: 'injection', label: 'Prompt-injection test' },
 ];
 const LIVE_SCENARIO = 'facebook-live';
+const PAGE_SCENARIO = 'public-page';
+const DEMO_PAGE = 'http://collector:8100/demo-source/ordinary';
 const COMPARISON: Record<string, { text: string; tone: string }> = {
   MATCHES_DECLARED_DISTRICT: { text: 'Matches your address', tone: 'border-success-100 bg-success-50 text-success-700' },
   DOES_NOT_MATCH_DECLARED_DISTRICT: { text: 'Differs from your address', tone: 'border-warning-100 bg-warning-50 text-warning-700' },
@@ -118,6 +122,7 @@ function SocialCard() {
   const [params, setParams] = useSearchParams();
   const outcome = CONNECT_OUTCOMES[params.get('social') ?? ''];
   const [choice, setChoice] = useState('');
+  const [pageUrl, setPageUrl] = useState(DEMO_PAGE);
   const [fresh, setFresh] = useState<DemoSignalReport | null>(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -130,7 +135,7 @@ function SocialCard() {
   };
   const connect = () => act('CONNECT', async () => { window.location.assign((await meApi.startFacebookConnect()).authorizeUrl); });
   const disconnect = () => act('CONNECT', async () => { await meApi.disconnectSocial(); connection.reload(); setChoice(''); setFresh(null); });
-  const run = () => act('RUN', async () => { setFresh((await meApi.runSocial(scenario)).report); reports.reload(); });
+  const run = () => act('RUN', async () => { setFresh((await meApi.runSocial(scenario, scenario === PAGE_SCENARIO ? pageUrl.trim() : undefined)).report); reports.reload(); });
   const dismiss = () => setParams((current) => { const next = new URLSearchParams(current); next.delete('social'); next.set('section', 'activity'); return next; }, { replace: true });
 
   const report = fresh ?? (reports.status === 'ready' ? reports.data[0] ?? null : null);
@@ -151,17 +156,23 @@ function SocialCard() {
     {connection.status === 'error' && <div className="mb-4"><Notice tone="error">{errorMessage(connection.error)}</Notice></div>}
     <div className="flex flex-wrap items-center gap-2">
       <LocalDropdown value={scenario} onValueChange={setChoice} aria-label="Posts to analyze" className="w-full min-w-0 sm:w-60"
-        options={[...(connected ? [{ value: LIVE_SCENARIO, label: 'My Facebook posts' }] : []), ...SOCIAL_SCENARIOS.map((item) => ({ ...item, label: `${item.label} (sample)` }))]} />
-      <button onClick={run} disabled={busy !== ''} className="btn-primary px-4 py-2 text-sm"><Icon name="activity" />{busy === 'RUN' ? 'Analyzing…' : 'Analyze posts'}</button>
+        options={[...(connected ? [{ value: LIVE_SCENARIO, label: 'My Facebook posts' }] : []), { value: PAGE_SCENARIO, label: 'A public page I enter' }, ...SOCIAL_SCENARIOS.map((item) => ({ ...item, label: `${item.label} (sample)` }))]} />
+      <button onClick={run} disabled={busy !== '' || (scenario === PAGE_SCENARIO && !pageUrl.trim())} className="btn-primary px-4 py-2 text-sm"><Icon name="activity" />{busy === 'RUN' ? 'Analyzing…' : 'Analyze posts'}</button>
     </div>
+    {scenario === PAGE_SCENARIO && <div className="mt-3">
+      <label className="block text-sm font-medium">Address of the public page
+        <input type="url" value={pageUrl} onChange={(e) => setPageUrl(e.target.value)} className="form-input mt-1 w-full" placeholder={DEMO_PAGE} /></label>
+      <p className="mt-1 text-xs text-gray-500">Only pages on the server's allowed list are read, and only if the site's robots.txt allows it. Nothing is changed on the page. Try the built-in demo page above; pages under /private/ are refused.</p>
+    </div>}
     {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
     {reports.status === 'loading' && <Loading label="Loading your last analysis…" />}
     {reports.status === 'error' && <div className="mt-4"><Notice tone="error">{errorMessage(reports.error)}</Notice></div>}
     {report && <div className="mt-5 space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-700">{report.dataSource === 'OWNER_ACCOUNT' ? 'Your Facebook posts' : 'Sample posts'}</span>
+        <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-700">{report.dataSource === 'OWNER_ACCOUNT' ? 'Your Facebook posts' : report.dataSource === 'PUBLIC_PAGE' ? 'Public page' : 'Sample posts'}</span>
         <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-700">{ai ? `${PROVIDER_NAMES[String(report.provider)] ?? 'AI'} · ${String(report.modelVersion)}` : 'Rule-based'}</span>
       </div>
+      {typeof report.collection === 'object' && report.collection !== null && <p className="text-xs text-gray-500">Read from {String((report.collection as Record<string, unknown>).url)} on {new Date(String((report.collection as Record<string, unknown>).fetchedAt)).toLocaleString()}; robots.txt: {String((report.collection as Record<string, unknown>).robots).toLowerCase()}.</p>}
       {report.status === 'AI_UNAVAILABLE' && <Notice tone="warning">AI analysis is unavailable right now, so only the counts are shown.</Notice>}
       <p className="text-gray-800">{String(report.summary ?? '')}</p>
       <dl className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">{KEY_METRICS.filter(([key]) => key in metrics).map(([key, label]) =>
@@ -181,8 +192,29 @@ function SocialCard() {
 
 /** Location and social demo analyses. Neither changes a credit decision directly; location visits feed the spending forecast. */
 export function DemoSignalsPanel({ onUpdated = () => {} }: { onUpdated?: () => void }) {
+  const consents = useApi(() => consentsApi.get(), []);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const footprint = consents.status === 'ready' ? consents.data.consents.find((item) => item.purpose === 'DIGITAL_FOOTPRINT') : undefined;
+
+  const agree = async () => {
+    setSaving(true); setError('');
+    try { await consentsApi.set('DIGITAL_FOOTPRINT', true); consents.reload(); }
+    catch (cause) { setError(asError(cause)); }
+    finally { setSaving(false); }
+  };
+
+  if (consents.status === 'loading') return <Loading label="Checking your consent…" />;
+  if (consents.status === 'error') return <Notice tone="error">{errorMessage(consents.error)}</Notice>;
+  if (!footprint?.granted) return <Card title="Digital footprint consent" icon="shield">
+    <p className="text-gray-700">These analyses use signals about your online activity. Nothing is collected until you agree.</p>
+    {footprint && <ConsentText item={footprint} />}
+    {error && <div className="mt-4"><Notice tone="error">{error}</Notice></div>}
+    <button className="btn-primary mt-4" onClick={() => void agree()} disabled={saving}>{saving ? 'Saving…' : 'I agree'}</button>
+  </Card>;
   return <div className="grid gap-6">
     <LocationCard onUpdated={onUpdated} />
     <SocialCard />
+    <p className="text-xs text-gray-500">You agreed to digital footprint analysis. You can withdraw on the <Link to="/consents" className="underline">Privacy page</Link>; the stored results are then deleted.</p>
   </div>;
 }

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rocketcredit.backend.analysis.AnalysisClient;
 import com.rocketcredit.backend.analysis.AnalysisUnavailableException;
 import com.rocketcredit.backend.common.ApiException;
+import com.rocketcredit.backend.consents.ConsentPurpose;
+import com.rocketcredit.backend.consents.ConsentService;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -21,11 +23,14 @@ public class DemoSignalService {
     private final LocationPricingService locationPricing;
     private final com.rocketcredit.backend.affordability.AffordabilityJobs affordabilityJobs;
     private final com.rocketcredit.backend.users.FinancialInputsService finances;
+    private final CollectorClient collector;
+    private final ConsentService consents;
 
     public DemoSignalService(JdbcTemplate jdbc, AnalysisClient analysis, ObjectMapper mapper, TransactionTemplate tx,
                              SocialConnectionService connections, FacebookClient facebook, LocationPricingService locationPricing,
                              com.rocketcredit.backend.affordability.AffordabilityJobs affordabilityJobs,
-                             com.rocketcredit.backend.users.FinancialInputsService finances) {
+                             com.rocketcredit.backend.users.FinancialInputsService finances,
+                             CollectorClient collector, ConsentService consents) {
         this.jdbc = jdbc;
         this.analysis = analysis;
         this.mapper = mapper;
@@ -34,10 +39,13 @@ public class DemoSignalService {
         this.facebook = facebook;
         this.locationPricing = locationPricing;
         this.affordabilityJobs = affordabilityJobs; this.finances = finances;
+        this.collector = collector; this.consents = consents;
     }
 
     /** Scenario ID that selects the owner's connected Facebook account instead of a synthetic fixture. */
     public static final String LIVE_SCENARIO = "facebook-live";
+    /** Scenario ID that makes the collector read one allowed public page the user named. */
+    public static final String PUBLIC_PAGE_SCENARIO = "public-page";
 
     public DemoSignalDtos.Settings settings(long userId) {
         return tx.execute(status -> {
@@ -52,6 +60,16 @@ public class DemoSignalService {
     }
 
     public DemoSignalDtos.RunAccepted run(long userId, String kind, String scenarioId) {
+        return run(userId, kind, scenarioId, null);
+    }
+
+    public DemoSignalDtos.RunAccepted run(long userId, String kind, String scenarioId, String sourceUrl) {
+        // Digital footprint signals are collected and analysed only after the customer agreed to it.
+        consents.require(userId, ConsentPurpose.DIGITAL_FOOTPRINT);
+        boolean page = "SOCIAL".equals(kind) && PUBLIC_PAGE_SCENARIO.equals(scenarioId);
+        if (page && (sourceUrl == null || sourceUrl.isBlank())) {
+            throw ApiException.badRequest("SOURCE_URL_REQUIRED", "Enter the address of the public page to read.");
+        }
         boolean live = "SOCIAL".equals(kind) && LIVE_SCENARIO.equals(scenarioId);
         var pricingDataset = "LOCATION".equals(kind) ? locationPricing.activeDataset() : null;
         RunJob job = tx.execute(status -> {
@@ -62,7 +80,7 @@ public class DemoSignalService {
             }
             // A live run reads fresh data each time, so it must not be deduplicated like a fixed fixture.
             String pricingVersion = "LOCATION".equals(kind) ? ":" + (pricingDataset == null ? "no-pricing" : pricingDataset.version()) : "";
-            String key = kind + ":" + scenarioId + ":" + settings.permissionGeneration() + pricingVersion + (live ? ":" + System.nanoTime() : "");
+            String key = kind + ":" + scenarioId + ":" + settings.permissionGeneration() + pricingVersion + (live || page ? ":" + System.nanoTime() : "");
             List<RunJob> existing = jdbc.query("""
                     SELECT id, permission_generation FROM analysis_jobs
                     WHERE user_id=? AND deduplication_key=?
@@ -83,7 +101,7 @@ public class DemoSignalService {
                     JOIN user_address_revisions a ON a.user_id=s.user_id AND a.revision=s.current_revision
                     JOIN demo_districts d ON d.district_id=a.district_id WHERE s.user_id=?
                     """, rs -> rs.next() ? rs.getString(1) : null, userId);
-            JsonNode raw = live ? runLive(userId) : analysis.runDemoAnalysis(kind, scenarioId, declaredDistrict);
+            JsonNode raw = live ? runLive(userId) : page ? runPublicPage(sourceUrl) : analysis.runDemoAnalysis(kind, scenarioId, declaredDistrict);
             JsonNode report = "LOCATION".equals(kind) ? locationPricing.enrich(raw, pricingDataset) : raw;
             return tx.execute(status -> {
                 var settings = settingsLocked(userId);
@@ -121,6 +139,23 @@ public class DemoSignalService {
         String token = connections.token(userId)
                 .orElseThrow(() -> ApiException.badRequest("SOCIAL_NOT_CONNECTED", "Connect your Facebook account before analyzing it."));
         return analysis.runSocialAccountAnalysis(facebook.fetchPosts(token));
+    }
+
+    /** The collector checks the allow-list and robots.txt; the posts it returns go through the same analysis as account posts. */
+    private JsonNode runPublicPage(String sourceUrl) {
+        JsonNode collected = collector.collect(sourceUrl.trim());
+        JsonNode report = analysis.runSocialAccountAnalysis(collectedPosts(collected), "PUBLIC_PAGE");
+        if (report instanceof com.fasterxml.jackson.databind.node.ObjectNode object) {
+            // Evidence of where the data came from: address, time and the robots.txt decision.
+            object.set("collection", collected.path("source"));
+        }
+        return report;
+    }
+
+    private static List<JsonNode> collectedPosts(JsonNode collected) {
+        List<JsonNode> posts = new java.util.ArrayList<>();
+        collected.path("posts").forEach(posts::add);
+        return posts;
     }
 
     private void fail(long jobId, String code) {

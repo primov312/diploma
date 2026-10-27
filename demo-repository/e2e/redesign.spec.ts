@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mockCustomerApi } from './support/redesignFixture';
+import { agreeIfAsked } from './support/consent';
 import { formatCurrency } from '../src/utils/format';
 
 async function choose(page:Page,label:string,option:string) {
@@ -29,6 +30,7 @@ test('authentication, marketplace handoff, submission and saved decisions keep w
   await expect(page.getByText('Linen shirt')).toBeVisible();
   await expect(page.getByText(/Zara · 21\s240\s*Ft/)).toBeVisible();
   await reviewTerms(page);
+  await agreeIfAsked(page);
   await page.getByRole('button',{name:'Get my decision'}).click();
   await expect(page).toHaveURL(/\/applications\/1$/);
   await expect(page.getByText('Approved',{exact:true})).toBeVisible();
@@ -57,6 +59,7 @@ test('authentication, marketplace handoff, submission and saved decisions keep w
   await expect(page.getByRole('button',{name:'Change'})).toBeVisible();
   await reviewTerms(page);
   await page.getByLabel(/Also use AI analysis/).check();
+  await agreeIfAsked(page);
   await page.getByRole('button',{name:'Get my decision'}).click();
   await expect(page.getByText('Needs review',{exact:true})).toBeVisible();
   await expect(page.getByText('Your profile is not complete.').first()).toBeVisible();
@@ -70,6 +73,7 @@ test('authentication, marketplace handoff, submission and saved decisions keep w
   await expect(page.getByText('Enter an amount greater than zero.')).toBeVisible();
   await page.getByLabel('Amount (HUF)').fill('43200');
   await reviewTerms(page);
+  await agreeIfAsked(page);
   await page.getByRole('button',{name:'Get my decision'}).click();
   await expect(page).toHaveURL(/applications\/3$/);
   expect(state.requests.filter(r=>r.path==='/api/applications').at(-1)?.body).toEqual({partnerSlug:'markethub',requestedAmount:120,useAi:false,quoteId:3});

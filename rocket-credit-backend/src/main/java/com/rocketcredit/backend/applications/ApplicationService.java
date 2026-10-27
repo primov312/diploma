@@ -8,6 +8,8 @@ import com.rocketcredit.backend.analysis.FeatureBundle;
 import com.rocketcredit.backend.applications.features.FeaturePreparation;
 import com.rocketcredit.backend.applications.features.FeatureProviders;
 import com.rocketcredit.backend.common.ApiException;
+import com.rocketcredit.backend.consents.ConsentPurpose;
+import com.rocketcredit.backend.consents.ConsentService;
 import com.rocketcredit.backend.partners.PartnerEntity;
 import com.rocketcredit.backend.partners.PartnerRepository;
 import com.rocketcredit.backend.partners.ProductEntity;
@@ -50,12 +52,14 @@ public class ApplicationService {
     private final JdbcTemplate jdbc;
     private final com.rocketcredit.backend.payments.PaymentLedger ledger;
     private final com.rocketcredit.backend.payments.CreditQuotes quotes;
+    private final ConsentService consents;
 
     public ApplicationService(PartnerRepository partners, ProductRepository products,
                               CreditApplicationRepository applications, FeaturePreparation features,
                               AnalysisClient analysis, ObjectMapper objectMapper, TransactionTemplate tx,
-                              JdbcTemplate jdbc, com.rocketcredit.backend.payments.PaymentLedger ledger, com.rocketcredit.backend.payments.CreditQuotes quotes) {
-        this.ledger=ledger;this.quotes=quotes;
+                              JdbcTemplate jdbc, com.rocketcredit.backend.payments.PaymentLedger ledger, com.rocketcredit.backend.payments.CreditQuotes quotes,
+                              ConsentService consents) {
+        this.ledger=ledger;this.quotes=quotes;this.consents=consents;
         this.partners = partners;
         this.products = products;
         this.applications = applications;
@@ -69,6 +73,9 @@ public class ApplicationService {
     public ApplicationDtos.ApplicationDto submit(Long userId, ApplicationDtos.SubmitRequest req, String key) {
         var replay=ledger.replay(userId,key,"APPLICATION",req);
         if(replay!=null)return getForUser(userId,((Number)replay.get("applicationId")).longValue());
+        // 0) the customer must have agreed to the processing; the AI estimate needs its own consent
+        consents.require(userId, ConsentPurpose.DATA_PROCESSING);
+        if (req.useAi()) consents.require(userId, ConsentPurpose.AI_ANALYSIS);
         // 1) validate and resolve partner / product / amount on the server
         PartnerEntity partner = partners.findBySlug(req.partnerSlug())
                 .orElseThrow(() -> ApiException.badRequest("UNKNOWN_PARTNER", "Unknown partner"));
@@ -104,6 +111,7 @@ public class ApplicationService {
         // 4) save request + snapshot + result atomically
         final ProductEntity resolvedProduct = product;
         final BigDecimal resolvedAmount = amount;
+        final java.util.Map<String, Object> consentSnapshot = consents.snapshot(userId);
         var operation = ledger.execute(userId,key,"APPLICATION",req,op -> {
             quotes.validate(userId,quote,false);
             var used=jdbc.queryForList("SELECT id FROM credit_applications WHERE quote_id=?",quote.id());
@@ -133,10 +141,24 @@ public class ApplicationService {
             e.setModelVersion(decision.modelVersion());
             e.setPreparationMode(features.mode());
             e.setObservedAt(observedAt);
-            return Map.<String,Object>of("applicationId",applications.saveAndFlush(e).getId());
+            Long savedId = applications.saveAndFlush(e).getId();
+            jdbc.update("UPDATE credit_applications SET consent_snapshot=?::jsonb WHERE id=?", toJson(consentSnapshot), savedId);
+            return Map.<String,Object>of("applicationId",savedId);
         });
 
         return getForUser(userId,((Number)operation.get("applicationId")).longValue());
+    }
+
+    private String toJson(Object value) {
+        try { return objectMapper.writeValueAsString(value); }
+        catch (com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalStateException(ex); }
+    }
+
+    private Map<String, Object> consentOf(Long applicationId) {
+        var rows = jdbc.queryForList("SELECT consent_snapshot::text AS c FROM credit_applications WHERE id=?", applicationId);
+        if (rows.isEmpty() || rows.getFirst().get("c") == null) return null;
+        try { return objectMapper.readValue((String) rows.getFirst().get("c"), MAP); }
+        catch (com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalStateException(ex); }
     }
 
     @Transactional(readOnly = true)
@@ -179,6 +201,7 @@ public class ApplicationService {
                 a.getReasons(), a.getFactors(),
                 a.isAiRequested(), a.getAiStatus().name(), a.getPolicyVersion(), a.getModelVersion(),
                 a.getPreparationMode().name(), a.getObservedAt(), a.getCreatedAt(),
-                withSnapshot ? a.getFeatureSnapshot() : null,quote,loanId,canAccept,unavailable);
+                withSnapshot ? a.getFeatureSnapshot() : null,quote,loanId,canAccept,unavailable,
+                withSnapshot ? consentOf(a.getId()) : null);
     }
 }

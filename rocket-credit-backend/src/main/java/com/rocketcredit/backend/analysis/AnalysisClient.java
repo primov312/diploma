@@ -99,9 +99,14 @@ public class AnalysisClient {
 
     /** Social analysis of posts fetched from the owner's connected account; the analysis service stores nothing. */
     public JsonNode runSocialAccountAnalysis(java.util.List<? extends JsonNode> posts) {
+        return runSocialAccountAnalysis(posts, "OWNER_ACCOUNT");
+    }
+
+    /** {@code dataSource} is OWNER_ACCOUNT (connected profile) or PUBLIC_PAGE (one allowed page read by the collector). */
+    public JsonNode runSocialAccountAnalysis(java.util.List<? extends JsonNode> posts, String dataSource) {
         try {
             JsonNode response = longHttp.post().uri("/demo-analysis/social-account").contentType(MediaType.APPLICATION_JSON)
-                    .body(java.util.Map.of("posts", posts)).retrieve().body(JsonNode.class);
+                    .body(java.util.Map.of("posts", posts, "dataSource", dataSource)).retrieve().body(JsonNode.class);
             if (response == null) throw new AnalysisUnavailableException("analysis social-account returned an empty body");
             return response;
         } catch (ResourceAccessException | RestClientResponseException e) {

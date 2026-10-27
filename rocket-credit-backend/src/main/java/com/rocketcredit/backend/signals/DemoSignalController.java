@@ -44,7 +44,7 @@ public class DemoSignalController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public DemoSignalDtos.RunAccepted social(@AuthenticationPrincipal AuthenticatedUser user,
                                              @Valid @RequestBody DemoSignalDtos.RunRequest request) {
-        return signals.run(user.getId(), "SOCIAL", request.scenarioId());
+        return signals.run(user.getId(), "SOCIAL", request.scenarioId(), request.sourceUrl());
     }
 
     @GetMapping("/api/me/demo-signals/reports")

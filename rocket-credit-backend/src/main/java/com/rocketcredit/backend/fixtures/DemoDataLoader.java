@@ -3,6 +3,7 @@ package com.rocketcredit.backend.fixtures;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rocketcredit.backend.affordability.AffordabilityDtos;
+import com.rocketcredit.backend.consents.ConsentService;
 import com.rocketcredit.backend.partners.PartnerEntity;
 import com.rocketcredit.backend.partners.PartnerRepository;
 import com.rocketcredit.backend.transactions.TransactionEntity;
@@ -57,10 +58,11 @@ public class DemoDataLoader implements ApplicationRunner {
     private final PartnerRepository partners;
     private final TransactionRepository transactions;
     private final JdbcTemplate jdbc;
+    private final ConsentService consents;
 
     public DemoDataLoader(ObjectMapper objectMapper, PasswordEncoder passwordEncoder, UserRepository users,
                           DemoFinancialProfileRepository profiles, FinancialInputsService financialInputs, PartnerRepository partners,
-                          TransactionRepository transactions, JdbcTemplate jdbc) {
+                          TransactionRepository transactions, JdbcTemplate jdbc, ConsentService consents) {
         this.objectMapper = objectMapper;
         this.passwordEncoder = passwordEncoder;
         this.users = users;
@@ -69,6 +71,7 @@ public class DemoDataLoader implements ApplicationRunner {
         this.partners = partners;
         this.transactions = transactions;
         this.jdbc = jdbc;
+        this.consents = consents;
     }
 
     @Override
@@ -104,6 +107,8 @@ public class DemoDataLoader implements ApplicationRunner {
                     f.monthlyObligations(), f.profileComplete(), f.emailVerified(),
                     DemoFinancialProfileEntity.Source.FIXTURE));
             financialInputs.current(user.getId());
+            // Fixture accounts stand in for customers who already accepted the consent screen; the record says DEMO_FIXTURE.
+            consents.grantAllForDemoFixture(user.getId());
             historyMonths += seedAffordabilityHistory(c, user.getId(), partnerBySlug.values());
 
             for (DemoFixtures.History h : c.history()) {

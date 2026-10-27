@@ -57,6 +57,7 @@ const ApplicationDetailPage = () => {
         <details className="mt-5"><summary>Technical details</summary>
           <p>Score {a.score.toFixed(2)} · policy {a.policyVersion}{a.modelVersion ? ` · model ${a.modelVersion}` : ''} · {AI_STATUS_TEXT[a.aiStatus]}</p>
           <p className="mt-2">Features prepared {a.preparationMode.toLowerCase()} at {new Date(a.observedAt).toLocaleString()}. Codes: {a.reasons.join(', ') || 'none'}.</p>
+          {a.consent && <p className="mt-2">Consent when decided ({String(a.consent.policyVersion)}): {Object.entries(a.consent).filter(([key]) => key !== 'policyVersion').map(([key, value]) => `${key.replaceAll('_', ' ').toLowerCase()} ${(value as { granted?: boolean }).granted ? 'yes' : 'no'}`).join(', ')}.</p>}
         </details>
       </Card>
       <Card title="Score breakdown" icon="chart">

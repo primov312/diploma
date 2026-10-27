@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { applicationsApi, catalogApi, partnersApi } from '../../api/rocket';
+import { applicationsApi, catalogApi, consentsApi, partnersApi } from '../../api/rocket';
 import { paymentsApi, type CreditQuote, type TermUnit } from '../../api/payments';
-import type { CatalogItem } from '../../api/types';
+import type { CatalogItem, ConsentPurpose } from '../../api/types';
 import { Card, Loading, Notice, Page } from '../../components/app/Ui';
 import { ScheduleReview } from '../../components/payments/PaymentUi';
+import { ConsentText } from '../../components/consent/ConsentText';
 import LocalDropdown from '../../components/common/LocalDropdown';
 import { Icon } from '../../components/common/Icon';
 import { errorMessage, useApi } from '../../hooks/useApi';
@@ -30,6 +31,8 @@ export default function ApplyPage() {
   const [amount, setAmount] = useState(params.get('amount') ?? '');
   const [search, setSearch] = useState('');
   const [useAi, setUseAi] = useState(false);
+  const consents = useApi(() => consentsApi.get(), []);
+  const [agreeData, setAgreeData] = useState(false), [agreeAi, setAgreeAi] = useState(false);
   const [step, setStep] = useState(1), [unit, setUnit] = useState<TermUnit>('MONTH'), [count, setCount] = useState('');
   const [quote, setQuote] = useState<CreditQuote>(), [error, setError] = useState<string>(), [quoting, setQuoting] = useState(false);
   const action = usePaymentAction();
@@ -43,6 +46,11 @@ export default function ApplyPage() {
     const terms = search.trim().toLowerCase();
     return terms ? items.filter(item => `${item.name} ${item.partnerName} ${item.category}`.toLowerCase().includes(terms)).slice(0, 6) : [];
   }, [items, search]);
+
+  const consentItem = (purpose: ConsentPurpose) => consents.status === 'ready' ? consents.data.consents.find(item => item.purpose === purpose) : undefined;
+  const dataConsent = consentItem('DATA_PROCESSING'), aiConsent = consentItem('AI_ANALYSIS');
+  const dataOk = !!dataConsent && (dataConsent.granted || agreeData);
+  const aiOk = !useAi || (!!aiConsent && (aiConsent.granted || agreeAi));
 
   const request = product ? { partnerSlug: product.partnerSlug, productId: product.id } : { partnerSlug: seller, requestedAmount: hufToUsd(Number(amount)) };
 
@@ -61,6 +69,11 @@ export default function ApplyPage() {
   const submit = async () => {
     if (!quote) return;
     const body = { ...request, quoteId: quote.id, useAi };
+    // Consent is recorded first, as its own audited step; the server refuses the request without it.
+    try {
+      if (dataConsent && !dataConsent.granted) await consentsApi.set('DATA_PROCESSING', true);
+      if (useAi && aiConsent && !aiConsent.granted) await consentsApi.set('AI_ANALYSIS', true);
+    } catch (e) { return setError(e instanceof Error ? e.message : 'Your consent could not be saved.'); }
     const saved = await action.run(JSON.stringify(body), key => applicationsApi.submit(body, key));
     if (saved) navigate(`/applications/${saved.id}`, { replace: true });
   };
@@ -111,8 +124,19 @@ export default function ApplyPage() {
 
         {step === 3 && quote && <div className="space-y-5">
           <ScheduleReview schedule={quote.schedule} />
-          <label className="flex cursor-pointer gap-3 rounded-md border border-gray-200 p-3 text-sm"><input type="checkbox" checked={useAi} onChange={e => setUseAi(e.target.checked)} /><span><strong>Also use AI analysis</strong><span className="block text-gray-600">A trained model adds a risk estimate to the rules.</span></span></label>
-          <div className="flex flex-wrap gap-3"><button className="btn-secondary" disabled={action.pending} onClick={() => { setQuote(undefined); setStep(2); }}>Back</button><button className="btn-primary disabled:opacity-50" disabled={action.pending} onClick={submit}>{action.pending ? 'Checking…' : 'Get my decision'}</button></div>
+          <label className="flex cursor-pointer gap-3 rounded-md border border-gray-200 p-3 text-sm"><input type="checkbox" checked={useAi} onChange={e => setUseAi(e.target.checked)} /><span><strong>Also use AI analysis</strong><span className="block text-gray-600">A trained model adds a risk estimate to the rules. This needs your consent to AI-assisted analysis.</span></span></label>
+          <fieldset className="space-y-3 rounded-md border border-gray-200 p-3 text-sm">
+            <legend className="px-1 font-medium">Your consent</legend>
+            {consents.status === 'loading' && <Loading label="Loading consent…" />}
+            {consents.status === 'error' && <Notice tone="error">{errorMessage(consents.error)}</Notice>}
+            {dataConsent && (dataConsent.granted
+              ? <p className="flex items-center gap-2 text-gray-700"><Icon name="check" className="h-5 w-5 text-success-700" />You agreed to “{dataConsent.title}”.</p>
+              : <div><label className="flex cursor-pointer gap-3"><input type="checkbox" checked={agreeData} onChange={e => setAgreeData(e.target.checked)} /><span><strong>I agree: {dataConsent.title}</strong><span className="block text-gray-600">Required to get a decision.</span></span></label><ConsentText item={dataConsent} /></div>)}
+            {useAi && aiConsent && !aiConsent.granted && <div><label className="flex cursor-pointer gap-3"><input type="checkbox" checked={agreeAi} onChange={e => setAgreeAi(e.target.checked)} /><span><strong>I agree: {aiConsent.title}</strong><span className="block text-gray-600">Required for the AI estimate.</span></span></label><ConsentText item={aiConsent} /></div>}
+            <p className="text-gray-500">You can withdraw consent at any time on the <Link to="/consents" className="underline">Privacy page</Link>.</p>
+          </fieldset>
+          <div className="flex flex-wrap gap-3"><button className="btn-secondary" disabled={action.pending} onClick={() => { setQuote(undefined); setStep(2); }}>Back</button><button className="btn-primary disabled:opacity-50" disabled={action.pending || !dataOk || !aiOk} onClick={submit}>{action.pending ? 'Checking…' : 'Get my decision'}</button></div>
+          {(!dataOk || !aiOk) && consents.status === 'ready' && <p className="text-xs text-gray-500">Tick the consent above to continue.</p>}
           <p className="text-xs text-gray-500">Quote valid until {new Date(quote.expiresAt).toLocaleTimeString()}.</p>
         </div>}
         {(error || action.error) && <div className="mt-4"><Notice tone="error">{error ?? action.error}</Notice></div>}

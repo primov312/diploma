@@ -10,12 +10,13 @@ const publicLinks: NavItem[] = [
   { to: '/how-it-works', label: 'How it works', icon: 'info' },
   { to: '/for-businesses', label: 'For businesses', icon: 'building' },
 ];
-/** Signed-in navigation stays at four destinations; Balance, Repayments and Activity share the Wallet tabs. */
+/** Signed-in navigation: five destinations; Balance, Repayments and Activity share the Wallet tabs, Privacy holds the consents. */
 const accountLinks: NavItem[] = [
   { to: '/marketplace', label: 'Marketplace', icon: 'store' },
   { to: '/account-dashboard', label: 'Dashboard', icon: 'chart' },
   { to: '/applications', label: 'Applications', icon: 'file', also: ['/apply'] },
   { to: '/balance', label: 'Wallet', icon: 'wallet', also: ['/repayments', '/history'] },
+  { to: '/consents', label: 'Privacy', icon: 'shield' },
 ];
 const linkClass = (active: boolean) => 'flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition-colors '
   + (active ? 'bg-white/15 text-white' : 'text-primary-100 hover:bg-white/10 hover:text-white');

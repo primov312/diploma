@@ -60,6 +60,19 @@ def test_social_account_reports_owner_account_data():
     assert body["evidence"][0]["id"] == "post-01"
 
 
+def test_social_account_reports_public_page_data():
+    with TestClient(app) as c:
+        body = c.post("/demo-analysis/social-account", json={"posts": _repeating_posts(), "dataSource": "PUBLIC_PAGE"}, headers=HEADERS).json()
+    assert body["dataSource"] == "PUBLIC_PAGE"
+    assert body["scenarioId"] == "public-page"
+    assert body["metrics"]["repeatedTextCount"] == 5
+
+
+def test_social_account_rejects_unknown_data_source():
+    with TestClient(app) as c:
+        assert c.post("/demo-analysis/social-account", json={"posts": [], "dataSource": "SYNTHETIC"}, headers=HEADERS).status_code == 422
+
+
 def test_social_account_with_no_posts_is_inconclusive():
     with TestClient(app) as c:
         body = c.post("/demo-analysis/social-account", json={"posts": []}, headers=HEADERS).json()

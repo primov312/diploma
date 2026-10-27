@@ -18,4 +18,5 @@ I need the frontend, backend and frontend of demo partners to leading to our web
 | [docs/VERIFICATION.md](docs/VERIFICATION.md) | Test results and the fresh-start check |
 | [docs/DEMO_SCENARIOS.md](docs/DEMO_SCENARIOS.md) | Demo personas and expected decisions |
 | [docs/DIPLOMA_ARCHITECTURE.md](docs/DIPLOMA_ARCHITECTURE.md), [docs/SAFE_DATA_KEEPING.md](docs/SAFE_DATA_KEEPING.md), [docs/SOCIAL_ACCOUNT_ANALYSIS.md](docs/SOCIAL_ACCOUNT_ANALYSIS.md) | Design, data protection, Facebook analysis |
+| [docs/CONSENT_AND_COLLECTOR.md](docs/CONSENT_AND_COLLECTOR.md) | Consent records and the footprint collector (the web scraping module) |
 | [research/](research/) | AI training/evaluation and the multithreading benchmark |

@@ -39,7 +39,7 @@ class EvidenceItem(BaseModel):
 class SocialReport(BaseModel):
     scenarioId: str
     status: Literal["COMPLETE", "AI_UNAVAILABLE"]
-    dataSource: Literal["SYNTHETIC", "OWNER_ACCOUNT"] = "SYNTHETIC"
+    dataSource: Literal["SYNTHETIC", "OWNER_ACCOUNT", "PUBLIC_PAGE"] = "SYNTHETIC"
     analysisMode: Literal["FIXTURE", "AI"]
     provider: str
     modelVersion: str | None
@@ -68,9 +68,11 @@ class SocialPost(BaseModel):
 
 
 class SocialAccountRequest(BaseModel):
-    """Posts fetched by the Java backend from the account owner's own connected profile."""
+    """Posts fetched by the Java backend: from the owner's own connected profile, or from an allowed public page
+    that the user named and the collector service read."""
     model_config = ConfigDict(extra="forbid")
     posts: list[SocialPost] = Field(..., max_length=100)
+    dataSource: Literal["OWNER_ACCOUNT", "PUBLIC_PAGE"] = "OWNER_ACCOUNT"
 
 
 SOCIAL_SCENARIOS: dict[str, dict] = {
@@ -164,11 +166,13 @@ def analyze_social(scenario_id: str, settings: Settings) -> SocialReport:
     return analyze_posts(scenario_id, SOCIAL_SCENARIOS[scenario_id]["posts"], settings, "SYNTHETIC")
 
 
-def analyze_posts(scenario_id: str, posts: list[dict], settings: Settings, data_source: Literal["SYNTHETIC", "OWNER_ACCOUNT"]) -> SocialReport:
+def analyze_posts(scenario_id: str, posts: list[dict], settings: Settings, data_source: Literal["SYNTHETIC", "OWNER_ACCOUNT", "PUBLIC_PAGE"]) -> SocialReport:
     metrics = _social_metrics(posts)
     summary, findings = _deterministic_findings(posts, metrics)
     evidence = [EvidenceItem(id=post["id"], date=post["date"], excerpt=post["text"].strip()[:120]) for post in posts]
-    subject = "Synthetic sample only" if data_source == "SYNTHETIC" else "Sample of the connected owner account's recent posts only"
+    subject = {"SYNTHETIC": "Synthetic sample only",
+               "OWNER_ACCOUNT": "Sample of the connected owner account's recent posts only",
+               "PUBLIC_PAGE": "Sample of the posts on one public page the user named only"}[data_source]
     base = dict(scenarioId=scenario_id, dataSource=data_source, metrics=metrics, evidence=evidence)
     ai = dict(analysisMode="AI", provider=jev.PROVIDER, modelVersion=settings.typesafe_model, promptVersion="social-jev-v1")
     ai_limits = [f"{subject}; this cannot establish account authenticity or human authorship.", "No sensitive attributes or financial capacity are inferred."]
