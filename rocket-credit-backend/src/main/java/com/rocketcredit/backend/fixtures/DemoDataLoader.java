@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: also seeds the demo administrator, sellers and financed orders; reviewed by the author.
 package com.rocketcredit.backend.fixtures;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -41,7 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Loads the demo customers at startup. Safe to run on every start: users are matched by
  * email, profiles by user, transactions by their stable fixture ID, so a second run
  * inserts nothing new and the history never inflates. Passwords are hashed here with the
- * same encoder as registration; no hash is stored in the fixture file.
+ * same encoder as registration; no hash is stored in the fixture file. {@link StaffDemoData} adds the demo
+ * administrator and sellers (same password) and a few financed orders for the seller screens.
  */
 @Component
 public class DemoDataLoader implements ApplicationRunner {
@@ -59,10 +61,12 @@ public class DemoDataLoader implements ApplicationRunner {
     private final TransactionRepository transactions;
     private final JdbcTemplate jdbc;
     private final ConsentService consents;
+    private final StaffDemoData staff;
 
     public DemoDataLoader(ObjectMapper objectMapper, PasswordEncoder passwordEncoder, UserRepository users,
                           DemoFinancialProfileRepository profiles, FinancialInputsService financialInputs, PartnerRepository partners,
-                          TransactionRepository transactions, JdbcTemplate jdbc, ConsentService consents) {
+                          TransactionRepository transactions, JdbcTemplate jdbc, ConsentService consents, StaffDemoData staff) {
+        this.staff = staff;
         this.objectMapper = objectMapper;
         this.passwordEncoder = passwordEncoder;
         this.users = users;
@@ -77,11 +81,11 @@ public class DemoDataLoader implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         var result = load();
-        log.info("demo fixtures: {} customers checked, {} users created, {} transactions inserted, {} history months inserted",
-                result.customers(), result.usersCreated(), result.transactionsInserted(), result.historyMonthsInserted());
+        log.info("demo fixtures: {} customers checked, {} users created, {} transactions inserted, {} history months inserted, {} staff/order accounts created",
+                result.customers(), result.usersCreated(), result.transactionsInserted(), result.historyMonthsInserted(), result.staffCreated());
     }
 
-    public record LoadResult(int customers, int usersCreated, int transactionsInserted, int historyMonthsInserted) {}
+    public record LoadResult(int customers, int usersCreated, int transactionsInserted, int historyMonthsInserted, int staffCreated) {}
 
     @Transactional
     public LoadResult load() {
@@ -122,7 +126,8 @@ public class DemoDataLoader implements ApplicationRunner {
                 }
             }
         }
-        return new LoadResult(fixtures.customers().size(), created, inserted, historyMonths);
+        int staffCreated = staff.load(passwordHash);
+        return new LoadResult(fixtures.customers().size(), created, inserted, historyMonths, staffCreated);
     }
 
     /**

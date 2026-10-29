@@ -46,6 +46,21 @@ public class CollectorClient {
         }
     }
 
+    /**
+     * Liveness of the collector ({@code GET /health}, no token needed). Used only by {@link CollectorHealthIndicator};
+     * returns the collector's response format, or throws {@code COLLECTOR_UNAVAILABLE} when it is down or not ok.
+     * (AI-assisted (Claude), 2026; reviewed by the author.)
+     */
+    public String health() {
+        try {
+            JsonNode body = http.get().uri("/health").retrieve().body(JsonNode.class);
+            if (body == null || !"ok".equals(body.path("status").asText())) throw unavailable();
+            return body.path("format").asText("unknown");
+        } catch (RestClientResponseException | ResourceAccessException e) {
+            throw unavailable();
+        }
+    }
+
     private static ApiException unavailable() {
         return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "COLLECTOR_UNAVAILABLE",
                 "The page reader is not available right now. Try again later.");

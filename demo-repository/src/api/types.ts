@@ -218,6 +218,10 @@ export type Application = {
   featureSnapshot?: Record<string, unknown>;
   /** consents in force when the decision was made (detail view only; absent on older applications) */
   consent?: Record<string, unknown> | null;
+  /** Human review of a REVIEW decision: OPEN until an administrator decides; null for automated decisions. */
+  reviewState?: 'OPEN' | 'APPROVED' | 'REJECTED' | null;
+  reviewNote?: string | null;
+  reviewApprovedAmount?: number | null;
 };
 
 export type SubmitApplication = {

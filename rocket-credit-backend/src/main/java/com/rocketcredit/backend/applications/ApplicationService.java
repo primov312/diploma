@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: availability checks and the human review result added; reviewed by the author.
 package com.rocketcredit.backend.applications;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -77,14 +78,14 @@ public class ApplicationService {
         consents.require(userId, ConsentPurpose.DATA_PROCESSING);
         if (req.useAi()) consents.require(userId, ConsentPurpose.AI_ANALYSIS);
         // 1) validate and resolve partner / product / amount on the server
-        PartnerEntity partner = partners.findBySlug(req.partnerSlug())
-                .orElseThrow(() -> ApiException.badRequest("UNKNOWN_PARTNER", "Unknown partner"));
+        PartnerEntity partner = com.rocketcredit.backend.partners.Availability.require(partners.findBySlug(req.partnerSlug())
+                .orElseThrow(() -> ApiException.badRequest("UNKNOWN_PARTNER", "Unknown partner")));
         ProductEntity product = null;
         BigDecimal amount = req.requestedAmount();
         if (req.productId() != null) {
-            product = products.findById(req.productId())
+            product = com.rocketcredit.backend.partners.Availability.require(products.findById(req.productId())
                     .filter(p -> p.getPartnerId().equals(partner.getId()))
-                    .orElseThrow(() -> ApiException.badRequest("UNKNOWN_PRODUCT", "Product not found for this partner"));
+                    .orElseThrow(() -> ApiException.badRequest("UNKNOWN_PRODUCT", "Product not found for this partner")));
             if (amount != null && amount.compareTo(product.getPrice()) != 0) {
                 throw ApiException.badRequest("AMOUNT_MISMATCH", "Requested amount must equal the product price");
             }
@@ -187,9 +188,16 @@ public class ApplicationService {
         var quote=a.getQuoteId()==null?null:quotes.get(a.getUserId(),a.getQuoteId());
         var loans=jdbc.queryForList("SELECT id FROM loans WHERE application_id=?",a.getId());
         Long loanId=loans.isEmpty()?null:((Number)loans.getFirst().get("id")).longValue();
-        boolean canAccept=quote!=null && loanId==null && a.getDecisionStatus()==CreditApplicationEntity.DecisionStatus.APPROVED;
+        var review=review(a);
+        boolean humanApproved=review!=null && "APPROVED".equals(review.get("outcome"));
+        boolean canAccept=quote!=null && loanId==null && (a.getDecisionStatus()==CreditApplicationEntity.DecisionStatus.APPROVED || humanApproved);
         String unavailable=null;
-        if(canAccept)try{quotes.validate(a.getUserId(),quote,true);}catch(ApiException ex){canAccept=false;unavailable=ex.getMessage();}
+        if(canAccept)try{
+            if(humanApproved)quotes.validateReviewed(a.getUserId(),quote,(BigDecimal)review.get("approved_amount"));
+            else quotes.validate(a.getUserId(),quote,true);
+        }catch(ApiException ex){canAccept=false;unavailable=ex.getMessage();}
+        String reviewState=a.getDecisionStatus()!=CreditApplicationEntity.DecisionStatus.REVIEW ? null
+                : review==null ? "OPEN" : (String)review.get("outcome");
         return new ApplicationDtos.ApplicationDto(
                 a.getId(),
                 partner == null ? null : partner.getSlug(),
@@ -202,6 +210,15 @@ public class ApplicationService {
                 a.isAiRequested(), a.getAiStatus().name(), a.getPolicyVersion(), a.getModelVersion(),
                 a.getPreparationMode().name(), a.getObservedAt(), a.getCreatedAt(),
                 withSnapshot ? a.getFeatureSnapshot() : null,quote,loanId,canAccept,unavailable,
-                withSnapshot ? consentOf(a.getId()) : null);
+                withSnapshot ? consentOf(a.getId()) : null,
+                reviewState, review==null?null:(String)review.get("note"),
+                review==null?null:(BigDecimal)review.get("approved_amount"));
+    }
+
+    /** The administrator's decision on a REVIEW application (human intervention), or null while none exists. */
+    private Map<String,Object> review(CreditApplicationEntity a) {
+        if(a.getDecisionStatus()!=CreditApplicationEntity.DecisionStatus.REVIEW)return null;
+        return jdbc.queryForList("SELECT outcome,approved_amount,note FROM application_reviews WHERE application_id=?",a.getId())
+                .stream().findFirst().orElse(null);
     }
 }

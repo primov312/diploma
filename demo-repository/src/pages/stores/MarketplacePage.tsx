@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: buying and applying limited to customers and visitors; reviewed by the author.
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { catalogApi } from '../../api/rocket';
@@ -28,6 +29,8 @@ const SORTS: Record<string, { label: string; compare: (a: CatalogItem, b: Catalo
 const MarketplacePage = () => {
   const catalog = useApi(() => catalogApi.list(), []);
   const { user } = useAuth();
+  // Sellers and administrators may browse, but buying and credit are customer actions (the server refuses them too).
+  const staff = user !== null && user.role !== 'CUSTOMER';
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [limit, setLimit] = useState(PAGE);
@@ -94,12 +97,14 @@ const MarketplacePage = () => {
               <p className="text-xs text-gray-500">{item.partnerName} · {item.category}</p>
               <h2 className="mt-1 line-clamp-2 font-semibold text-gray-800" title={item.description}>{item.name}</h2>
               <p className="mt-auto pt-3 text-xl font-bold text-gray-900">{formatCurrency(item.price)}</p>
-              <div className="mt-3 grid gap-2">
+              {staff ? <p className="mt-3 rounded-md border border-dashed border-gray-300 px-3 py-2 text-center text-xs text-gray-500" aria-disabled="true">
+                Customers can apply for credit or pay here. You are signed in as a {user.role === 'SELLER' ? 'seller' : 'administrator'}.
+              </p> : <div className="mt-3 grid gap-2">
                 <Link to={`/apply?product=${item.id}`} className="btn-primary px-3 text-sm">Apply for credit</Link>
                 {user
                   ? <button type="button" className="btn-secondary px-3 text-sm" onClick={() => setParam('pay', String(item.id))}>Pay now</button>
                   : <Link className="btn-secondary px-3 text-sm" to="/login" state={{ from: `/marketplace?pay=${item.id}` }}>Pay now</Link>}
-              </div>
+              </div>}
             </div>
           </li>)}
         </ul>
@@ -107,7 +112,7 @@ const MarketplacePage = () => {
       </>}
       <p className="mt-8 text-xs text-gray-500">Illustrative products and prices; sellers do not imply affiliation. <a href="/catalog/credits.html" className="underline">Image credits</a></p>
     </>}
-    {user && paying && <Modal label={`Pay for ${paying.name}`} onClose={() => setParam('pay', null)}>
+    {user && !staff && paying && <Modal label={`Pay for ${paying.name}`} onClose={() => setParam('pay', null)}>
       <BalanceCheckout key={paying.id} product={paying} partner={paying.partnerSlug} close={() => setParam('pay', null)} />
     </Modal>}
   </Page>;

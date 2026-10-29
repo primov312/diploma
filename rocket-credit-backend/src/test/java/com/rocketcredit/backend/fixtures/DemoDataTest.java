@@ -56,6 +56,7 @@ class DemoDataTest extends AbstractIntegrationTest {
         assertThat(second.usersCreated()).isZero();
         assertThat(second.transactionsInserted()).isZero();
         assertThat(second.historyMonthsInserted()).isZero();
+        assertThat(second.staffCreated()).isZero();
         assertThat(users.count()).isEqualTo(usersBefore);
         assertThat(transactions.count()).isEqualTo(txBefore);
     }
@@ -147,8 +148,10 @@ class DemoDataTest extends AbstractIntegrationTest {
 
         mvc.perform(get("/api/partners/nope")).andExpect(status().isNotFound());
 
-        // the single marketplace lists every partner's products, each labelled with its seller
-        long productCount = products.count();
+        // the single marketplace lists every active product of every active partner, each labelled with its seller
+        // (other tests switch some test products and partners off)
+        long productCount = testJdbc.queryForObject(
+                "SELECT count(*) FROM products p JOIN partners s ON s.id = p.partner_id WHERE p.active AND s.active", Long.class);
         mvc.perform(get("/api/catalog"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value((int) productCount))
@@ -159,5 +162,37 @@ class DemoDataTest extends AbstractIntegrationTest {
         // nothing under /api writes fixture values: there is no such route at all
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/me/profile"))
                 .andExpect(status().isForbidden()); // CSRF first; even with a token there is no handler
+    }
+
+    // ---- roles (AI-assisted (Claude), 2026; reviewed by the author) ------------------------------
+
+    @Test
+    void staffAccountsAndSellerOrdersAreSeededWithoutTouchingThePersonas() {
+        org.springframework.jdbc.core.JdbcTemplate jdbc = testJdbc;
+        assertThat(jdbc.queryForObject("SELECT role FROM users WHERE email='admin@demo.rocket.local'", String.class)).isEqualTo("ADMIN");
+        for (String[] seller : new String[][] {{"netflix", "streambox"}, {"zara", "threadly"}, {"amazon", "markethub"}}) {
+            assertThat(jdbc.queryForObject("""
+                    SELECT p.slug FROM users u JOIN seller_accounts s ON s.user_id=u.id JOIN partners p ON p.id=s.partner_id
+                    WHERE u.email=? AND u.role='SELLER'""", String.class, seller[0] + "@demo.rocket.local")).isEqualTo(seller[1]);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM loans l JOIN partners p ON p.id=l.partner_id WHERE p.slug=?",
+                    Long.class, seller[1])).isGreaterThanOrEqualTo(4);
+        }
+        // the financed orders belong to their own synthetic customer; the four personas keep their seeded state
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM credit_applications a JOIN users u ON u.id=a.user_id
+                WHERE a.reasons ? 'SYNTHETIC_SELLER_FIXTURE' AND u.email <> 'orders@demo.rocket.local'""", Long.class)).isZero();
+        for (String who : new String[] {"avery", "riley", "drew", "casey"}) {
+            var u = users.findByEmail(who + "@demo.rocket.local").orElseThrow();
+            assertThat(u.getRole().name()).isEqualTo("CUSTOMER");
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM transactions WHERE user_id=? AND fixture_id LIKE 'seller-orders-%'",
+                    Long.class, u.getId())).isZero();
+        }
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM loans l JOIN users u ON u.id=l.user_id
+                WHERE u.email='orders@demo.rocket.local' AND l.status='SETTLED_EARLY'""", Long.class)).isEqualTo(3);
+        // wallet bookkeeping of the closed orders reconciles
+        assertThat(jdbc.queryForObject("""
+                SELECT w.balance = COALESCE((SELECT sum(amount) FROM wallet_entries e WHERE e.user_id=w.user_id),0)
+                FROM wallet_accounts w JOIN users u ON u.id=w.user_id WHERE u.email='orders@demo.rocket.local'""", Boolean.class)).isTrue();
     }
 }

@@ -8,7 +8,7 @@ I need the frontend, backend and frontend of demo partners to leading to our web
 
 ## Project guide
 
-**Start:** `cd rocket-credit-deployment && docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build -d`, then once per new database `./diploma/import-prices.sh`, then open http://localhost:8080. Demo accounts: `avery|riley|drew|casey@demo.rocket.local`, password `rocket-demo-123` (one-click buttons on the sign-in page). Full guide: [DIPLOMA_RUNTIME.md](rocket-credit-deployment/DIPLOMA_RUNTIME.md).
+**Start:** `cd rocket-credit-deployment && docker compose -f docker-compose.diploma.yml --env-file diploma/.env up --build -d`, then once per new database `./diploma/import-prices.sh`, then open http://localhost:8080. Demo accounts: customers `avery|riley|drew|casey@demo.rocket.local`, sellers `netflix|zara|amazon@demo.rocket.local`, administrator `admin@demo.rocket.local`; password `rocket-demo-123` for all (one-click buttons on the sign-in page). The three kinds of users are described in [docs/ROLES.md](docs/ROLES.md). Full guide: [DIPLOMA_RUNTIME.md](rocket-credit-deployment/DIPLOMA_RUNTIME.md).
 
 | Read this | For |
 | --- | --- |

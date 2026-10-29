@@ -92,4 +92,26 @@ class CollectorClientTest {
         assertThat(e.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
         assertThat(e.getCode()).isEqualTo("COLLECTOR_UNAVAILABLE");
     }
+
+    // ---- health (AI-assisted (Claude), 2026; reviewed by the author) -------------------------------
+
+    @Test
+    void healthReturnsTheFormatWhenTheCollectorIsUp() {
+        server.expect(requestTo("http://collector:8100/health")).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("{\"status\":\"ok\",\"allowedHosts\":[\"collector\"],\"format\":\"rocket-profile-v1\"}",
+                        MediaType.APPLICATION_JSON));
+        assertThat(client.health()).isEqualTo("rocket-profile-v1");
+        server.verify();
+    }
+
+    @Test
+    void healthFailsWhenTheCollectorAnswersAnErrorOrNotOk() {
+        server.expect(requestTo("http://collector:8100/health")).andRespond(withServerError());
+        assertThatThrownBy(() -> client.health()).isInstanceOf(ApiException.class).extracting("code").isEqualTo("COLLECTOR_UNAVAILABLE");
+        server.reset();
+        server.expect(requestTo("http://collector:8100/health"))
+                .andRespond(withSuccess("{\"status\":\"starting\"}", MediaType.APPLICATION_JSON));
+        assertThatThrownBy(() -> client.health()).isInstanceOf(ApiException.class).extracting("code").isEqualTo("COLLECTOR_UNAVAILABLE");
+        server.verify();
+    }
 }

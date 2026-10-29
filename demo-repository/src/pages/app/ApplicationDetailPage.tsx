@@ -1,4 +1,6 @@
+// AI-assisted (Claude), 2026: shows the human review result; reviewed by the author.
 import CreditAcceptance from '../../components/payments/CreditAcceptance';
+import { HumanReview } from '../../components/app/HumanReview';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/client';
 import { applicationsApi } from '../../api/rocket';
@@ -37,10 +39,12 @@ const ApplicationDetailPage = () => {
   return <Page title={a.productName ?? 'Credit application'}
     subtitle={`${a.partnerName} · ${new Date(a.createdAt).toLocaleString()}`}
     actions={<LinkButton to="/applications" variant="secondary">All applications</LinkButton>}>
+    <HumanReview application={a} />
     <section className={cn('mb-6 rounded-lg border p-5 md:p-6', HERO[a.decisionStatus])} aria-label="Decision">
       <div className="flex flex-wrap items-center gap-3"><StatusBadge status={a.decisionStatus} /><span className="text-sm text-gray-600">{a.aiStatus === 'APPLIED' ? 'Rules + AI' : 'Rules'}</span></div>
       <p className="mt-3 text-3xl font-bold text-gray-900">{formatCurrency(a.requestedAmount)}</p>
-      <p className="mt-2 max-w-2xl text-gray-700">{a.loanId ? 'Accepted. The seller was paid and your repayments are scheduled.' : status.summary}</p>
+      <p className="mt-2 max-w-2xl text-gray-700">{a.loanId ? 'Accepted. The seller was paid and your repayments are scheduled.'
+        : a.reviewState && a.reviewState !== 'OPEN' ? 'The automatic check could not decide; see the human review above.' : status.summary}</p>
       {lowerSuggestion && <Link to={`/apply?partner=${a.partnerSlug}&amount=${usdToHuf(a.possibleAmount)}`} className="btn-primary mt-4">
         Try {formatCurrency(a.possibleAmount)} instead<Icon name="arrow" /></Link>}
     </section>

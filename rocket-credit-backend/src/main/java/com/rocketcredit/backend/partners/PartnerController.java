@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: inactive partners and products are hidden; reviewed by the author.
 package com.rocketcredit.backend.partners;
 
 import com.rocketcredit.backend.common.ApiException;
@@ -21,13 +22,14 @@ public class PartnerController {
 
     @GetMapping
     public List<PartnerDtos.PartnerSummary> list() {
-        return partners.findAll().stream().map(PartnerDtos.PartnerSummary::from).toList();
+        return partners.findAll().stream().filter(PartnerEntity::isActive).map(PartnerDtos.PartnerSummary::from).toList();
     }
 
     @GetMapping("/{slug}")
     public PartnerDtos.PartnerDetail get(@PathVariable String slug) {
-        var p = partners.findBySlug(slug).orElseThrow(() -> ApiException.notFound("Partner"));
-        var items = products.findByPartnerIdOrderByName(p.getId()).stream().map(PartnerDtos.Product::from).toList();
+        var p = partners.findBySlug(slug).filter(PartnerEntity::isActive).orElseThrow(() -> ApiException.notFound("Partner"));
+        var items = products.findByPartnerIdOrderByName(p.getId()).stream().filter(ProductEntity::isActive)
+                .map(PartnerDtos.Product::from).toList();
         return new PartnerDtos.PartnerDetail(p.getId(), p.getSlug(), p.getDisplayName(), p.getAmountCap(), p.getCurrency(), items);
     }
 }

@@ -28,7 +28,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 public abstract class AbstractIntegrationTest {
 
     @ServiceConnection
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    protected static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
     static {
         POSTGRES.start(); // singleton for the whole test JVM; Testcontainers' reaper removes it afterwards
@@ -74,7 +74,9 @@ public abstract class AbstractIntegrationTest {
      */
     protected void register(String email, String password) throws Exception {
         registerWithoutConsent(email, password);
-        consentService.grantAll(testJdbc.queryForObject("SELECT id FROM users WHERE email=?", Long.class, email));
+        // stored e-mails are normalized (trim + lower case), so look the account up the same way
+        consentService.grantAll(testJdbc.queryForObject("SELECT id FROM users WHERE email=?", Long.class,
+                com.rocketcredit.backend.users.UserService.normalizeEmail(email)));
     }
 
     protected void registerWithoutConsent(String email, String password) throws Exception {
@@ -91,5 +93,30 @@ public abstract class AbstractIntegrationTest {
     protected MockHttpSession registerAndLogin(String email) throws Exception {
         register(email, "password-123");
         return login(email, "password-123");
+    }
+
+    // ---- roles (AI-assisted (Claude), 2026; reviewed by the author) ------------------------------
+
+    protected static final String DEMO_PASSWORD = "rocket-demo-123";
+
+    /** Signs in a seeded demo account by its local part, e.g. "admin", "netflix", "riley". */
+    protected MockHttpSession loginDemo(String who) throws Exception {
+        return login(who + "@demo.rocket.local", DEMO_PASSWORD);
+    }
+
+    /** A fresh partner for one test, so the three demo catalogues stay exactly as seeded. */
+    protected long createPartner(String cap) {
+        String slug = "t" + UUID.randomUUID().toString().substring(0, 8);
+        return testJdbc.queryForObject("INSERT INTO partners(slug, display_name, amount_cap) VALUES (?, ?, ?::numeric) RETURNING id",
+                Long.class, slug, "Test store " + slug, cap);
+    }
+
+    /** Creates a seller for the partner through the administrator API and signs it in. */
+    protected MockHttpSession createSeller(MockHttpSession admin, long partnerId, String email) throws Exception {
+        mvc.perform(postJson("/api/admin/users/sellers",
+                        "{\"email\":\"%s\",\"displayName\":\"Test Seller\",\"partnerId\":%d,\"password\":\"seller-pass-1\"}"
+                                .formatted(email, partnerId), fetchCsrf()).session(admin))
+                .andExpect(status().isCreated());
+        return login(email, "seller-pass-1");
     }
 }

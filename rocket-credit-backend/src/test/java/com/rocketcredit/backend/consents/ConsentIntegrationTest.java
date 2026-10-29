@@ -63,7 +63,9 @@ class ConsentIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.consents.length()").value(3))
                 .andExpect(jsonPath("$.consents[0].purpose").value("DATA_PROCESSING"))
                 .andExpect(jsonPath("$.consents[0].requiredForCredit").value(true))
-                .andExpect(jsonPath("$.consents[*].granted").value(List.of(false, false, false)))
+                .andExpect(jsonPath("$.consents[0].granted").value(false))
+                .andExpect(jsonPath("$.consents[1].granted").value(false))
+                .andExpect(jsonPath("$.consents[2].granted").value(false))
                 .andExpect(jsonPath("$.consents[0].text").isNotEmpty());
     }
 

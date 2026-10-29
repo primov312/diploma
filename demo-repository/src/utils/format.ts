@@ -17,6 +17,11 @@ export const usdToHuf = (usd: number): number => usd * USD_TO_HUF;
 /** Converts a HUF amount entered by the user to USD with cents, as the API expects. */
 export const hufToUsd = (huf: number): number => Math.round((huf / USD_TO_HUF) * 100) / 100;
 
+const USD_FORMATTER = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+/** Formats a USD amount as stored by the API (sellers and administrators see the stored value too). */
+export const formatUsd = (value: number): string => USD_FORMATTER.format(value);
+
 /** Formats a USD amount from the API as HUF. */
 export const formatCurrency = (value: number): string => formatHuf(usdToHuf(value));
 

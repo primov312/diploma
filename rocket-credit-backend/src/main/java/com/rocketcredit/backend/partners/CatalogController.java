@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: inactive partners and products are hidden; reviewed by the author.
 package com.rocketcredit.backend.partners;
 
 import java.util.Comparator;
@@ -24,10 +25,10 @@ public class CatalogController {
 
     @GetMapping("/api/catalog")
     public List<PartnerDtos.CatalogItem> catalog() {
-        Map<Long, PartnerEntity> byId = partners.findAll().stream()
+        Map<Long, PartnerEntity> byId = partners.findAll().stream().filter(PartnerEntity::isActive)
                 .collect(Collectors.toMap(PartnerEntity::getId, Function.identity()));
         return products.findAll().stream()
-                .filter(p -> byId.containsKey(p.getPartnerId()))
+                .filter(p -> p.isActive() && byId.containsKey(p.getPartnerId()))
                 .sorted(Comparator.comparing(ProductEntity::getCategory).thenComparing(ProductEntity::getName))
                 .map(p -> PartnerDtos.CatalogItem.from(p, byId.get(p.getPartnerId())))
                 .toList();

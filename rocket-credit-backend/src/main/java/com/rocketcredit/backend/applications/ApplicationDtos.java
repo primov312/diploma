@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: human review fields added; reviewed by the author.
 package com.rocketcredit.backend.applications;
 
 import jakarta.validation.constraints.Digits;
@@ -49,6 +50,14 @@ public final class ApplicationDtos {
             com.rocketcredit.backend.payments.CreditQuotes.Quote quote,
             Long loanId, boolean canAccept, String acceptanceUnavailableReason,
             /** consents in force when the decision was made; detail view only, null for older applications */
-            Map<String, Object> consent
+            Map<String, Object> consent,
+            /**
+             * Human intervention on a REVIEW decision: OPEN until an administrator decides, then APPROVED or
+             * REJECTED; null for automated APPROVED/REJECTED decisions. The automated fields above never change.
+             */
+            String reviewState,
+            String reviewNote,
+            /** the amount the administrator approved; the loan uses it when the customer accepts */
+            BigDecimal reviewApprovedAmount
     ) {}
 }

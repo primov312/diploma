@@ -6,6 +6,9 @@
  *   state-changing request echoes it in the X-XSRF-TOKEN header. If the cookie
  *   is missing we fetch GET /api/csrf once to obtain it.
  * - Errors: non-2xx responses become ApiError with the backend's {error, message, fields}.
+ * - A 403 CSRF_INVALID (stale or missing token, e.g. after the session ended) fetches a fresh token and
+ *   retries the request once. Spring Security refuses such a request before any controller runs, so the retry
+ *   cannot apply a change twice. A 403 FORBIDDEN_ROLE is never retried. (AI-assisted (Claude), 2026; reviewed by the author.)
  */
 
 export type ApiErrorBody = {
@@ -36,11 +39,19 @@ const readCookie = (name: string): string | null => {
   return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
 };
 
-const ensureCsrfToken = async (): Promise<string> => {
+const ensureCsrfToken = async (fresh = false): Promise<string> => {
   const existing = readCookie(CSRF_COOKIE);
-  if (existing) return existing;
+  if (existing && !fresh) return existing;
   await fetch('/api/csrf', { credentials: 'same-origin' });
   return readCookie(CSRF_COOKIE) ?? '';
+};
+
+const readError = async (response: Response): Promise<Partial<ApiErrorBody> | undefined> => {
+  try {
+    return (await response.json()) as ApiErrorBody;
+  } catch {
+    return undefined;
+  }
 };
 
 type RequestOptions = {
@@ -55,40 +66,43 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
   if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-  if (MUTATING.has(method)) headers[CSRF_HEADER] = await ensureCsrfToken();
+  const send = async (freshToken: boolean) => {
+    if (MUTATING.has(method)) headers[CSRF_HEADER] = await ensureCsrfToken(freshToken);
+    return fetch(path, {
+      method,
+      headers,
+      credentials: 'same-origin',
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: options.signal,
+    });
+  };
 
-  const response = await fetch(path, {
-    method,
-    headers,
-    credentials: 'same-origin',
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    signal: options.signal,
-  });
-
-  if (!response.ok) {
-    let body: Partial<ApiErrorBody> | undefined;
-    try {
-      body = (await response.json()) as ApiErrorBody;
-    } catch {
-      body = undefined;
-    }
-    throw new ApiError(response.status, body);
+  let response = await send(false);
+  let body = response.ok ? undefined : await readError(response);
+  if (response.status === 403 && body?.error === 'CSRF_INVALID' && MUTATING.has(method)) {
+    response = await send(true);
+    body = response.ok ? undefined : await readError(response);
   }
+  if (!response.ok) throw new ApiError(response.status, body);
 
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
 export async function apiMultipart<T>(path: string, file: File, fields: Record<string, string>): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json', [CSRF_HEADER]: await ensureCsrfToken() };
   const form = new FormData();
   form.append('image', file);
   Object.entries(fields).forEach(([name, value]) => form.append(name, value));
-  const response = await fetch(path, { method: 'POST', headers, credentials: 'same-origin', body: form });
-  if (!response.ok) {
-    let body: Partial<ApiErrorBody> | undefined;
-    try { body = (await response.json()) as ApiErrorBody; } catch { body = undefined; }
-    throw new ApiError(response.status, body);
+  const send = async (freshToken: boolean) => fetch(path, {
+    method: 'POST', credentials: 'same-origin', body: form,
+    headers: { Accept: 'application/json', [CSRF_HEADER]: await ensureCsrfToken(freshToken) },
+  });
+  let response = await send(false);
+  let body = response.ok ? undefined : await readError(response);
+  if (response.status === 403 && body?.error === 'CSRF_INVALID') {
+    response = await send(true);
+    body = response.ok ? undefined : await readError(response);
   }
+  if (!response.ok) throw new ApiError(response.status, body);
   return (await response.json()) as T;
 }

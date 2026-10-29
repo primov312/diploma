@@ -1,4 +1,6 @@
+// AI-assisted (Claude), 2026: shows the human review state; reviewed by the author.
 import { Link } from 'react-router-dom';
+import { reviewLabel } from '../../components/app/HumanReview';
 import { applicationsApi } from '../../api/rocket';
 import { Card, Empty, LinkButton, Loading, Notice, Page, StatusBadge } from '../../components/app/Ui';
 import { Icon } from '../../components/common/Icon';
@@ -20,7 +22,7 @@ const ApplicationsPage = () => {
                 <Link to={`/applications/${a.id}`} className="-mx-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md px-2 py-3 hover:bg-gray-50">
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-gray-800">{a.productName ?? 'Custom amount'} · {formatCurrency(a.requestedAmount)}</div>
-                    <div className="text-sm text-gray-500">{a.partnerName} · {new Date(a.createdAt).toLocaleDateString()}{a.loanId ? ' · accepted' : ''}</div>
+                    <div className="text-sm text-gray-500">{a.partnerName} · {new Date(a.createdAt).toLocaleDateString()}{reviewLabel(a) ? ` · ${reviewLabel(a)}` : ''}{a.loanId ? ' · accepted' : ''}</div>
                   </div>
                   <StatusBadge status={a.decisionStatus} />
                   <Icon name="arrow" className="h-4 w-4 text-gray-400" />

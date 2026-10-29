@@ -3,7 +3,7 @@ import type { Application, FinancialInputs, MonthlyLivingCosts } from '../../src
 
 export async function mockCustomerApi(page: Page, signedIn = true, options: { consented?: boolean } = {}) {
   let authenticated = signedIn;
-  let user = { id: 1, email: 'customer@example.test', displayName: 'Alex Customer', createdAt: '2026-01-01T12:00:00Z' };
+  let user = { id: 1, email: 'customer@example.test', displayName: 'Alex Customer', createdAt: '2026-01-01T12:00:00Z', role: 'CUSTOMER' as const };
   const partners = [
     { id: 1, slug: 'streambox', displayName: 'Netflix', amountCap: 400, currency: 'USD' },
     { id: 2, slug: 'markethub', displayName: 'Amazon', amountCap: 2000, currency: 'USD' },

@@ -1,6 +1,9 @@
+// AI-assisted (Claude), 2026: one navigation set per kind of user; reviewed by the author.
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import type { Role } from '../api/auth';
 import { useAuth } from '../auth/AuthContext';
+import { homeFor } from '../auth/roles';
 import { Icon, type IconName } from './common/Icon';
 
 type NavItem = { to: string; label: string; icon: IconName; also?: string[] };
@@ -18,6 +21,19 @@ const accountLinks: NavItem[] = [
   { to: '/balance', label: 'Wallet', icon: 'wallet', also: ['/repayments', '/history'] },
   { to: '/consents', label: 'Privacy', icon: 'shield' },
 ];
+const sellerLinks: NavItem[] = [
+  { to: '/seller', label: 'Overview', icon: 'chart' },
+  { to: '/seller/orders', label: 'Orders', icon: 'file' },
+  { to: '/seller/catalog', label: 'Catalogue', icon: 'store' },
+];
+const adminLinks: NavItem[] = [
+  { to: '/admin', label: 'Overview', icon: 'chart' },
+  { to: '/admin/users', label: 'Users', icon: 'user' },
+  { to: '/admin/reviews', label: 'Reviews', icon: 'check' },
+  { to: '/admin/partners', label: 'Partners', icon: 'building' },
+  { to: '/admin/audit', label: 'Audit log', icon: 'activity' },
+];
+const LINKS: Record<Role, NavItem[]> = { CUSTOMER: accountLinks, SELLER: sellerLinks, ADMIN: adminLinks };
 const linkClass = (active: boolean) => 'flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold transition-colors '
   + (active ? 'bg-white/15 text-white' : 'text-primary-100 hover:bg-white/10 hover:text-white');
 
@@ -34,9 +50,9 @@ const Header = () => {
     return () => document.removeEventListener('keydown', close);
   }, [open]);
 
-  const links = !loading && user ? accountLinks : publicLinks;
+  const links = !loading && user ? LINKS[user.role] : publicLinks;
   const items = <>
-    {links.map((item) => <NavLink key={item.to} to={item.to}
+    {links.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/seller' || item.to === '/admin'}
       className={({ isActive }) => linkClass(isActive || (item.also ?? []).some((path) => location.pathname.startsWith(path)))}>
       <Icon name={item.icon} />{item.label}
     </NavLink>)}
@@ -52,7 +68,7 @@ const Header = () => {
   return <header className="sticky top-0 z-50 border-b border-primary-700 bg-primary text-white">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded focus:bg-white focus:p-3 focus:text-primary">Skip to content</a>
     <nav aria-label="Main navigation" className="flex min-h-16 items-center justify-between gap-4 px-4 py-2 md:px-6">
-      <Link to={user ? '/account-dashboard' : '/'} className="flex min-h-11 shrink-0 items-center gap-3">
+      <Link to={homeFor(user)} className="flex min-h-11 shrink-0 items-center gap-3">
         <Icon name="layers" className="h-7 w-7" /><span className="text-xl font-bold tracking-tight">Rocket Credit</span>
         <span className="rounded border border-primary-400 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-100">Demo</span>
       </Link>

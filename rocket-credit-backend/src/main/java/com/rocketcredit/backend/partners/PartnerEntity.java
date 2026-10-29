@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: active flag added; reviewed by the author.
 package com.rocketcredit.backend.partners;
 
 import jakarta.persistence.*;
@@ -22,6 +23,10 @@ public class PartnerEntity {
     @Column(nullable = false, length = 3)
     private String currency = "USD";
 
+    /** Inactive entries are hidden from the public catalogue and cannot be quoted, financed or bought. */
+    @Column(nullable = false)
+    private boolean active = true;
+
     protected PartnerEntity() {}
 
     public PartnerEntity(String slug, String displayName, BigDecimal amountCap) {
@@ -35,4 +40,5 @@ public class PartnerEntity {
     public String getDisplayName() { return displayName; }
     public BigDecimal getAmountCap() { return amountCap; }
     public String getCurrency() { return currency; }
+    public boolean isActive() { return active; }
 }

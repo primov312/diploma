@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: availability checks and acceptance after a human review added; reviewed by the author.
 package com.rocketcredit.backend.payments;
 
 import com.rocketcredit.backend.affordability.AffordabilityJobs;
@@ -30,9 +31,9 @@ public class PaymentService {
     }
     public Map<String,Object> purchase(long user,String key,Purchase request) {
         return ledger.execute(user,key,"PURCHASE",request,op->{
-            var partner=partners.findBySlug(request.partnerSlug()==null?"":request.partnerSlug()).orElseThrow(()->ApiException.badRequest("UNKNOWN_PARTNER","Unknown store."));
+            var partner=Availability.require(partners.findBySlug(request.partnerSlug()==null?"":request.partnerSlug()).orElseThrow(()->ApiException.badRequest("UNKNOWN_PARTNER","Unknown store.")));
             if(request.productId()==null)throw ApiException.badRequest("UNKNOWN_PRODUCT","Choose a catalog product.");
-            var product=products.findById(request.productId()).filter(p->p.getPartnerId().equals(partner.getId())).orElseThrow(()->ApiException.badRequest("UNKNOWN_PRODUCT","Product not found for this store."));
+            var product=Availability.require(products.findById(request.productId()).filter(p->p.getPartnerId().equals(partner.getId())).orElseThrow(()->ApiException.badRequest("UNKNOWN_PRODUCT","Product not found for this store.")));
             if(request.expectedAmount()!=null && request.expectedAmount().compareTo(product.getPrice())!=0)
                 throw ApiException.conflict("TERMS_CHANGED","The catalog price changed. Reload the store and review the purchase again.");
             BigDecimal shortfall=product.getPrice().subtract(ledger.balance(user));
@@ -50,9 +51,15 @@ public class PaymentService {
             var app=apps.getFirst();
             var existing=jdbc.queryForList("SELECT id FROM loans WHERE application_id=?",application);
             if(!existing.isEmpty())return result(user,"loanId",existing.getFirst().get("id"));
-            if(!"APPROVED".equals(app.get("decision_status")) || app.get("quote_id")==null)
+            // An automated APPROVED, or a REVIEW that an administrator approved (human intervention); the
+            // automated decision row itself is never changed, the human outcome lives in application_reviews.
+            BigDecimal reviewed=jdbc.query("SELECT approved_amount FROM application_reviews WHERE application_id=? AND outcome='APPROVED'",
+                (rs,n)->rs.getBigDecimal(1),application).stream().findFirst().orElse(null);
+            boolean offer="APPROVED".equals(app.get("decision_status")) || ("REVIEW".equals(app.get("decision_status")) && reviewed!=null);
+            if(!offer || app.get("quote_id")==null)
                 throw ApiException.conflict("NOT_ACTIVATABLE","This application has no active credit offer.");
-            var quote=quotes.get(user,((Number)app.get("quote_id")).longValue()); quotes.validate(user,quote,true);
+            var quote=quotes.get(user,((Number)app.get("quote_id")).longValue());
+            if(reviewed!=null)quote=quotes.reissueForReview(user,quote,reviewed); else quotes.validate(user,quote,true);
             var schedule=quote.schedule();
             long loan=jdbc.queryForObject("""
                 INSERT INTO loans(user_id,application_id,quote_id,partner_id,product_id,principal,term_unit,installment_count,annual_rate,pricing_version,start_date,created_at)

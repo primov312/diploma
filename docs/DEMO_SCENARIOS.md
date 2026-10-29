@@ -1,4 +1,5 @@
 # Demo Scenarios
+<!-- 2026-10-28: seller and administrator walkthroughs added, AI-assisted (Claude), reviewed by the author. -->
 
 Updated 2026-10-22 (marketplace, district map and `rules-v4` outcomes). Earlier update 2026-10-04. Financial profiles and visits are synthetic diploma data; researched price references are documented in `LOCATION_PRICING.md`. Older v1/v2 examples below describe historical policies. Fixture source: `rocket-credit-backend/src/main/resources/fixtures/demo-customers.json`.
 
@@ -15,7 +16,32 @@ clearly labelled synthetic starter dataset (`syntheticSource = STARTER`, three p
 | Drew Denied | `drew@demo.rocket.local` | 1 month | incomplete, unverified | 0 / 0 / 1 (late) | 1800 − 1700 − 150 = **−50 → 0** |
 | Casey Limited | `casey@demo.rocket.local` | 18 months | complete, verified | 10 / 4 / 3, all on time | 2200 − 1900 − 100 = **200** |
 
+Seller and administrator accounts (same password; see [ROLES.md](ROLES.md)): `admin@demo.rocket.local`,
+`netflix@demo.rocket.local` (Netflix / `streambox`), `zara@demo.rocket.local` (Zara / `threadly`),
+`amazon@demo.rocket.local` (Amazon / `markethub`). A separate synthetic customer, `orders@demo.rocket.local`,
+holds 12 financed orders so the seller screens have data; the four personas above are not changed.
+
 Partner caps: StreamBox 600 USD, MarketHub 1500 USD, Threadly 800 USD.
+
+## Seller and administrator walkthroughs
+
+Added 2026-10-28 (roles). Screenshots `docs/screenshots/11-…` to `18-…`.
+
+**Seller (Zara)**
+1. Sign in, click **Zara seller** under "Demo seller and administrator accounts", then **Sign in**. Expected: `/seller`, heading "Zara overview", tiles for financed orders, amount paid by Rocket Credit, active and closed credits, and a 30-day chart (`11-seller-overview.png`).
+2. **Orders**. Expected: a table of financed orders; the customer column shows only `C-XXXXXX` references, no names or e-mails (`12-seller-orders.png`).
+3. **Catalogue → Add product**. Enter a name, a price in USD, a description, a category and an image. A price above 800 USD is refused before sending (`13-seller-catalog-form.png`). **Add product**: the product appears in the table and in the marketplace.
+4. **Deactivate** the product: it disappears from the marketplace; a quote for it answers `PRODUCT_UNAVAILABLE`.
+5. Open `/admin` or `/balance`: you are sent back to `/seller` with a notice.
+
+**Administrator: human review of Riley's request**
+1. Sign in as Riley and request 18,000 HUF at Amazon over 6 months (as in the smoke test). Expected: **Needs review**, and "An administrator will look at this request".
+2. Sign out, sign in with **Administrator**. Expected: `/admin`, "Platform overview" with accounts, decisions, open reviews and service health (`14-admin-overview.png`).
+3. **Reviews** → **Review** on Riley's request. Expected: the automatic result, the reasons Riley was shown, factor scores and the chosen plan; no income, costs, address or footprint (`16-admin-review-detail.png`).
+4. Choose **Approve** (amount at most min(possible, requested)) or **Reject**, write a note of at least 10 characters, **Review decision**, then **Confirm decision**. Expected: the decision card; a second decision is refused (`ALREADY_REVIEWED`).
+5. **Audit log**. Expected: an `ADMIN_REVIEW_DECIDED` entry with outcome and amount, newest first (`17-admin-audit-log.png`).
+6. Sign in as Riley again and open the request. Expected after approval: "Human review: approved", the note, the kept automatic result, and **Accept and pay seller** (`18-customer-decision-after-review.png`). Accepting creates a credit for the approved amount. After rejection: "Human review: not approved" with the note and no offer.
+7. **Users** (`15-admin-users.png`): create a seller for a partner, disable or enable an account (a disabled seller's next request gets `401`), set a temporary password. **Partners**: change a financing limit or switch a partner off.
 Possible amount = min(partner cap, disposable income × 3.0) (policy `rules-v1`).
 
 ## Current automatic-budget walkthrough (`rules-v4`)

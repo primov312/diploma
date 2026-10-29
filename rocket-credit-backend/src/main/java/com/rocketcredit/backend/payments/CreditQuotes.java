@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: availability checks and the reissue after a human review added; reviewed by the author.
 package com.rocketcredit.backend.payments;
 
 import com.rocketcredit.backend.common.ApiException;
@@ -20,10 +21,10 @@ public class CreditQuotes {
     public record Quote(long id,long partnerId,Long productId,long generation,OffsetDateTime expiresAt,RepaymentCalculator.Schedule schedule) {}
     public Quote create(long user,Request req) {
         ledger.ensure(user);
-        var partner=partners.findBySlug(req.partnerSlug()==null?"":req.partnerSlug()).orElseThrow(()->ApiException.badRequest("UNKNOWN_PARTNER","Unknown store."));
+        var partner=Availability.require(partners.findBySlug(req.partnerSlug()==null?"":req.partnerSlug()).orElseThrow(()->ApiException.badRequest("UNKNOWN_PARTNER","Unknown store.")));
         BigDecimal amount=req.requestedAmount();
         if(req.productId()!=null) {
-            var product=products.findById(req.productId()).filter(p->p.getPartnerId().equals(partner.getId())).orElseThrow(()->ApiException.badRequest("UNKNOWN_PRODUCT","Product not found for this store."));
+            var product=Availability.require(products.findById(req.productId()).filter(p->p.getPartnerId().equals(partner.getId())).orElseThrow(()->ApiException.badRequest("UNKNOWN_PRODUCT","Product not found for this store.")));
             if(amount!=null && amount.compareTo(product.getPrice())!=0) throw ApiException.badRequest("AMOUNT_MISMATCH","Amount must match the catalog price.");
             amount=product.getPrice();
         }
@@ -47,12 +48,43 @@ public class CreditQuotes {
         if(!calculator.version().equals(q.schedule().pricingVersion())) throw ApiException.conflict("TERMS_CHANGED","Pricing changed. Review a fresh quote.");
         Long generation=jdbc.queryForObject("SELECT generation FROM financial_input_state WHERE user_id=?",Long.class,user);
         if(generation!=q.generation()) throw ApiException.conflict("INPUTS_CHANGED","Financial information or obligations changed. Submit a fresh request.");
-        if(accepting && new BigDecimal(q.schedule().principal()).compareTo(partners.findById(q.partnerId()).orElseThrow(()->ApiException.notFound("Store")).getAmountCap())>0)
+        checkStoreAndProduct(q,accepting?new BigDecimal(q.schedule().principal()):null);
+    }
+    /** The partner and product must still be offered; a financed amount must fit the partner's current cap. */
+    private void checkStoreAndProduct(Quote q,BigDecimal financed) {
+        var partner=Availability.require(partners.findById(q.partnerId()).orElseThrow(()->ApiException.notFound("Store")));
+        if(financed!=null && financed.compareTo(partner.getAmountCap())>0)
             throw ApiException.conflict("TERMS_CHANGED","The store financing limit changed. Review a fresh quote.");
         if(q.productId()!=null) {
-            var product=products.findById(q.productId()).orElseThrow(()->ApiException.conflict("TERMS_CHANGED","Product is no longer available."));
+            var product=Availability.require(products.findById(q.productId()).orElseThrow(()->ApiException.conflict("TERMS_CHANGED","Product is no longer available.")));
             if(product.getPrice().compareTo(new BigDecimal(q.schedule().principal()))!=0) throw ApiException.conflict("TERMS_CHANGED","The catalog price changed. Review a fresh quote.");
         }
+    }
+    /**
+     * Checks for accepting an offer that an administrator approved after a human review. The review can take
+     * days, so the original quote's same-day start is not required; everything else is: same pricing version,
+     * unchanged financial information since the application, partner and product still offered at the quoted
+     * price, and the approved amount within the partner cap.
+     */
+    public void validateReviewed(long user,Quote q,BigDecimal approved) {
+        if(!calculator.version().equals(q.schedule().pricingVersion())) throw ApiException.conflict("TERMS_CHANGED","Pricing changed. Submit a fresh request.");
+        Long generation=jdbc.queryForObject("SELECT generation FROM financial_input_state WHERE user_id=?",Long.class,user);
+        if(generation!=q.generation()) throw ApiException.conflict("INPUTS_CHANGED","Financial information or obligations changed. Submit a fresh request.");
+        checkStoreAndProduct(q,approved);
+    }
+    /**
+     * A fresh quote for the reviewed amount, with the customer's chosen term, starting today. The loan points at
+     * this quote; the original quote stays unchanged as the record of what was requested.
+     */
+    public Quote reissueForReview(long user,Quote q,BigDecimal approved) {
+        validateReviewed(user,q,approved);
+        var schedule=calculator.calculate(approved,q.schedule().termUnit(),q.schedule().installmentCount(),ledger.today());
+        var expiry=ledger.expires(15);
+        long id=jdbc.queryForObject("""
+            INSERT INTO credit_quotes(user_id,partner_id,product_id,principal,term_unit,installment_count,annual_rate,pricing_version,generation,start_date,expires_at,schedule,created_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?::jsonb,?) RETURNING id
+            """,Long.class,user,q.partnerId(),q.productId(),new BigDecimal(schedule.principal()),schedule.termUnit(),schedule.installmentCount(),calculator.rate(),calculator.version(),q.generation(),schedule.startDate(),expiry,ledger.json(schedule),ledger.now());
+        return new Quote(id,q.partnerId(),q.productId(),q.generation(),expiry,schedule);
     }
     public RepaymentCalculator.Terms terms(Quote q) {return new RepaymentCalculator.Terms(q.schedule().termUnit(),q.schedule().installmentCount(),new BigDecimal(q.schedule().annualRate()),q.schedule().pricingVersion());}
 }

@@ -1,3 +1,4 @@
+// AI-assisted (Claude), 2026: responses carry the role; reviewed by the author.
 package com.rocketcredit.backend.auth;
 
 import com.rocketcredit.backend.users.UserDto;
@@ -30,6 +31,11 @@ import org.springframework.web.bind.annotation.*;
  *   POST /api/auth/login     {email,password}             -> 200 UserDto + RCSESSION cookie (new session id)
  *   POST /api/auth/logout                                  -> 204, session invalidated
  *   GET  /api/me                                           -> 200 UserDto | 401
+ * </pre>
+ * UserDto carries the role (CUSTOMER, SELLER or ADMIN) and, for sellers, the partner. Registration always
+ * creates a CUSTOMER: the request record has no role, partner or enabled field, and unknown JSON properties
+ * are ignored, so a client cannot choose its own role.
+ * <pre>
  *   GET  /api/csrf                                         -> 200 {headerName, token} (also sets XSRF-TOKEN cookie)
  * </pre>
  * All POSTs need the X-XSRF-TOKEN header matching the XSRF-TOKEN cookie.
@@ -83,7 +89,7 @@ public class AuthController {
 
         var principal = (AuthenticatedUser) auth.getPrincipal();
         log.info("user logged in id={}", principal.getId());
-        return ResponseEntity.ok(UserDto.from(userService.requireById(principal.getId())));
+        return ResponseEntity.ok(userService.view(principal.getId()));
     }
 
     @PostMapping("/auth/logout")
@@ -96,7 +102,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public UserDto me(@AuthenticationPrincipal AuthenticatedUser principal) {
-        return UserDto.from(userService.requireById(principal.getId()));
+        return userService.view(principal.getId());
     }
 
     @GetMapping("/csrf")

@@ -1,5 +1,8 @@
+// AI-assisted (Claude), 2026: seller and administrator routes added; reviewed by the author.
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
-import RequireAuth from './auth/RequireAuth';
+import { useAuth } from './auth/AuthContext';
+import RequireRole from './auth/RequireRole';
+import { homeFor } from './auth/roles';
 import Layout from './components/Layout';
 import AccountDashboard from './pages/AccountDashboard';
 import ForBusinesses from './pages/ForBusinesses';
@@ -15,14 +18,26 @@ import HistoryPage from './pages/app/HistoryPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import MarketplacePage from './pages/stores/MarketplacePage';
+import SellerOverviewPage from './pages/seller/SellerOverviewPage';
+import SellerOrdersPage from './pages/seller/SellerOrdersPage';
+import SellerCatalogPage from './pages/seller/SellerCatalogPage';
+import AdminOverviewPage from './pages/admin/AdminOverviewPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminReviewsPage from './pages/admin/AdminReviewsPage';
+import AdminReviewDetailPage from './pages/admin/AdminReviewDetailPage';
+import AdminPartnersPage from './pages/admin/AdminPartnersPage';
+import AdminAuditPage from './pages/admin/AdminAuditPage';
 
-const NotFound = () => (
-  <div className="page-shell">
-    <h1 className="text-4xl font-bold text-gray-800">Page not found</h1>
-    <p className="mt-4 text-gray-600">This page doesn't exist.</p>
-    <Link to="/" className="btn-primary mt-6">Go to the home page</Link>
-  </div>
-);
+const NotFound = () => {
+  const { user } = useAuth();
+  return (
+    <div className="page-shell">
+      <h1 className="text-4xl font-bold text-gray-800">Page not found</h1>
+      <p className="mt-4 text-gray-600">This page doesn't exist.</p>
+      <Link to={homeFor(user)} className="btn-primary mt-6">{user ? 'Go to your start page' : 'Go to the home page'}</Link>
+    </div>
+  );
+};
 
 const App = () => (
   <Routes>
@@ -39,8 +54,9 @@ const App = () => (
       <Route path="stores" element={<Navigate to="/marketplace" replace />} />
       <Route path="stores/:slug" element={<Navigate to="/marketplace" replace />} />
 
-      {/* Everything below needs a session; RequireAuth redirects to /login and back (query string included). */}
-      <Route element={<RequireAuth />}>
+      {/* Each area needs a session with its role; RequireRole redirects to /login and back (query string
+          included), or to the user's own start page. The server enforces the same roles. */}
+      <Route element={<RequireRole role="CUSTOMER" />}>
         <Route path="account-dashboard" element={<AccountDashboard />} />
         <Route path="balance" element={<BalancePage />} />
         <Route path="repayments" element={<RepaymentsPage />} />
@@ -49,6 +65,19 @@ const App = () => (
         <Route path="apply" element={<ApplyPage />} />
         <Route path="applications" element={<ApplicationsPage />} />
         <Route path="applications/:id" element={<ApplicationDetailPage />} />
+      </Route>
+      <Route element={<RequireRole role="SELLER" />}>
+        <Route path="seller" element={<SellerOverviewPage />} />
+        <Route path="seller/orders" element={<SellerOrdersPage />} />
+        <Route path="seller/catalog" element={<SellerCatalogPage />} />
+      </Route>
+      <Route element={<RequireRole role="ADMIN" />}>
+        <Route path="admin" element={<AdminOverviewPage />} />
+        <Route path="admin/users" element={<AdminUsersPage />} />
+        <Route path="admin/reviews" element={<AdminReviewsPage />} />
+        <Route path="admin/reviews/:applicationId" element={<AdminReviewDetailPage />} />
+        <Route path="admin/partners" element={<AdminPartnersPage />} />
+        <Route path="admin/audit" element={<AdminAuditPage />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

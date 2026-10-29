@@ -164,3 +164,9 @@ git-ignored and unencrypted — see [docs/SAFE_DATA_KEEPING.md](../docs/SAFE_DAT
 
 Seeded at every backend start (idempotent). Password for all: `rocket-demo-123`. Details and expected
 outcomes: [docs/DEMO_SCENARIOS.md](../docs/DEMO_SCENARIOS.md).
+
+Since migration V17 the backend also seeds `admin@demo.rocket.local` (administrator), one seller per demo partner
+(`netflix@`, `zara@`, `amazon@demo.rocket.local`) and `orders@demo.rocket.local`, a synthetic customer with 12 financed
+orders for the seller screens. On an existing volume V17 runs once at the next start: every existing user becomes a
+customer, and all partners and products stay active. An existing account that already uses one of these e-mails with
+another role is left unchanged (logged as a warning), never promoted. Roles and screens: [docs/ROLES.md](../docs/ROLES.md).

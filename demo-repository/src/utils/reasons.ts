@@ -56,7 +56,7 @@ export const STATUS_TEXT: Record<DecisionStatus, { label: string; summary: strin
   },
   REVIEW: {
     label: 'Needs review',
-    summary: 'The automatic check could not decide. In this demo there is no manual review, so the request stays open.',
+    summary: 'The automatic check could not decide. An administrator will review your request and decide.',
     tone: 'bg-warning-50 text-warning-700 border-warning-100',
   },
 };
