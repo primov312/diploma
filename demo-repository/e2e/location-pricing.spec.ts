@@ -83,7 +83,7 @@ test('older saved reports and unavailable datasets remain readable', async ({ pa
     distinctDistricts: 1, mostVisitedDistrict: 'Budapest XI', visits: [{ id: 'old-visit', district: 'Budapest XI', place: 'Cafe', arrival: '2026-09-06T12:00:00Z' }] };
   await page.route('**/api/me/demo-signals/reports?kind=LOCATION', route => route.fulfill({ json: [report] }));
   await register(page);
-  await page.getByRole('navigation', { name: 'Dashboard sections' }).getByRole('link', { name: 'Activity' }).click();
+  await openActivity(page);
   await openVisits(page);
   await expect(page.getByText('Run location analysis again to attach benchmark prices to this saved report.')).toBeVisible();
   await expect(page.getByText('Cafe · Budapest XI', { exact: true })).toBeVisible();

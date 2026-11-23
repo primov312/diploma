@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { formatCurrency } from '../src/utils/format';
+import { agreeToFootprint } from './support/consent';
 
 async function register(page: Page, name = 'Dashboard Tester') {
   await page.goto('/register');
@@ -27,6 +28,7 @@ test('dashboard tabs have direct URLs, legacy links and responsive navigation', 
     await nav.getByRole('link', { name: label }).click();
     await expect(page).toHaveURL(`/account-dashboard?section=${id}`);
     await expect(nav.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page');
+    if (id === 'activity') await agreeToFootprint(page);   // Activity stays behind its consent card until agreed
     await expect(page.getByRole('heading', { name: heading })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'What you can afford' })).toHaveCount(0);
   }
@@ -50,6 +52,9 @@ test('dashboard tabs have direct URLs, legacy links and responsive navigation', 
 
 test('Facebook return opens activity and dismissing its message keeps the tab', async ({ page }) => {
   await register(page);
+  // Connecting Facebook is only offered after digital footprint consent, so a real return always has it.
+  await page.goto('/account-dashboard?section=activity');
+  await agreeToFootprint(page);
   for (const [outcome, text] of [['permission', 'access to posts was not allowed'], ['session', 'Your session ended during Facebook login']]) {
     await page.goto(`/account-dashboard?section=activity&social=${outcome}`);
     await expect(page.getByText(text, { exact: false })).toBeVisible();
